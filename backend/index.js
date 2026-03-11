@@ -1,8 +1,10 @@
 const express = require("express");
+const cors = require("cors");
 const dotenv = require("dotenv");
 const path = require("path");
 const connectDB = require("./config/mongodb");
 const upload = require("./config/multer");
+const authRoutes = require("./routes/authRoutes");
 const boulderRoutes = require("./routes/boulderRoutes");
 const partyRoutes = require("./routes/partyRoutes");
 const salesRoutes = require("./routes/salesRoutes");
@@ -13,6 +15,7 @@ dotenv.config({ path: path.join(__dirname, ".env") });
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -31,6 +34,7 @@ app.post("/upload", upload.single("file"), (req, res) => {
   });
 });
 
+app.use("/api/auth", authRoutes);
 app.use("/api/boulders", boulderRoutes);
 app.use("/api/parties", partyRoutes);
 app.use("/api/sales", salesRoutes);

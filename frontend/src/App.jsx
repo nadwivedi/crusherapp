@@ -1,122 +1,177 @@
-import React, { useState } from "react";
-import "./App.css";
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { useAuth } from './context/AuthContext';
+import Login from './pages/Login';
+import Home from './pages/Home';
+import Party from './pages/Party';
+import Vehicle from './pages/Vehicle';
+import Boulder from './pages/Boulder';
+import Sales from './pages/Sales';
+import Purchases from './pages/Purchases';
+import Payments from './pages/Payments';
+import Receipts from './pages/Receipts';
+import Expenses from './pages/Expenses';
+import ExpenseGroups from './pages/ExpenseGroups';
+import StockGroups from './pages/StockGroups';
+import Unit from './pages/Unit';
+import Products from './pages/Products';
+import Reports from './pages/Reports';
+import Settings from './pages/Settings';
+import ProtectedRoute from './components/ProtectedRoute';
 
-const initialForm = {
-  vehicleNo: "",
-  weight: "",
-};
-
-const App = () => {
-  const [form, setForm] = useState(initialForm);
-  const [entries, setEntries] = useState([]);
-
-  const handleChange = (event) => {
-    const { name, value } = event.target;
-    setForm((current) => ({
-      ...current,
-      [name]: value,
-    }));
-  };
-
-  const handleSubmit = (event) => {
-    event.preventDefault();
-
-    if (!form.vehicleNo.trim() || !form.weight.trim()) {
-      return;
-    }
-
-    setEntries((current) => [
-      {
-        id: crypto.randomUUID(),
-        vehicleNo: form.vehicleNo.trim().toUpperCase(),
-        weight: form.weight.trim(),
-      },
-      ...current,
-    ]);
-
-    setForm(initialForm);
-  };
+function App() {
+  const { isAuthenticated } = useAuth();
 
   return (
-    <main className="page-shell">
-      <section className="hero-card">
-        <p className="eyebrow">Crusher Tracker</p>
-        <h1>Boulder Loading Register</h1>
-        <p className="hero-copy">
-          Record which vehicle number carried which weight.
-        </p>
-      </section>
+    <>
+      <Routes>
+        <Route
+          path="/login"
+          element={isAuthenticated ? <Navigate to="/" /> : <Login />}
+        />
 
-      <section className="content-grid">
-        <form className="entry-card" onSubmit={handleSubmit}>
-          <div className="section-heading">
-            <h2>Add Boulder Entry</h2>
-            <p>Save the vehicle number with the transported weight.</p>
-          </div>
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <Home />
+            </ProtectedRoute>
+          }
+        />
 
-          <label className="field">
-            <span>Vehicle No</span>
-            <input
-              type="text"
-              name="vehicleNo"
-              value={form.vehicleNo}
-              onChange={handleChange}
-              placeholder="TN 01 AB 1234"
-            />
-          </label>
+        <Route
+          path="/party"
+          element={
+            <ProtectedRoute>
+              <Party />
+            </ProtectedRoute>
+          }
+        />
 
-          <label className="field">
-            <span>Weight</span>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              name="weight"
-              value={form.weight}
-              onChange={handleChange}
-              placeholder="12.50"
-            />
-          </label>
+        <Route
+          path="/vehicle"
+          element={
+            <ProtectedRoute>
+              <Vehicle />
+            </ProtectedRoute>
+          }
+        />
 
-          <button type="submit" className="submit-button">
-            Add Entry
-          </button>
-        </form>
+        <Route
+          path="/boulder"
+          element={
+            <ProtectedRoute>
+              <Boulder />
+            </ProtectedRoute>
+          }
+        />
 
-        <section className="list-card">
-          <div className="section-heading">
-            <h2>Vehicle Weight List</h2>
-            <p>Quick view of which vehicle carried which weight.</p>
-          </div>
+        <Route
+          path="/sales"
+          element={
+            <ProtectedRoute>
+              <Sales />
+            </ProtectedRoute>
+          }
+        />
 
-          {entries.length === 0 ? (
-            <div className="empty-state">
-              No entries yet. Add a vehicle number and weight.
-            </div>
-          ) : (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Vehicle No</th>
-                    <th>Weight</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {entries.map((entry) => (
-                    <tr key={entry.id}>
-                      <td>{entry.vehicleNo}</td>
-                      <td>{entry.weight} ton</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
-      </section>
-    </main>
+        <Route
+          path="/purchases"
+          element={
+            <ProtectedRoute>
+              <Purchases />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/payments"
+          element={
+            <ProtectedRoute>
+              <Payments />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/receipts"
+          element={
+            <ProtectedRoute>
+              <Receipts />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/expenses"
+          element={
+            <ProtectedRoute>
+              <Expenses />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/expense-groups"
+          element={
+            <ProtectedRoute>
+              <ExpenseGroups />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/stock-groups"
+          element={
+            <ProtectedRoute>
+              <StockGroups />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/units"
+          element={
+            <ProtectedRoute>
+              <Unit />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/stock"
+          element={
+            <ProtectedRoute>
+              <Products />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/reports"
+          element={
+            <ProtectedRoute>
+              <Reports />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <Settings />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
+
+      <ToastContainer position="top-right" newestOnTop closeOnClick pauseOnHover />
+    </>
   );
-};
+}
 
 export default App;
