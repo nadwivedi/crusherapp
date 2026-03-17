@@ -1,41 +1,49 @@
-import PageLayout, { InfoList, PageCard, WorkflowList } from '../components/PageLayout';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export default function Settings() {
-  return (
-    <PageLayout
-      eyebrow="Settings"
-      title="Application Settings"
-      description="Configure application preferences"
-      metrics={[
-        { label: 'Module', value: 'Settings', tone: 'slate' },
-        { label: 'Type', value: 'Configuration', tone: 'amber' }
-      ]}
-    >
-      <PageCard
-        title="General Settings"
-        description="Manage basic application settings"
-      >
-        <WorkflowList
-          items={[
-            { title: 'Company Profile', description: 'Update business name and details' },
-            { title: 'Financial Year', description: 'Set and manage financial year' },
-            { title: 'Currency', description: 'Configure currency preferences' }
-          ]}
-        />
-      </PageCard>
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const displayName = String(user?.companyName || `${user?.firstName || ''} ${user?.lastName || ''}`).trim() || '-';
 
-      <PageCard
-        title="User Preferences"
-        description="Customize your experience"
-      >
-        <InfoList
-          items={[
-            { label: 'Theme', value: 'Light/Dark mode' },
-            { label: 'Notifications', value: 'Manage alerts' },
-            { label: 'Backup', value: 'Data backup settings' }
-          ]}
-        />
-      </PageCard>
-    </PageLayout>
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  return (
+    <div className="min-h-screen bg-[#f8f6f1] p-4 pt-20 md:p-8">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-slate-800">Settings</h1>
+        <p className="text-slate-600 mt-1">Manage account actions</p>
+      </div>
+
+      <div className="max-w-xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-slate-800">User Account</h2>
+        <div className="mt-4 space-y-2 text-sm text-slate-600">
+          <p><span className="font-medium text-slate-700">Company:</span> {displayName}</p>
+          <p><span className="font-medium text-slate-700">Email:</span> {user?.email || '-'}</p>
+          <p><span className="font-medium text-slate-700">Phone:</span> {user?.phone || '-'}</p>
+          <p><span className="font-medium text-slate-700">State:</span> {user?.address?.state || '-'}</p>
+          <p><span className="font-medium text-slate-700">Pincode:</span> {user?.address?.pincode || '-'}</p>
+          <p><span className="font-medium text-slate-700">GST Number:</span> {user?.gstNumber || '-'}</p>
+          <p><span className="font-medium text-slate-700">Bank:</span> {user?.bankDetails?.bankName || '-'}</p>
+          <p><span className="font-medium text-slate-700">Account Number:</span> {user?.bankDetails?.accountNumber || '-'}</p>
+          <p><span className="font-medium text-slate-700">IFSC:</span> {user?.bankDetails?.ifscCode || '-'}</p>
+          <p><span className="font-medium text-slate-700">Account Holder:</span> {user?.bankDetails?.accountHolderName || '-'}</p>
+          <p><span className="font-medium text-slate-700">UPI ID:</span> {user?.bankDetails?.upiId || '-'}</p>
+        </div>
+
+        <div className="mt-6 border-t border-slate-200 pt-4">
+          <button
+            onClick={handleLogout}
+            className="inline-flex items-center rounded-lg bg-rose-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-700"
+          >
+            Logout
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
+

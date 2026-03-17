@@ -1,9 +1,78 @@
 const mongoose = require("mongoose");
 const Boulder = require("../models/Boulder");
+const Vehicle = require("../models/Vehicle");
+
+const normalizeBoulderPayload = async (payload) => {
+  const normalizedPayload = { ...payload };
+  const hasVehicleId =
+    normalizedPayload.vehicleId !== undefined &&
+    normalizedPayload.vehicleId !== null &&
+    `${normalizedPayload.vehicleId}`.trim() !== "";
+  const hasVehicleNo =
+    typeof normalizedPayload.vehicleNo === "string" &&
+    normalizedPayload.vehicleNo.trim() !== "";
+
+  if (
+    normalizedPayload.weight !== undefined &&
+    normalizedPayload.boulderWeight === undefined
+  ) {
+    normalizedPayload.boulderWeight = normalizedPayload.weight;
+  }
+
+  if (
+    normalizedPayload.boulderWeight !== undefined &&
+    normalizedPayload.netWeight === undefined
+  ) {
+    normalizedPayload.netWeight = normalizedPayload.boulderWeight;
+  }
+
+  if (
+    normalizedPayload.netWeight !== undefined &&
+    normalizedPayload.boulderWeight === undefined
+  ) {
+    normalizedPayload.boulderWeight = normalizedPayload.netWeight;
+  }
+
+  delete normalizedPayload.weight;
+
+  let vehicle = null;
+
+  if (hasVehicleId) {
+    if (!mongoose.Types.ObjectId.isValid(normalizedPayload.vehicleId)) {
+      throw new Error("Invalid vehicle id");
+    }
+
+    vehicle = await Vehicle.findById(normalizedPayload.vehicleId);
+
+    if (!vehicle) {
+      throw new Error("Vehicle not found");
+    }
+  } else if (hasVehicleNo) {
+    vehicle = await Vehicle.findOne({
+      vehicleNo: normalizedPayload.vehicleNo.trim().toUpperCase(),
+    });
+
+    if (!vehicle) {
+      throw new Error("Vehicle not found");
+    }
+  }
+
+  if (vehicle) {
+    normalizedPayload.vehicleId = vehicle._id;
+    normalizedPayload.vehicleNo = vehicle.vehicleNo;
+
+    if (normalizedPayload.vehicleWeight === undefined) {
+      normalizedPayload.vehicleWeight = vehicle.unladenWeight;
+    }
+  }
+
+  return normalizedPayload;
+};
 
 const createBoulder = async (req, res) => {
   try {
-    const boulder = await Boulder.create(req.body);
+    const payload = await normalizeBoulderPayload(req.body);
+    const boulder = await Boulder.create(payload);
     return res.status(201).json(boulder);
   } catch (error) {
     return res.status(400).json({
@@ -15,7 +84,9 @@ const createBoulder = async (req, res) => {
 
 const getAllBoulders = async (_req, res) => {
   try {
-    const boulders = await Boulder.find().sort({ createdAt: -1 });
+    const boulders = await Boulder.find()
+      .populate("vehicleId")
+      .sort({ createdAt: -1 });
     return res.json(boulders);
   } catch (error) {
     return res.status(500).json({
@@ -33,7 +104,7 @@ const getBoulderById = async (req, res) => {
   }
 
   try {
-    const boulder = await Boulder.findById(id);
+    const boulder = await Boulder.findById(id).populate("vehicleId");
 
     if (!boulder) {
       return res.status(404).json({ message: "Boulder not found" });
@@ -56,10 +127,11 @@ const editBoulder = async (req, res) => {
   }
 
   try {
-    const boulder = await Boulder.findByIdAndUpdate(id, req.body, {
+    const payload = await normalizeBoulderPayload(req.body);
+    const boulder = await Boulder.findByIdAndUpdate(id, payload, {
       new: true,
       runValidators: true,
-    });
+    }).populate("vehicleId");
 
     if (!boulder) {
       return res.status(404).json({ message: "Boulder not found" });
