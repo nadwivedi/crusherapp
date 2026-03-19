@@ -380,7 +380,7 @@ export default function AddSalePopup({
                             <tr key={index} className="hover:bg-emerald-50/40">
                               <td className="border-r border-slate-400 px-3 py-2.5 font-medium text-gray-800">{item.productName}</td>
                               <td className="border-r border-slate-400 px-3 py-2.5 pr-12 text-right text-gray-600">{item.quantity}</td>
-                              <td className="border-r border-slate-400 px-3 py-2.5 text-center text-gray-600">{resolveItemUnit(item)}</td>
+                              <td className="border-r border-slate-400 px-3 py-2.5 text-center text-gray-600">ton</td>
                               <td className="border-r border-slate-400 px-3 py-2.5 text-right text-gray-600">Rs {Number(item.unitPrice || 0).toFixed(2)}</td>
                               <td className="border-r border-slate-400 px-3 py-2.5 text-right font-semibold text-gray-800">Rs {Number(item.total || 0).toFixed(2)}</td>
                             </tr>
@@ -539,7 +539,7 @@ export default function AddSalePopup({
                             </td>
                               <td className="px-3 py-2.5 text-center">
                                 <div className="rounded-lg border border-emerald-200 bg-white px-2.5 py-1.5 font-medium text-gray-700">
-                                  {currentItemUnit}
+                                  ton
                                 </div>
                               </td>
                               <td className="px-3 py-2.5">

@@ -7,6 +7,11 @@ const userSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    email: {
+      type: String,
+      trim: true,
+      lowercase: true,
+    },
     mobile: {
       type: String,
       required: true,
@@ -21,13 +26,13 @@ const userSchema = new mongoose.Schema(
     },
     state: {
       type: String,
-      required: true,
       trim: true,
+      default: "",
     },
     district: {
       type: String,
-      required: true,
       trim: true,
+      default: "",
     },
   },
   {
@@ -35,6 +40,6 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-userSchema.index({ mobile: 1 }, { unique: true });
+userSchema.index({ email: 1 }, { unique: true, sparse: true });
 
 module.exports = mongoose.models.User || mongoose.model("User", userSchema);

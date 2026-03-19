@@ -11,7 +11,7 @@ export const AuthProvider = ({ children }) => {
     const bootstrapAuth = async () => {
       try {
         const response = await apiClient.get('/users/current');
-        setUser(response.data || null);
+        setUser(response.user || null);
       } catch (error) {
         setUser(null);
       } finally {

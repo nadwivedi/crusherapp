@@ -63,7 +63,8 @@ const getInitialFormData = () => ({
   rate: '',
   totalAmount: 0,
   paidAmount: 0,
-  notes: ''
+  notes: '',
+  items: []
 });
 
 const getInitialPartyFormData = (type = 'customer') => ({
@@ -98,14 +99,20 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
   const initialCurrentItem = {
     product: '',
     productName: '',
-    unit: '',
+    unit: 'ton',
     quantity: '',
     unitPrice: ''
   };
 
   const [sales, setSales] = useState([]);
   const [leadgers, setLeadgers] = useState([]);
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState([
+    { _id: '1', name: '10mm', unit: 'ton', salePrice: 0 },
+    { _id: '2', name: '20mm', unit: 'ton', salePrice: 0 },
+    { _id: '3', name: '40mm', unit: 'ton', salePrice: 0 },
+    { _id: '4', name: 'dust', unit: 'ton', salePrice: 0 },
+    { _id: '5', name: 'gsb', unit: 'ton', salePrice: 0 }
+  ]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
@@ -134,7 +141,6 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
   useEffect(() => {
     fetchSales();
     fetchLeadgers();
-    fetchProducts();
   }, [search, dateFilter]);
 
   useEffect(() => {
@@ -684,7 +690,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         ...prev,
         product: '',
         productName: '',
-        unit: '',
+        unit: 'ton',
         unitPrice: ''
       }));
       setProductListIndex(-1);
@@ -697,7 +703,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
       ...prev,
       product: product._id,
       productName,
-      unit: String(product.unit || '').trim(),
+      unit: 'ton',
       unitPrice: getSalePriceInputValue(product)
     }));
 
@@ -724,7 +730,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         ...prev,
         product: exactProduct._id,
         productName: getProductDisplayName(exactProduct),
-        unit: String(exactProduct.unit || '').trim(),
+        unit: 'ton',
         unitPrice: getSalePriceInputValue(exactProduct)
       }));
       const exactIndex = getMatchingProducts(value).findIndex((item) => String(item._id) === String(exactProduct._id));
@@ -738,7 +744,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
       ...prev,
       product: firstMatch?._id || '',
       productName: firstMatch ? getProductDisplayName(firstMatch) : '',
-      unit: firstMatch ? String(firstMatch.unit || '').trim() : '',
+      unit: 'ton',
       unitPrice: firstMatch ? getSalePriceInputValue(firstMatch) : ''
     }));
     setProductListIndex(firstMatch ? 0 : -1);
