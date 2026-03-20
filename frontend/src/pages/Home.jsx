@@ -51,6 +51,15 @@ function PaymentIcon() {
   return <AssetIcon src="/payment_converted.avif" />;
 }
 
+function MaterialUsedIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
+      <path d="M6 6h12v12H6z" />
+      <path d="M9 9h6M9 12h6M9 15h3" />
+    </svg>
+  );
+}
+
 function ReceiptIcon() {
   return <AssetIcon src="/reciept_converted.avif" />;
 }
@@ -144,6 +153,7 @@ const menuItems = [
     subItems: [
       { name: 'Sale', path: '/sales', Icon: SaleIcon },
       { name: 'Purchase', path: '/purchases', Icon: PurchaseIcon },
+      { name: 'Material Used', path: '/material-used', Icon: MaterialUsedIcon },
       { name: 'Sale Return', path: '/sale-return', Icon: SaleReturnIcon },
       { name: 'Stock Adjustment', path: '/stock-adjustment', Icon: StockAdjustmentIcon },
       { name: 'Payment', path: '/payments', Icon: PaymentIcon },

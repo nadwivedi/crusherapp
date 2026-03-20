@@ -9,6 +9,7 @@ const homeNavigationEntries = [
   { section: 'Masters', path: '/banks' },
   { section: 'Vouchers', path: '/sales' },
   { section: 'Vouchers', path: '/purchases' },
+  { section: 'Vouchers', path: '/material-used' },
   { section: 'Vouchers', path: '/sale-return' },
   { section: 'Vouchers', path: '/stock-adjustment' },
   { section: 'Vouchers', path: '/payments' },

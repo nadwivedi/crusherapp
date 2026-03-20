@@ -5,6 +5,7 @@ import Sales from './Sales/Sales';
 import Purchases from './Purchases/Purchases';
 import Payments from './Payments/Payments';
 import Receipts from './Receipts/Receipts';
+import MaterialUsed from './MaterialUsed';
 import SaleReturn from './SaleReturn/SaleReturn';
 import StockAdjustment from './StockAdjustment';
 import BoulderEntry from './BoulderEntry/BoulderEntry';
@@ -12,6 +13,7 @@ import BoulderEntry from './BoulderEntry/BoulderEntry';
 const POPUP_VOUCHER_PATHS = new Set([
   '/sales',
   '/purchases',
+  '/material-used',
   '/sale-return',
   '/stock-adjustment',
   '/payments',
@@ -171,6 +173,10 @@ export default function Vouchers() {
 
       {openVoucherPath === '/purchases' && (
         <Purchases modalOnly onModalFinish={() => setOpenVoucherPath('')} />
+      )}
+
+      {openVoucherPath === '/material-used' && (
+        <MaterialUsed modalOnly onModalFinish={() => setOpenVoucherPath('')} />
       )}
 
       {openVoucherPath === '/payments' && (

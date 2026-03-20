@@ -121,6 +121,15 @@ function BoulderIcon() {
   );
 }
 
+function MaterialUsedIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-6 w-6">
+      <path d="M6 6h12v12H6z" />
+      <path d="M9 9h6M9 12h6M9 15h3" />
+    </svg>
+  );
+}
+
 function DayBookIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-6 w-6">
@@ -168,6 +177,7 @@ export const SECTION_CONFIG = {
     items: [
       { name: 'Sales', path: '/sales', Icon: SaleIcon },
       { name: 'Purchase', path: '/purchases', Icon: PurchaseIcon },
+      { name: 'Material Used', path: '/material-used', Icon: MaterialUsedIcon },
       { name: 'Boulder Entry', path: '/boulder-entry', Icon: BoulderIcon },
       { name: 'Sale Return', path: '/sale-return', Icon: SaleReturnIcon },
       { name: 'Stock Adjustment', path: '/stock-adjustment', Icon: StockAdjustmentIcon },

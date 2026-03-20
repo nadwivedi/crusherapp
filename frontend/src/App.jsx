@@ -16,6 +16,7 @@ import Sales from './pages/Sales/Sales';
 import Purchases from './pages/Purchases/Purchases';
 import Payments from './pages/Payments/Payments';
 import Receipts from './pages/Receipts/Receipts';
+import MaterialUsed from './pages/MaterialUsed';
 import Party from './pages/Party/Party';
 import PartyDetail from './pages/PartyDetail';
 import Expenses from './pages/Expenses';
@@ -185,6 +186,15 @@ function App() {
           element={
             <ProtectedRoute>
               <Purchases modalOnly onModalFinish={() => closeVoucherRouteToHub('/purchases')} />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/material-used"
+          element={
+            <ProtectedRoute>
+              <MaterialUsed modalOnly onModalFinish={() => closeVoucherRouteToHub('/material-used')} />
             </ProtectedRoute>
           }
         />
