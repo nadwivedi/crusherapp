@@ -20,11 +20,6 @@ const salesSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
     },
-    quanity: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
     vehicleWeight: {
       type: Number,
       default: 0,
@@ -48,7 +43,25 @@ const salesSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   }
 );
+
+salesSchema.virtual("party")
+  .get(function partyGetter() {
+    return this.partyId;
+  })
+  .set(function partySetter(value) {
+    this.partyId = value;
+  });
+
+salesSchema.virtual("materialType")
+  .get(function materialTypeGetter() {
+    return this.stoneSize;
+  })
+  .set(function materialTypeSetter(value) {
+    this.stoneSize = value;
+  });
 
 module.exports = mongoose.models.Sales || mongoose.model("Sales", salesSchema);

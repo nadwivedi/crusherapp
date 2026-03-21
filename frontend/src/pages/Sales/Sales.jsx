@@ -1411,19 +1411,17 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
       setError('Please select a valid sale date');
       return;
     }
-    if (formData.items.length === 0) {
-      setError('At least one item is required');
-      return;
-    }
 
     try {
       setLoading(true);
-      const isEditMode = Boolean(editingId);
       const submitData = {
-        ...formData,
+        partyId: formData.party,
+        vehicleNo: String(formData.vehicleNo || '').trim().toUpperCase(),
         stoneSize: formData.materialType,
-        paidAmount: !isEditMode && isCashParty ? Number(formData.totalAmount || 0) : formData.paidAmount,
-        saleDate: parsedSaleDate
+        vehicleWeight: Number(formData.vehicleWeight || 0),
+        netWeight: Number(formData.netWeight || 0),
+        materialWeight: Number(formData.materialWeight || 0),
+        saleDate: parsedSaleDate.toISOString()
       };
 
       if (editingId) {
@@ -1432,7 +1430,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         await apiClient.post('/sales', submitData);
       }
       toast.success(
-        isEditMode ? 'Sale updated successfully' : 'Sale added successfully',
+        editingId ? 'Sale updated successfully' : 'Sale added successfully',
         toastOptions
       );
       fetchSales();
