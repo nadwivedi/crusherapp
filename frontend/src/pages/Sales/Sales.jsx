@@ -243,8 +243,9 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
   const fetchLeadgers = async () => {
     try {
       const response = await apiClient.get('/parties');
-      setLeadgers(response.data || []);
-      return response.data || [];
+      const partyList = Array.isArray(response) ? response : [];
+      setLeadgers(partyList);
+      return partyList;
     } catch (err) {
       console.error('Error fetching leadgers:', err);
       return [];
