@@ -134,7 +134,7 @@ partySchema.virtual("balance")
     this.openingBalanceType = numericValue < 0 ? "payable" : "receivable";
   });
 
-partySchema.pre("validate", function syncLegacyFields(next) {
+partySchema.pre("validate", function syncLegacyFields() {
   if (!this.name && this.partyName) {
     this.name = this.partyName;
   }
@@ -152,8 +152,6 @@ partySchema.pre("validate", function syncLegacyFields(next) {
   if (!this.openingBalanceType) {
     this.openingBalanceType = this.type === "supplier" ? "payable" : "receivable";
   }
-
-  next();
 });
 
 module.exports = mongoose.models.Party || mongoose.model("Party", partySchema);

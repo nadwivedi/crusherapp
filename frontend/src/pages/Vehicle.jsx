@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Pencil, Search, Trash2, Truck } from 'lucide-react';
+import { Plus, Pencil, Search, Trash2, Truck, Scale, Users, ArrowLeft } from 'lucide-react';
 import { toast } from 'react-toastify';
 import apiClient from '../utils/api';
 import AddVehiclePopup from './Vehicle/component/AddVehiclePopup';
@@ -9,9 +9,9 @@ const TOAST_OPTIONS = { autoClose: 1200 };
 
 const getTypeBadgeClass = (type) => {
   if (type === 'boulder') {
-    return 'border border-violet-200 bg-violet-50 text-violet-700';
+    return 'bg-violet-100 text-violet-700 border-violet-200';
   }
-  return 'border border-amber-200 bg-amber-50 text-amber-700';
+  return 'bg-amber-100 text-amber-700 border-amber-200';
 };
 
 const getTypeLabel = (type) => {
@@ -51,7 +51,7 @@ export default function Vehicle() {
     try {
       setLoading(true);
       const response = await apiClient.get('/vehicles', { params: { search } });
-      setVehicles(response.data || []);
+      setVehicles(Array.isArray(response) ? response : []);
       setError('');
     } catch (err) {
       setError(err.message || 'Error fetching vehicles');
@@ -63,7 +63,7 @@ export default function Vehicle() {
   const fetchParties = async () => {
     try {
       const response = await apiClient.get('/parties');
-      setParties(response.data || []);
+      setParties(Array.isArray(response) ? response : []);
     } catch (err) {
       console.error('Error fetching parties:', err);
     }
@@ -96,138 +96,188 @@ export default function Vehicle() {
 
   const getPartyName = (partyId) => {
     const party = parties.find(p => p._id === partyId);
-    return party?.partyName || '-';
+    return party?.partyName || party?.name || '-';
   };
 
-  return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(148,163,184,0.16),transparent_24%),linear-gradient(180deg,#0f172a_0%,#111827_48%,#020617_100%)] px-4 py-6">
-      <div className="mx-auto max-w-6xl">
-        <div className="overflow-hidden rounded-[32px] border border-white/15 bg-gradient-to-br from-slate-50 via-white to-slate-100 shadow-[0_28px_80px_rgba(15,23,42,0.28)]">
-          <div className="border-b border-slate-200/80 bg-white/80 px-5 py-5 backdrop-blur-sm md:px-8 md:py-7">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-slate-500">Master Records</p>
-                <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-900 md:text-3xl">Manage Vehicle</h1>
-                <p className="mt-1 text-sm font-medium text-slate-600">Register and manage your vehicles for boulder load and sales</p>
-              </div>
+  const totalVehicles = vehicles.length;
+  const boulderVehicles = vehicles.filter(v => v.vehicleType === 'boulder').length;
+  const salesVehicles = vehicles.filter(v => v.vehicleType === 'sales').length;
 
-              <div className="flex gap-3">
-                <Link
-                  to="/masters"
-                  className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                >
-                  Back To Masters
-                </Link>
-                <button
-                  onClick={() => handleOpenForm()}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:from-cyan-600 hover:to-blue-700"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add Vehicle
-                </button>
+  return (
+    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-100 via-slate-50 to-slate-100">
+      <div className="mx-auto max-w-[1600px] px-3 pb-8 pt-4 md:px-6 lg:px-8">
+        {error && (
+          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700 shadow-sm">
+            {error}
+          </div>
+        )}
+
+        <div className="mb-6 mt-2 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Link
+              to="/masters"
+              className="flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-slate-200/60 transition-all hover:shadow-md hover:ring-slate-300/80"
+            >
+              <ArrowLeft className="h-4 w-4 text-slate-600" />
+            </Link>
+            <div>
+              <p className="text-xs font-medium text-slate-500">Master Records</p>
+              <h1 className="text-2xl font-bold text-slate-900">Vehicle Management</h1>
+            </div>
+          </div>
+          <button
+            onClick={() => handleOpenForm()}
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all hover:from-indigo-700 hover:to-violet-700 hover:shadow-xl hover:shadow-indigo-500/30"
+          >
+            <Plus className="h-4 w-4" />
+            Add Vehicle
+          </button>
+        </div>
+
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="group relative overflow-hidden rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200/60 transition-all hover:shadow-lg">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs font-medium text-slate-500">Total Vehicles</p>
+                <p className="mt-1 text-3xl font-bold text-slate-900">{totalVehicles}</p>
+              </div>
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 transition-transform group-hover:scale-110">
+                <Truck className="h-6 w-6" />
+              </div>
+            </div>
+            <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-indigo-500 to-violet-500" />
+          </div>
+
+          <div className="group relative overflow-hidden rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200/60 transition-all hover:shadow-lg">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs font-medium text-slate-500">Boulder Load</p>
+                <p className="mt-1 text-3xl font-bold text-violet-700">{boulderVehicles}</p>
+              </div>
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-50 text-violet-600 transition-transform group-hover:scale-110">
+                <Scale className="h-6 w-6" />
+              </div>
+            </div>
+            <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-violet-500 to-purple-500" />
+          </div>
+
+          <div className="group relative overflow-hidden rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200/60 transition-all hover:shadow-lg">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs font-medium text-slate-500">Sales Vehicles</p>
+                <p className="mt-1 text-3xl font-bold text-amber-700">{salesVehicles}</p>
+              </div>
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 text-amber-600 transition-transform group-hover:scale-110">
+                <Users className="h-6 w-6" />
+              </div>
+            </div>
+            <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-amber-500 to-orange-500" />
+          </div>
+        </div>
+
+        <div className="overflow-hidden rounded-2xl border border-slate-200/60 bg-white shadow-xl">
+          <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 via-white to-slate-50 px-6 py-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="relative w-full sm:w-80">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search by vehicle number or owner..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                />
+              </div>
+              <div className="flex items-center gap-2 text-xs text-slate-500">
+                <span className="rounded-full bg-slate-100 px-2.5 py-1 font-medium">{vehicles.length}</span>
+                vehicles found
               </div>
             </div>
           </div>
 
-          <div className="p-5 md:p-8">
-            <div className="mb-4 flex items-center gap-3">
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Search vehicles..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-200"
-                />
-              </div>
+          {loading ? (
+            <div className="flex h-48 items-center justify-center">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-200 border-t-indigo-600"></div>
             </div>
-
-            {error && (
-              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                {error}
+          ) : vehicles.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16">
+              <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-slate-50">
+                <Truck className="h-10 w-10 text-slate-300" />
               </div>
-            )}
-
-            {loading ? (
-              <div className="py-8 text-center text-slate-500">Loading vehicles...</div>
-            ) : vehicles.length === 0 ? (
-              <div className="py-12 text-center">
-                <Truck className="mx-auto h-12 w-12 text-slate-300" />
-                <p className="mt-4 text-slate-500">No vehicles found</p>
-                <button
-                  onClick={() => handleOpenForm()}
-                  className="mt-4 text-sm font-medium text-cyan-600 hover:text-cyan-700"
-                >
-                  Add your first vehicle
-                </button>
-              </div>
-            ) : (
-              <div className="overflow-x-auto rounded-xl border border-slate-200">
-                <table className="w-full">
-                  <thead>
-                    <tr className="bg-slate-50">
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">
-                        Vehicle No
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">
-                        Owner
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">
-                        Unladen Weight
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">
-                        Type
-                      </th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-600">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200 bg-white">
-                    {vehicles.map((vehicle) => (
-                      <tr key={vehicle._id} className="hover:bg-slate-50">
-                        <td className="whitespace-nowrap px-4 py-3">
-                          <span className="font-mono font-semibold text-slate-900">{vehicle.vehicleNo}</span>
-                        </td>
-                        <td className="px-4 py-3 text-slate-600">
-                          {getPartyName(vehicle.partyId)}
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-3 text-slate-600">
-                          {vehicle.unladenWeight} kg
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-3">
-                          <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${getTypeBadgeClass(vehicle.vehicleType)}`}>
-                            {getTypeLabel(vehicle.vehicleType)}
-                          </span>
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-3 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => handleOpenForm(vehicle)}
-                              className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-cyan-600"
-                              title="Edit"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(vehicle._id)}
-                              className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-red-600"
-                              title="Delete"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
+              <p className="mb-2 text-lg font-medium text-slate-700">No vehicles found</p>
+              <p className="mb-4 text-sm text-slate-500">Get started by adding your first vehicle</p>
+              <button
+                onClick={() => handleOpenForm()}
+                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700"
+              >
+                Add Your First Vehicle
+              </button>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[900px]">
+                <thead>
+                  <tr className="bg-slate-50/80 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    <th className="px-6 py-4">Vehicle Number</th>
+                    <th className="px-6 py-4">Owner / Party</th>
+                    <th className="px-6 py-4">Unladen Weight</th>
+                    <th className="px-6 py-4">Type</th>
+                    <th className="px-6 py-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {vehicles.map((vehicle) => (
+                    <tr key={vehicle._id} className="group transition-colors hover:bg-slate-50/70">
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-1.5 font-mono text-sm font-semibold text-white">
+                          <Truck className="h-3.5 w-3.5" />
+                          {vehicle.vehicleNo}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
+                            <Users className="h-4 w-4" />
                           </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                          <span className="font-medium text-slate-700">{getPartyName(vehicle.partyId)}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-slate-600">{vehicle.unladenWeight} kg</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold border ${getTypeBadgeClass(vehicle.vehicleType)}`}>
+                          {getTypeLabel(vehicle.vehicleType)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => handleOpenForm(vehicle)}
+                            className="rounded-lg p-2 text-slate-400 transition-all hover:bg-indigo-50 hover:text-indigo-600"
+                            title="Edit"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(vehicle._id)}
+                            className="rounded-lg p-2 text-slate-400 transition-all hover:bg-red-50 hover:text-red-600"
+                            title="Delete"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
-            <p className="mt-3 text-xs text-slate-500">
-              Press Alt+N to add new vehicle
+          <div className="border-t border-slate-100 bg-slate-50/50 px-6 py-3">
+            <p className="text-xs text-slate-400">
+              Press <kbd className="rounded bg-slate-200 px-1.5 py-0.5 font-sans text-slate-600">Alt</kbd> + <kbd className="rounded bg-slate-200 px-1.5 py-0.5 font-sans text-slate-600">N</kbd> to add new vehicle
             </p>
           </div>
         </div>

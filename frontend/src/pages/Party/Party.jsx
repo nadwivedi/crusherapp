@@ -93,7 +93,7 @@ export default function Party() {
     try {
       setLoading(true);
       const response = await apiClient.get('/parties', { params: { search } });
-      setParties(response.data || []);
+      setParties(Array.isArray(response) ? response : []);
       setError('');
     } catch (err) {
       setError(err.message || 'Error fetching parties');
