@@ -33,8 +33,8 @@ export default function PartyLedger() {
         apiClient.get('/parties'),
         apiClient.get('/reports/outstanding')
       ]);
-      setParties(partiesRes.data || []);
-      setOutstanding(outstandingRes.data || null);
+      setParties(Array.isArray(partiesRes) ? partiesRes : []);
+      setOutstanding(outstandingRes || null);
     } catch (err) {
       setError(err.message || 'Error loading parties');
     } finally {

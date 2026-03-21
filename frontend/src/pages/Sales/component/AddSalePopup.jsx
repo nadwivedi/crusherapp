@@ -139,6 +139,13 @@ export default function AddSalePopup({
     });
   };
 
+  const handlePaidAmountEnterSubmit = (event) => {
+    if (event.key !== 'Enter' || event.shiftKey) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.form?.requestSubmit();
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-3 backdrop-blur-[2px] md:p-6" onClick={handleCancel}>
       <div className="flex max-h-[88vh] w-full max-w-[30rem] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_30px_80px_rgba(15,23,42,0.28)]" onClick={(e) => e.stopPropagation()}>
@@ -551,11 +558,12 @@ export default function AddSalePopup({
                   <div className="space-y-1">
                     <label className={labelClass}>Paid Amount</label>
                     <input
+                      ref={paidAmountInputRef}
                       type="number"
                       name="paidAmount"
                       value={formData.paidAmount || ''}
                       onChange={handleInputChange}
-                      onKeyDown={handleSelectEnterMoveNext}
+                      onKeyDown={handlePaidAmountEnterSubmit}
                       className={`${inputClass} focus:ring-indigo-500`}
                       placeholder="0.00"
                       step="0.01"

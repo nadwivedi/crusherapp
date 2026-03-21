@@ -347,9 +347,9 @@ export default function PartyDetail() {
         })
       ]);
 
-      const matchedParty = (partyResponse.data || []).find((item) => String(item._id) === String(id)) || null;
+      const matchedParty = (Array.isArray(partyResponse) ? partyResponse : []).find((item) => String(item._id) === String(id)) || null;
       setParty(matchedParty);
-      setLedger(ledgerResponse.data || []);
+      setLedger(Array.isArray(ledgerResponse) ? ledgerResponse : []);
       setError('');
     } catch (err) {
       setError(err.message || 'Error loading party details');
@@ -474,7 +474,7 @@ export default function PartyDetail() {
         }
       });
 
-      setVoucherDetail(response.data || null);
+      setVoucherDetail(response || null);
     } catch (err) {
       setVoucherError(err.message || 'Error loading voucher detail');
     } finally {
