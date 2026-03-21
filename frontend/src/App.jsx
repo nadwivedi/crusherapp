@@ -31,6 +31,7 @@ import ReportsHub from './pages/ReportsHub';
 import ReportsDashboard from './pages/ReportsDashboard';
 import StockLedger from './pages/StockLedger';
 import PartyLedger from './pages/PartyLedger';
+import BoulderLedger from './pages/BoulderLedger';
 import ReportsPlaceholder from './pages/ReportsPlaceholder';
 import DayBook from './pages/DayBook';
 import Settings from './pages/Settings';
@@ -240,6 +241,15 @@ function App() {
           element={
             <ProtectedRoute>
               <StockLedger />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/reports/boulder-ledger"
+          element={
+            <ProtectedRoute>
+              <BoulderLedger />
             </ProtectedRoute>
           }
         />

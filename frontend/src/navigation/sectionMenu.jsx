@@ -150,6 +150,16 @@ function DayBookIcon() {
   );
 }
 
+function BoulderLedgerIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-6 w-6">
+      <path d="m5 16 3.5-5L13 8l4 3 2 5Z" />
+      <path d="M6 20h12" />
+      <path d="M8.5 11 11 16m4-5-1 5" />
+    </svg>
+  );
+}
+
 export const SECTION_CONFIG = {
   Masters: {
     name: 'Masters',
@@ -227,6 +237,7 @@ export const SECTION_CONFIG = {
     },
     items: [
       { name: 'Reports', path: '/reports', Icon: ReportIcon },
+      { name: 'Boulder Ledger', path: '/reports/boulder-ledger', Icon: BoulderLedgerIcon },
       { name: 'Day Book', path: '/day-book', Icon: DayBookIcon },
       { name: 'Settings', path: '/settings', Icon: SettingsIcon }
     ]
