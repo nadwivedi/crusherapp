@@ -540,11 +540,34 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
     }
 
     const vehicleNumber = getVehicleDisplayName(vehicle);
+    const linkedParty = vehicle?.partyId
+      ? leadgers.find((party) => String(party._id) === String(vehicle.partyId))
+      : null;
+
     setVehicleQuery(vehicleNumber);
-    setFormData((prev) => ({
-      ...prev,
-      vehicleNo: vehicleNumber
-    }));
+    setFormData((prev) => {
+      const nextState = {
+        ...prev,
+        vehicleNo: vehicleNumber
+      };
+
+      if (linkedParty) {
+        const partyName = getLeadgerDisplayName(linkedParty);
+        nextState.party = linkedParty._id;
+        nextState.customerName = partyName;
+        nextState.customerPhone = '';
+        nextState.customerAddress = '';
+      }
+
+      return nextState;
+    });
+
+    if (linkedParty) {
+      const partyName = getLeadgerDisplayName(linkedParty);
+      setLeadgerQuery(partyName);
+      const selectedPartyIndex = filteredLeadgers.findIndex((item) => String(item._id) === String(linkedParty._id));
+      setLeadgerListIndex(selectedPartyIndex >= 0 ? selectedPartyIndex : 0);
+    }
 
     const selectedIndex = filteredVehicles.findIndex((item) => String(item._id) === String(vehicle._id));
     setVehicleListIndex(selectedIndex >= 0 ? selectedIndex : 0);
