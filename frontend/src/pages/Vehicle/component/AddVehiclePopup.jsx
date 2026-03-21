@@ -99,7 +99,7 @@ const toTitleCase = (value) => String(value || '')
   .toLowerCase()
   .replace(/\b[a-z]/g, (char) => char.toUpperCase());
 
-export default function AddVehiclePopup({ vehicle, onClose, onSave }) {
+export default function AddVehiclePopup({ vehicle, onClose, onSave, onVehicleSaved = null }) {
   const [formData, setFormData] = useState(vehicle || initialFormData);
   const [parties, setParties] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -556,11 +556,17 @@ export default function AddVehiclePopup({ vehicle, onClose, onSave }) {
       };
 
       if (isEditing) {
-        await apiClient.put(`/vehicles/${vehicle._id}`, payload);
+        const updatedVehicle = await apiClient.put(`/vehicles/${vehicle._id}`, payload);
         toast.success('Vehicle updated successfully');
+        if (typeof onVehicleSaved === 'function') {
+          onVehicleSaved(updatedVehicle);
+        }
       } else {
-        await apiClient.post('/vehicles', payload);
+        const createdVehicle = await apiClient.post('/vehicles', payload);
         toast.success('Vehicle created successfully');
+        if (typeof onVehicleSaved === 'function') {
+          onVehicleSaved(createdVehicle);
+        }
       }
 
       if (onSave) onSave();

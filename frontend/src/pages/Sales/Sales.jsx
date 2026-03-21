@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import apiClient from '../../utils/api';
 import AddPartyPopup from '../Party/component/AddPartyPopup';
 import AddProductPopup from '../Products/component/AddProductPopup';
+import AddVehiclePopup from '../Vehicle/component/AddVehiclePopup';
 import AddSalePopup from './component/AddSalePopup';
 
 const formatDateForInput = (value = new Date()) => {
@@ -128,6 +129,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
   const [partyPopupLoading, setPartyPopupLoading] = useState(false);
   const [partyPopupError, setPartyPopupError] = useState('');
   const [showProductForm, setShowProductForm] = useState(false);
+  const [showVehicleForm, setShowVehicleForm] = useState(false);
   const [leadgerQuery, setLeadgerQuery] = useState('');
   const [leadgerListIndex, setLeadgerListIndex] = useState(-1);
   const [isLeadgerSectionActive, setIsLeadgerSectionActive] = useState(false);
@@ -528,7 +530,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
     setLeadgerListIndex(firstMatch ? 0 : -1);
   };
 
-  const selectVehicle = (vehicle) => {
+  const selectVehicle = (vehicle, partyOptions = leadgers) => {
     if (!vehicle) {
       setVehicleQuery('');
       setFormData((prev) => ({
@@ -541,7 +543,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
 
     const vehicleNumber = getVehicleDisplayName(vehicle);
     const linkedParty = vehicle?.partyId
-      ? leadgers.find((party) => String(party._id) === String(vehicle.partyId))
+      ? partyOptions.find((party) => String(party._id) === String(vehicle.partyId))
       : null;
 
     setVehicleQuery(vehicleNumber);
@@ -565,7 +567,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
     if (linkedParty) {
       const partyName = getLeadgerDisplayName(linkedParty);
       setLeadgerQuery(partyName);
-      const selectedPartyIndex = filteredLeadgers.findIndex((item) => String(item._id) === String(linkedParty._id));
+      const selectedPartyIndex = partyOptions.findIndex((item) => String(item._id) === String(linkedParty._id));
       setLeadgerListIndex(selectedPartyIndex >= 0 ? selectedPartyIndex : 0);
     }
 
@@ -701,6 +703,11 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
     setShowProductForm(true);
   };
 
+  const openInlineVehicleForm = () => {
+    setIsVehicleSectionActive(false);
+    setShowVehicleForm(true);
+  };
+
   const closeInlineProductForm = (shouldRefocusProduct = true) => {
     setShowProductForm(false);
 
@@ -709,6 +716,18 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
     requestAnimationFrame(() => {
       productInputRef.current?.focus();
       productInputRef.current?.select?.();
+    });
+  };
+
+  const closeInlineVehicleForm = (shouldRefocusVehicle = true) => {
+    setShowVehicleForm(false);
+
+    if (!shouldRefocusVehicle) return;
+
+    requestAnimationFrame(() => {
+      vehicleInputRef.current?.focus();
+      vehicleInputRef.current?.select?.();
+      setIsVehicleSectionActive(true);
     });
   };
 
@@ -762,6 +781,13 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
 
   const handleVehicleInputKeyDown = (e) => {
     const key = e.key?.toLowerCase();
+
+    if (key === 'control' && !e.altKey && !e.metaKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      openInlineVehicleForm();
+      return;
+    }
 
     if (key === 'arrowdown') {
       e.preventDefault();
@@ -1292,6 +1318,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
   const handleCancel = () => {
     setShowPartyForm(false);
     setShowProductForm(false);
+    setShowVehicleForm(false);
 
     if (modalOnly && typeof onModalFinish === 'function') {
       onModalFinish();
@@ -1319,6 +1346,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
     setEditingId(null);
     setShowPartyForm(false);
     setShowProductForm(false);
+    setShowVehicleForm(false);
     setPartyFormData(getInitialPartyFormData('customer'));
     setPartyPopupError('');
       setFormData(getInitialFormData());
@@ -1425,10 +1453,11 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
           handleLeadgerFocus={handleLeadgerFocus}
           handleLeadgerInputChange={handleLeadgerInputChange}
           handleLeadgerInputKeyDown={handleLeadgerInputKeyDown}
-          handleVehicleFocus={handleVehicleFocus}
-          handleVehicleInputChange={handleVehicleInputChange}
-          handleVehicleInputKeyDown={handleVehicleInputKeyDown}
-          onOpenNewParty={openInlinePartyForm}
+            handleVehicleFocus={handleVehicleFocus}
+            handleVehicleInputChange={handleVehicleInputChange}
+            handleVehicleInputKeyDown={handleVehicleInputKeyDown}
+            onOpenNewVehicle={openInlineVehicleForm}
+            onOpenNewParty={openInlinePartyForm}
           handleProductFocus={handleProductFocus}
           handleProductInputChange={handleProductInputChange}
           handleProductInputKeyDown={handleProductInputKeyDown}
@@ -1456,6 +1485,23 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
           onClose={() => closeInlineProductForm(true)}
           onProductCreated={handleProductCreated}
         />
+        {showVehicleForm && (
+          <AddVehiclePopup
+            vehicle={null}
+            onClose={() => closeInlineVehicleForm(true)}
+            onSave={fetchVehicles}
+            onVehicleSaved={async (savedVehicle) => {
+              if (!savedVehicle) return;
+              setVehicles((prev) => [
+                savedVehicle,
+                ...prev.filter((item) => String(item._id) !== String(savedVehicle._id))
+              ]);
+              const latestLeadgers = await fetchLeadgers();
+              selectVehicle(savedVehicle, latestLeadgers);
+              closeInlineVehicleForm(true);
+            }}
+          />
+        )}
       </>
     );
   }
@@ -1548,6 +1594,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         handleVehicleFocus={handleVehicleFocus}
         handleVehicleInputChange={handleVehicleInputChange}
         handleVehicleInputKeyDown={handleVehicleInputKeyDown}
+        onOpenNewVehicle={openInlineVehicleForm}
         onOpenNewParty={openInlinePartyForm}
         handleProductFocus={handleProductFocus}
         handleProductInputChange={handleProductInputChange}
@@ -1576,6 +1623,23 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         onClose={() => closeInlineProductForm(true)}
         onProductCreated={handleProductCreated}
       />
+      {showVehicleForm && (
+        <AddVehiclePopup
+          vehicle={null}
+          onClose={() => closeInlineVehicleForm(true)}
+          onSave={fetchVehicles}
+        onVehicleSaved={async (savedVehicle) => {
+          if (!savedVehicle) return;
+          setVehicles((prev) => [
+            savedVehicle,
+            ...prev.filter((item) => String(item._id) !== String(savedVehicle._id))
+          ]);
+          const latestLeadgers = await fetchLeadgers();
+          selectVehicle(savedVehicle, latestLeadgers);
+          closeInlineVehicleForm(true);
+        }}
+      />
+      )}
       <div className="mb-6 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
         <div className="border-b border-gray-200 bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 px-6 py-5">
           <div className="flex flex-col gap-2 lg:flex-row lg:items-center">

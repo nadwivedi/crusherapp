@@ -58,6 +58,7 @@ export default function AddSalePopup({
   handleVehicleFocus,
   handleVehicleInputChange,
   handleVehicleInputKeyDown,
+  onOpenNewVehicle,
   onOpenNewParty,
   handleProductFocus,
   handleProductInputChange,
@@ -180,7 +181,19 @@ export default function AddSalePopup({
                   </div>
 
                   <div>
-                    <label className={labelClass}>Vehicle No</label>
+                    <div className="relative mb-1 min-h-[16px]">
+                      <label className="block pr-24 text-[11px] font-semibold text-gray-700 md:text-xs">Vehicle No</label>
+                      {isVehicleSectionActive && (
+                        <button
+                          type="button"
+                          onClick={onOpenNewVehicle}
+                          className="absolute right-0 -top-2 inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-white px-2 py-1 text-[10px] font-semibold text-indigo-700 transition hover:bg-indigo-50"
+                        >
+                          <span className="rounded bg-indigo-100 px-1.5 py-0.5 font-mono text-[9px] text-indigo-700">Ctrl</span>
+                          New Vehicle
+                        </button>
+                      )}
+                    </div>
                     <div
                       ref={vehicleSectionRef}
                       className="relative"
@@ -221,7 +234,16 @@ export default function AddSalePopup({
                           <div className="overflow-y-auto py-1" style={{ maxHeight: vehicleDropdownStyle.maxHeight }}>
                             {filteredVehicles.length === 0 ? (
                               <div className="px-3 py-3 text-center text-[13px] text-slate-500">
-                                No matching vehicles found.
+                                <p>No matching vehicles found.</p>
+                                <button
+                                  type="button"
+                                  onMouseDown={(event) => event.preventDefault()}
+                                  onClick={onOpenNewVehicle}
+                                  className="mt-2 inline-flex items-center gap-2 rounded-md border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-[12px] font-semibold text-indigo-700 transition hover:bg-indigo-100"
+                                >
+                                  Create New Vehicle
+                                  <span className="rounded bg-white px-1.5 py-0.5 font-mono text-[10px] text-indigo-700">Ctrl</span>
+                                </button>
                               </div>
                             ) : (
                               filteredVehicles.map((vehicle, index) => {
