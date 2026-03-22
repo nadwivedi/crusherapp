@@ -35,7 +35,7 @@ import BoulderLedger from './pages/BoulderLedger';
 import MaterialUsedLedger from './pages/MaterialUsedLedger';
 import ReportsPlaceholder from './pages/ReportsPlaceholder';
 import DayBook from './pages/DayBook';
-import Settings from './pages/Settings';
+import Setting from './pages/Setting';
 import ProtectedRoute from './components/ProtectedRoute';
 import SectionHubPage from './components/SectionHubPage';
 
@@ -433,7 +433,7 @@ function App() {
           path="/settings"
           element={
             <ProtectedRoute>
-              <Settings />
+              <Setting />
             </ProtectedRoute>
           }
         />

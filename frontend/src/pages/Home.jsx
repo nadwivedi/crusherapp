@@ -136,10 +136,12 @@ function DayBookIcon() {
 
 const menuItems = [
   {
-    name: 'Masters',
+    name: 'Manage Vehicle/Party',
     subtitle: 'Manage Party, Stock, Vehicle, Banks',
     Icon: MasterIcon,
     subItems: [
+      { name: 'Add Party', path: '/party', Icon: PartyIcon },
+      { name: 'Add Vehicle', path: '/vehicle', Icon: VehicleIcon },
       { name: 'Manage Party', path: '/party', Icon: PartyIcon },
       { name: 'Stock Item', path: '/stock', Icon: StockItemIcon },
       { name: 'Manage Vehicle', path: '/vehicle', Icon: VehicleIcon },
@@ -147,10 +149,11 @@ const menuItems = [
     ]
   },
   {
-    name: 'Vouchers',
+    name: 'Add Sales/Boulder/Purchase',
     subtitle: 'Add sales, purchases, payments and returns',
     Icon: VoucherIcon,
     subItems: [
+      { name: 'Boulder Entry', path: '/boulder-entry', Icon: SaleIcon },
       { name: 'Sale', path: '/sales', Icon: SaleIcon },
       { name: 'Purchase', path: '/purchases', Icon: PurchaseIcon },
       { name: 'Material Used', path: '/material-used', Icon: MaterialUsedIcon },
@@ -173,7 +176,7 @@ const menuItems = [
 ];
 
 const sectionStyles = {
-  Masters: {
+  'Manage Vehicle/Party': {
     headerClass: 'border-indigo-200/70 bg-indigo-50/95',
     accentTextClass: 'text-[28px] leading-none text-indigo-600',
     accentDotClass: 'h-2.5 w-2.5 rounded-full bg-indigo-500',
@@ -181,7 +184,7 @@ const sectionStyles = {
     hoverClass: 'text-slate-700 hover:bg-indigo-50/90',
     barClass: 'bg-indigo-500'
   },
-  Vouchers: {
+  'Add Sales/Boulder/Purchase': {
     headerClass: 'border-violet-200/70 bg-violet-50/95',
     accentTextClass: 'text-[28px] leading-none text-violet-600',
     accentDotClass: 'h-2.5 w-2.5 rounded-full bg-violet-500',
@@ -207,7 +210,7 @@ const sectionStyles = {
   }
 };
 
-const HOME_SECTION_ORDER = ['Masters', 'Vouchers', 'Expense', 'Reports'];
+const HOME_SECTION_ORDER = ['Manage Vehicle/Party', 'Add Sales/Boulder/Purchase', 'Expense', 'Reports'];
 const homeQuickShortcuts = [
   { label: 'Boulder Entry', hint: '', combo: 'Alt + 1', accent: 'from-cyan-500 to-sky-500', stateKey: 'homeQuickBoulder' },
   { label: 'New Sale', hint: '', combo: 'Alt + 2', accent: 'from-emerald-500 to-teal-500', stateKey: 'homeQuickSale' },
@@ -231,12 +234,12 @@ const getSectionItems = (sectionName) => {
 const activateHomeSection = (sectionName, navigate, setExpandedSection, setActiveHomePath) => {
   setExpandedSection(sectionName);
 
-  if (sectionName === 'Masters') {
+  if (sectionName === 'Manage Vehicle/Party') {
     navigate('/masters');
     return;
   }
 
-  if (sectionName === 'Vouchers') {
+  if (sectionName === 'Add Sales/Boulder/Purchase') {
     navigate('/vouchers');
     return;
   }
@@ -255,7 +258,7 @@ const activateHomeSection = (sectionName, navigate, setExpandedSection, setActiv
 };
 
 export default function Home() {
-  const [expandedSection, setExpandedSection] = useState('Masters');
+  const [expandedSection, setExpandedSection] = useState('Manage Vehicle/Party');
   const [activeHomePath, setActiveHomePath] = useState('/party');
   const location = useLocation();
   const navigate = useNavigate();
@@ -408,7 +411,7 @@ export default function Home() {
           <div className="sidebar-scrollbar relative z-10 flex-1 overflow-y-auto pb-4 sm:pb-8">
             <nav className="flex flex-col">
               {menuItems.filter((item) => HOME_SECTION_ORDER.includes(item.name)).map((item, index) => {
-                const sectionStyle = sectionStyles[item.name] || sectionStyles.Masters;
+                const sectionStyle = sectionStyles[item.name] || sectionStyles['Manage Vehicle/Party'];
                 const isExpanded = false;
                 const isSelectedSection = expandedSection === item.name;
 
@@ -466,9 +469,9 @@ export default function Home() {
                               </div>
 
                               <span className={subActive ? 'font-semibold text-slate-800' : 'font-medium text-slate-700 group-hover:text-slate-900'}>
-                                {item.name === 'Vouchers' && subItem.name === 'Sale'
+                                {item.name === 'Add Sales/Boulder/Purchase' && subItem.name === 'Sale'
                                   ? 'Sales'
-                                  : item.name === 'Vouchers' && subItem.name === 'Purchase'
+                                  : item.name === 'Add Sales/Boulder/Purchase' && subItem.name === 'Purchase'
                                     ? 'Purchase'
                                     : subItem.name}
                               </span>
@@ -480,6 +483,23 @@ export default function Home() {
                   </div>
                 );
               })}
+
+              <Link
+                to="/settings"
+                className="mt-2 flex w-full cursor-pointer items-center gap-2.5 border-y border-cyan-200/70 bg-cyan-50/95 px-3 py-2.5 text-left text-slate-700 transition-all duration-200 hover:shadow-sm sm:mt-3 sm:gap-3 sm:px-5 sm:py-3"
+              >
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-cyan-100 text-cyan-700 sm:h-10 sm:w-10">
+                  <SettingsIcon />
+                </span>
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-bold tracking-[0.12em] sm:text-[12px] sm:tracking-[0.16em]">
+                    SETTING
+                  </span>
+                  <span className="hidden text-[8px] font-medium tracking-[0.08em] text-slate-500 sm:block sm:text-[9px] sm:tracking-[0.1em]">
+                    App preferences and logout
+                  </span>
+                </div>
+              </Link>
 
               <div className="hidden">
                 <button
