@@ -38,11 +38,14 @@ import DayBook from './pages/DayBook';
 import Setting from './pages/Setting';
 import ProtectedRoute from './components/ProtectedRoute';
 import SectionHubPage from './components/SectionHubPage';
+import { hasFeatureAccess } from './utils/featureAccess';
 
 function App() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const canViewSaleReturn = hasFeatureAccess(user, 'saleReturn');
+  const canViewStockAdjustment = hasFeatureAccess(user, 'stockAdjustment');
 
   const closeVoucherRouteToHub = (activePath) => {
     navigate('/vouchers', {
@@ -277,7 +280,7 @@ function App() {
           path="/reports/sale-return-report"
           element={
             <ProtectedRoute>
-              <SaleReturn />
+              {canViewSaleReturn ? <SaleReturn /> : <Navigate to="/reports" replace />}
             </ProtectedRoute>
           }
         />
@@ -286,7 +289,7 @@ function App() {
           path="/reports/stock-adjustment-report"
           element={
             <ProtectedRoute>
-              <StockAdjustment />
+              {canViewStockAdjustment ? <StockAdjustment /> : <Navigate to="/reports" replace />}
             </ProtectedRoute>
           }
         />
@@ -406,7 +409,9 @@ function App() {
           path="/stock-adjustment"
           element={
             <ProtectedRoute>
-              <StockAdjustment modalOnly onModalFinish={() => closeVoucherRouteToHub('/stock-adjustment')} />
+              {canViewStockAdjustment
+                ? <StockAdjustment modalOnly onModalFinish={() => closeVoucherRouteToHub('/stock-adjustment')} />
+                : <Navigate to="/vouchers" replace />}
             </ProtectedRoute>
           }
         />
@@ -415,7 +420,9 @@ function App() {
           path="/sale-return"
           element={
             <ProtectedRoute>
-              <SaleReturn modalOnly onModalFinish={() => closeVoucherRouteToHub('/sale-return')} />
+              {canViewSaleReturn
+                ? <SaleReturn modalOnly onModalFinish={() => closeVoucherRouteToHub('/sale-return')} />
+                : <Navigate to="/vouchers" replace />}
             </ProtectedRoute>
           }
         />

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { filterRestrictedItems } from '../utils/featureAccess';
 
 function AssetIcon({ src, alt = '' }) {
   return <img src={src} alt={alt} className="h-9 w-9 object-contain" />;
@@ -260,8 +262,23 @@ const activateHomeSection = (sectionName, navigate, setExpandedSection, setActiv
 export default function Home() {
   const [expandedSection, setExpandedSection] = useState('Manage Vehicle/Party');
   const [activeHomePath, setActiveHomePath] = useState('/party');
+  const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const visibleMenuItems = menuItems.map((item) => (
+    item.subItems ? { ...item, subItems: filterRestrictedItems(item.subItems, user) } : item
+  ));
+
+  const getVisibleSectionItems = (sectionName) => {
+    if (sectionName === 'Reports') {
+      return [
+        { name: 'Reports', path: '/reports', Icon: ReportIcon },
+        { name: 'Day Book', path: '/day-book', Icon: DayBookIcon }
+      ];
+    }
+
+    return visibleMenuItems.find((item) => item.name === sectionName)?.subItems || [];
+  };
 
   const handleQuickShortcutOpen = (stateKey) => {
     const currentState = location.state || {};
@@ -281,7 +298,7 @@ export default function Home() {
   };
 
   useEffect(() => {
-    const sectionItems = getSectionItems(expandedSection);
+    const sectionItems = getVisibleSectionItems(expandedSection);
     if (sectionItems.length === 0) {
       setActiveHomePath('');
       return;
@@ -292,7 +309,7 @@ export default function Home() {
         ? currentPath
         : sectionItems[0].path
     ));
-  }, [expandedSection]);
+  }, [expandedSection, user]);
 
   useEffect(() => {
     if (location.pathname !== '/') return;
@@ -301,12 +318,12 @@ export default function Home() {
     const requestedPath = location.state?.homePath;
     if (!requestedSection || !requestedPath) return;
 
-    const sectionItems = getSectionItems(requestedSection).filter((item) => Boolean(item.path));
+    const sectionItems = getVisibleSectionItems(requestedSection).filter((item) => Boolean(item.path));
     if (!sectionItems.some((item) => item.path === requestedPath)) return;
 
     setExpandedSection(requestedSection);
     setActiveHomePath(requestedPath);
-  }, [location.pathname, location.state]);
+  }, [location.pathname, location.state, user]);
 
   useEffect(() => {
     const isTypingTarget = (target) => {
@@ -350,7 +367,7 @@ export default function Home() {
 
           setExpandedSection(nextSection);
           if (nextSection === 'Reports') {
-            setActiveHomePath((currentPath) => currentPath || getSectionItems('Reports')[0]?.path || '');
+            setActiveHomePath((currentPath) => currentPath || getVisibleSectionItems('Reports')[0]?.path || '');
           }
           return;
         }
@@ -361,7 +378,7 @@ export default function Home() {
           return;
         }
 
-        const sectionItems = getSectionItems(expandedSection).filter((item) => Boolean(item.path));
+        const sectionItems = getVisibleSectionItems(expandedSection).filter((item) => Boolean(item.path));
         if (sectionItems.length === 0) return;
 
         if (key === 'enter') {
@@ -384,7 +401,7 @@ export default function Home() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeHomePath, expandedSection, location.state, navigate]);
+  }, [activeHomePath, expandedSection, location.state, navigate, user]);
 
   return (
     <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-[#0f172a] to-[#020617] px-4 py-6">
@@ -410,7 +427,7 @@ export default function Home() {
 
           <div className="sidebar-scrollbar relative z-10 flex-1 overflow-y-auto pb-4 sm:pb-8">
             <nav className="flex flex-col">
-              {menuItems.filter((item) => HOME_SECTION_ORDER.includes(item.name)).map((item, index) => {
+              {visibleMenuItems.filter((item) => HOME_SECTION_ORDER.includes(item.name)).map((item, index) => {
                 const sectionStyle = sectionStyles[item.name] || sectionStyles['Manage Vehicle/Party'];
                 const isExpanded = false;
                 const isSelectedSection = expandedSection === item.name;
@@ -426,7 +443,7 @@ export default function Home() {
                         }
 
                         setExpandedSection(item.name);
-                        setActiveHomePath(getSectionItems(item.name)[0]?.path || '');
+                        setActiveHomePath(getVisibleSectionItems(item.name)[0]?.path || '');
                       }}
                       className={`flex w-full cursor-pointer items-center gap-2.5 border-y px-3 py-2.5 text-left text-slate-700 transition-all duration-200 sm:gap-3 sm:px-5 sm:py-3 ${isSelectedSection ? 'bg-yellow-200 ring-2 ring-yellow-300 shadow-sm' : sectionStyle.headerClass} ${index > 0 ? 'mt-2 sm:mt-3' : ''} hover:shadow-sm`}
                     >

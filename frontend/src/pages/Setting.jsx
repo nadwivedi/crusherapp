@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { getUserFeatureAccess } from '../utils/featureAccess';
 
 const STORAGE_KEY = 'crusher-app-settings';
 
@@ -120,18 +121,20 @@ function ToggleSwitch({ checked, onChange, label, description }) {
 }
 
 export default function Setting() {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUserSettings } = useAuth();
   const navigate = useNavigate();
   const [settings, setSettings] = useState(defaultSettings);
+  const [featureAccess, setFeatureAccess] = useState({ saleReturn: false, stockAdjustment: false });
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     setSettings(readStoredSettings());
+    setFeatureAccess(getUserFeatureAccess(user));
     setIsLoaded(true);
-  }, []);
+  }, [user]);
 
   const displayName = String(
-    user?.companyName || `${user?.firstName || ''} ${user?.lastName || ''}`
+    user?.name || user?.companyName || `${user?.firstName || ''} ${user?.lastName || ''}`
   ).trim() || '-';
 
   const handleFieldChange = (event) => {
@@ -149,15 +152,34 @@ export default function Setting() {
     }));
   };
 
-  const handleSave = () => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-    toast.success('Settings saved successfully');
+  const handleFeatureToggle = (key) => {
+    setFeatureAccess((current) => ({
+      ...current,
+      [key]: !current[key]
+    }));
   };
 
-  const handleReset = () => {
+  const handleSave = async () => {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    try {
+      await updateUserSettings({ featureAccess });
+      toast.success('Settings saved successfully');
+    } catch (error) {
+      toast.error(error?.message || 'Failed to save settings');
+    }
+  };
+
+  const handleReset = async () => {
+    const resetFeatureAccess = { saleReturn: false, stockAdjustment: false };
     setSettings(defaultSettings);
+    setFeatureAccess(resetFeatureAccess);
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultSettings));
-    toast.success('Settings reset to default');
+    try {
+      await updateUserSettings({ featureAccess: resetFeatureAccess });
+      toast.success('Settings reset to default');
+    } catch (error) {
+      toast.error(error?.message || 'Failed to reset settings');
+    }
   };
 
   const handleLogout = async () => {
@@ -280,6 +302,22 @@ export default function Setting() {
                   ))}
                 </div>
 
+                <div className="space-y-3 border-t border-slate-200 pt-4">
+                  <p className="text-sm font-medium text-slate-700">Limited Pages For User</p>
+                  <ToggleSwitch
+                    checked={featureAccess.saleReturn}
+                    onChange={() => handleFeatureToggle('saleReturn')}
+                    label="Sale Return"
+                    description="Hidden by default. Enable this if the user should see Sale Return."
+                  />
+                  <ToggleSwitch
+                    checked={featureAccess.stockAdjustment}
+                    onChange={() => handleFeatureToggle('stockAdjustment')}
+                    label="Stock Adjustment"
+                    description="Hidden by default. Enable this if the user should see Stock Adjustment."
+                  />
+                </div>
+
                 <div className="flex flex-wrap gap-3 pt-4">
                   <button
                     type="button"
@@ -321,19 +359,23 @@ export default function Setting() {
                 </div>
                 <div className="rounded-xl bg-slate-50 p-4">
                   <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Phone</p>
-                  <p className="mt-1 font-semibold text-slate-800">{user?.phone || '-'}</p>
+                  <p className="mt-1 font-semibold text-slate-800">{user?.mobile || user?.phone || '-'}</p>
                 </div>
                 <div className="rounded-xl bg-slate-50 p-4">
                   <p className="text-xs font-medium uppercase tracking-wider text-slate-500">State</p>
-                  <p className="mt-1 font-semibold text-slate-800">{user?.address?.state || '-'}</p>
+                  <p className="mt-1 font-semibold text-slate-800">{user?.state || user?.address?.state || '-'}</p>
                 </div>
                 <div className="rounded-xl bg-slate-50 p-4">
-                  <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Pincode</p>
-                  <p className="mt-1 font-semibold text-slate-800">{user?.address?.pincode || '-'}</p>
+                  <p className="text-xs font-medium uppercase tracking-wider text-slate-500">District</p>
+                  <p className="mt-1 font-semibold text-slate-800">{user?.district || '-'}</p>
                 </div>
                 <div className="rounded-xl bg-slate-50 p-4">
-                  <p className="text-xs font-medium uppercase tracking-wider text-slate-500">GST Number</p>
-                  <p className="mt-1 font-semibold text-slate-800">{user?.gstNumber || '-'}</p>
+                  <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Sale Return Access</p>
+                  <p className="mt-1 font-semibold text-slate-800">{featureAccess.saleReturn ? 'Enabled' : 'Hidden'}</p>
+                </div>
+                <div className="rounded-xl bg-slate-50 p-4">
+                  <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Stock Adjustment Access</p>
+                  <p className="mt-1 font-semibold text-slate-800">{featureAccess.stockAdjustment ? 'Enabled' : 'Hidden'}</p>
                 </div>
               </div>
             </SettingCard>

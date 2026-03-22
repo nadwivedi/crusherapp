@@ -20,6 +20,10 @@ const sanitizeUser = (user) => ({
   mobile: user.mobile,
   state: user.state,
   district: user.district,
+  featureAccess: {
+    saleReturn: Boolean(user.featureAccess?.saleReturn),
+    stockAdjustment: Boolean(user.featureAccess?.stockAdjustment),
+  },
 });
 
 const generateToken = (id) => (
@@ -160,6 +164,32 @@ module.exports = {
       return res.json({ message: "Logout successful" });
     } catch (error) {
       return res.status(500).json({ message: "Failed to logout" });
+    }
+  },
+  updateCurrentUserSettings: async (req, res) => {
+    try {
+      const user = await User.findById(req.userId);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: "User not found",
+        });
+      }
+
+      user.featureAccess = {
+        saleReturn: Boolean(req.body?.featureAccess?.saleReturn),
+        stockAdjustment: Boolean(req.body?.featureAccess?.stockAdjustment),
+      };
+
+      await user.save();
+
+      return res.json({
+        success: true,
+        message: "Settings updated successfully",
+        user: sanitizeUser(user),
+      });
+    } catch (error) {
+      return res.status(500).json({ message: "Failed to update settings" });
     }
   },
 };

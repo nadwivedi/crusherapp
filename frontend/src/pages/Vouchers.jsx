@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { getSectionConfig } from '../navigation/sectionMenu';
+import { useAuth } from '../context/AuthContext';
+import { filterRestrictedItems } from '../utils/featureAccess';
 import Sales from './Sales/Sales';
 import Purchases from './Purchases/Purchases';
 import Payments from './Payments/Payments';
@@ -24,10 +26,11 @@ const POPUP_VOUCHER_PATHS = new Set([
 ]);
 
 export default function Vouchers() {
+  const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const config = getSectionConfig('Vouchers');
-  const items = useMemo(() => config?.items || [], [config]);
+  const items = useMemo(() => filterRestrictedItems(config?.items || [], user), [config, user]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [openVoucherPath, setOpenVoucherPath] = useState('');
 

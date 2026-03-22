@@ -67,12 +67,21 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateUserSettings = async (settingsPayload) => {
+    const response = await apiClient.patch('/users/current/settings', settingsPayload);
+    if (response?.success && response?.user) {
+      setUser(response.user);
+    }
+    return response;
+  };
+
   const value = {
     user,
     loading,
     login,
     register,
     logout,
+    updateUserSettings,
     isAuthenticated: !!user
   };
 

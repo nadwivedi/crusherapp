@@ -34,6 +34,16 @@ const userSchema = new mongoose.Schema(
       trim: true,
       default: "",
     },
+    featureAccess: {
+      saleReturn: {
+        type: Boolean,
+        default: false,
+      },
+      stockAdjustment: {
+        type: Boolean,
+        default: false,
+      },
+    },
   },
   {
     timestamps: true,

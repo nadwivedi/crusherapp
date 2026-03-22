@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { filterRestrictedItems } from '../utils/featureAccess';
 
 function AssetIcon({ src, alt = '' }) {
   return <img src={src} alt={alt} className="h-9 w-9 object-contain" />;
@@ -221,8 +223,19 @@ export default function Sidebar({ variant = 'rail' }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [expandedSection, setExpandedSection] = useState('Masters');
   const [activeHomePath, setActiveHomePath] = useState('/party');
+  const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const visibleMenuItems = menuItems.map((item) => (
+    item.subItems?.length ? { ...item, subItems: filterRestrictedItems(item.subItems, user) } : item
+  ));
+
+  const getVisibleSectionItems = (sectionName) => {
+    if (sectionName === 'Reports') {
+      return visibleMenuItems.filter((item) => !item.subItems?.length);
+    }
+    return visibleMenuItems.find((item) => item.name === sectionName)?.subItems || [];
+  };
 
   const isActive = (path) => {
     if (!path) return false;
@@ -240,7 +253,7 @@ export default function Sidebar({ variant = 'rail' }) {
 
   useEffect(() => {
     if (variant !== 'home') return;
-    const sectionItems = getSectionItems(expandedSection);
+    const sectionItems = getVisibleSectionItems(expandedSection);
     if (sectionItems.length === 0) {
       setActiveHomePath('');
       return;
@@ -250,18 +263,18 @@ export default function Sidebar({ variant = 'rail' }) {
         ? currentPath
         : sectionItems[0].path
     ));
-  }, [expandedSection, variant]);
+  }, [expandedSection, variant, user]);
 
   useEffect(() => {
     if (variant !== 'home' || location.pathname !== '/') return;
     const requestedSection = location.state?.homeSection;
     const requestedPath = location.state?.homePath;
     if (!requestedSection || !requestedPath) return;
-    const sectionItems = getSectionItems(requestedSection).filter((item) => Boolean(item.path));
+    const sectionItems = getVisibleSectionItems(requestedSection).filter((item) => Boolean(item.path));
     if (!sectionItems.some((item) => item.path === requestedPath)) return;
     setExpandedSection(requestedSection);
     setActiveHomePath(requestedPath);
-  }, [location.pathname, location.state, variant]);
+  }, [location.pathname, location.state, variant, user]);
 
   useEffect(() => {
     const isTypingTarget = (target) => {
@@ -311,7 +324,7 @@ export default function Sidebar({ variant = 'rail' }) {
 
       if (variant === 'home' && (isMoveDownKey || isMoveUpKey || key === 'enter')) {
         if (isTypingTarget(event.target)) return;
-        const sectionItems = getSectionItems(expandedSection).filter((item) => Boolean(item.path));
+        const sectionItems = getVisibleSectionItems(expandedSection).filter((item) => Boolean(item.path));
         if (sectionItems.length === 0) return;
 
         if (key === 'enter') {
@@ -350,7 +363,7 @@ export default function Sidebar({ variant = 'rail' }) {
       if (isTypingTarget(event.target)) return;
       if (isPopupOpen()) return;
 
-      const sectionSubItems = menuItems
+      const sectionSubItems = visibleMenuItems
         .filter((item) => item.subItems?.length)
         .map((item) => (item.subItems || []).filter((subItem) => Boolean(subItem.path)));
 
@@ -386,7 +399,7 @@ export default function Sidebar({ variant = 'rail' }) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeHomePath, expandedSection, navigate, location.pathname, variant]);
+  }, [activeHomePath, expandedSection, navigate, location.pathname, variant, user]);
 
   const handleNavLinkClick = () => {
     if (window.innerWidth < 768) setMobileOpen(false);
@@ -395,7 +408,7 @@ export default function Sidebar({ variant = 'rail' }) {
   const renderMenuContent = (onNavigate, options = {}) => (
     <div className="sidebar-scrollbar relative z-10 flex-1 overflow-y-auto pb-8">
       <nav className="flex flex-col">
-        {menuItems.filter((item) => item.subItems?.length).map((item, index) => {
+        {visibleMenuItems.filter((item) => item.subItems?.length).map((item, index) => {
           const sectionStyle = sectionStyles[item.name] || sectionStyles.Masters;
           const isExpanded = !options.accordion || expandedSection === item.name;
 
@@ -406,7 +419,7 @@ export default function Sidebar({ variant = 'rail' }) {
                 onClick={() => {
                   if (options.accordion) {
                     setExpandedSection(item.name);
-                    setActiveHomePath(getSectionItems(item.name)[0]?.path || '');
+                    setActiveHomePath(getVisibleSectionItems(item.name)[0]?.path || '');
                   }
                 }}
                 className={`flex w-full items-center gap-3 border-y px-5 py-3 text-left text-slate-700 ${sectionStyle.headerClass} ${index > 0 ? 'mt-3' : ''}`}
@@ -477,7 +490,7 @@ export default function Sidebar({ variant = 'rail' }) {
                 onClick={() => {
                   if (options.accordion) {
                     setExpandedSection('Reports');
-                    setActiveHomePath(getSectionItems('Reports')[0]?.path || '');
+                    setActiveHomePath(getVisibleSectionItems('Reports')[0]?.path || '');
                   }
                 }}
                 className="mt-3 flex w-full items-center gap-3 border-y border-slate-200 bg-slate-50/90 px-5 py-3 text-left text-slate-700"
@@ -491,7 +504,7 @@ export default function Sidebar({ variant = 'rail' }) {
                 )}
               </button>
 
-              {isExpanded && menuItems.filter((item) => !item.subItems?.length).map((item) => {
+              {isExpanded && visibleMenuItems.filter((item) => !item.subItems?.length).map((item) => {
                 const active = options.accordion ? activeHomePath === item.path : isActive(item.path);
                 const Icon = item.Icon;
 

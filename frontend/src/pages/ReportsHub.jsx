@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { BookOpen, Boxes, FileBarChart, Package, ReceiptText, RefreshCw, ShoppingCart, Truck, Users } from 'lucide-react';
 import { getSectionConfig } from '../navigation/sectionMenu';
+import { useAuth } from '../context/AuthContext';
+import { filterRestrictedItems } from '../utils/featureAccess';
 
 const REPORT_ITEMS = [
   { name: 'Day Book', path: '/day-book', Icon: BookOpen },
@@ -18,10 +20,11 @@ const REPORT_ITEMS = [
 ];
 
 export default function ReportsHub() {
+  const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const config = getSectionConfig('Reports');
-  const items = useMemo(() => REPORT_ITEMS, []);
+  const items = useMemo(() => filterRestrictedItems(REPORT_ITEMS, user), [user]);
   const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
