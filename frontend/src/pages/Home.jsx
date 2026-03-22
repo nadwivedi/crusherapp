@@ -3,9 +3,9 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 
 const homeQuickShortcuts = [
-  { label: 'Boulder Entry', hint: '', combo: '', stateKey: 'homeQuickBoulder', imageSrc: '/buttons/boulder.png' },
-  { label: 'New Sale', hint: '', combo: '', stateKey: 'homeQuickSale', imageSrc: '/buttons/add sales.png' },
-  { label: 'New Purchase', hint: '', combo: '', stateKey: 'homeQuickPurchase', imageSrc: '/buttons/add purchase.png' },
+  { label: 'Boulder Entry', hint: '', combo: '', stateKey: 'homeQuickBoulder', imageSrc: '/buttons/boulder.png', imageClassName: 'sm:scale-58' },
+  { label: 'New Sale', hint: '', combo: '', stateKey: 'homeQuickSale', imageSrc: '/buttons/add sales.png', imageClassName: 'sm:scale-58' },
+  { label: 'New Purchase', hint: '', combo: '', stateKey: 'homeQuickPurchase', imageSrc: '/buttons/add purchase.png', imageClassName: 'sm:scale-58' },
   { label: 'New Payment', hint: 'Money Paid', combo: '', stateKey: 'homeQuickPayment', imageSrc: '/buttons/money paid.png', imageClassName: 'sm:scale-90' },
   { label: 'New Receipt', hint: 'Money Received', combo: '', stateKey: 'homeQuickReceipt', imageSrc: '/buttons/money received.png' },
   { label: 'Material Used', hint: '', combo: '', stateKey: 'homeQuickMaterialUsed', imageSrc: '/buttons/material used.png' },
@@ -73,13 +73,9 @@ export default function Home() {
 
         <div className="px-4 py-4 sm:px-6 sm:py-5">
           <div className="mx-auto flex min-h-[calc(100vh-7rem)] max-w-6xl items-center justify-center">
-            <aside className="relative w-full max-w-[26rem] overflow-hidden rounded-[20px] border border-slate-200/15 bg-[linear-gradient(165deg,rgba(30,41,59,0.92),rgba(51,65,85,0.9),rgba(71,85,105,0.88))] shadow-[0_24px_60px_rgba(15,23,42,0.34),0_0_42px_rgba(14,165,233,0.08)] sm:max-w-[30rem] sm:rounded-[30px] lg:max-w-[34rem]">
+            <aside className="relative w-full max-w-[16.5rem] overflow-hidden rounded-[20px] border border-slate-200/15 bg-[linear-gradient(165deg,rgba(30,41,59,0.92),rgba(51,65,85,0.9),rgba(71,85,105,0.88))] shadow-[0_24px_60px_rgba(15,23,42,0.34),0_0_42px_rgba(14,165,233,0.08)] sm:max-w-[18.5rem] sm:rounded-[30px] lg:max-w-[20.5rem]">
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.16),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(16,185,129,0.1),transparent_28%)]" />
               <div className="relative z-10 flex h-full flex-col">
-                <div className="border-b border-white/10 px-3 py-3 sm:px-5 sm:py-5">
-                  <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-cyan-200 sm:text-[10px] sm:tracking-[0.24em]">Quick Keys</p>
-                </div>
-
                 <div className="flex flex-1 flex-col gap-2 px-2 py-2 sm:gap-2.5 sm:px-3 sm:py-3">
                   {homeQuickShortcuts.map((shortcut) => (
                     <button
