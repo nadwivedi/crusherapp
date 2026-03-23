@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, Plus, ReceiptIndianRupee, Search } from 'lucide-react';
+import { CalendarDays, ChevronDown, Package, Plus, ReceiptIndianRupee, Search } from 'lucide-react';
 import { toast } from 'react-toastify';
 import apiClient from '../utils/api';
 import { handlePopupFormKeyDown } from '../utils/popupFormKeyboard';
@@ -14,6 +14,11 @@ const getInitialForm = () => ({
   method: 'cash',
   expenseDate: new Date().toISOString().split('T')[0],
   notes: ''
+});
+
+const getInitialGoodsItem = () => ({
+  quantity: '',
+  unitPrice: ''
 });
 
 const EXPENSE_METHOD_OPTIONS = [
@@ -72,6 +77,7 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
   const [isExpenseGroupSectionActive, setIsExpenseGroupSectionActive] = useState(false);
   const [isPartySectionActive, setIsPartySectionActive] = useState(false);
   const [isMethodSectionActive, setIsMethodSectionActive] = useState(false);
+  const [goodsItem, setGoodsItem] = useState(getInitialGoodsItem());
 
   useEffect(() => {
     fetchExpenses();
@@ -166,6 +172,13 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
     return `flex-1 min-w-0 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-bold text-gray-900 transition-all placeholder:font-normal placeholder:text-gray-400 focus:outline-none ${focusTone}`;
   };
 
+  const getTableFieldClass = (tone = 'emerald') => {
+    const focusTone = tone === 'emerald'
+      ? 'focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200'
+      : 'focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200';
+    return `block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-bold text-gray-900 transition-all placeholder:font-normal placeholder:text-gray-400 focus:outline-none ${focusTone}`;
+  };
+
   const normalizeText = (value) => String(value || '').trim().toLowerCase();
 
   const focusNextPopupField = (element) => {
@@ -199,6 +212,17 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
     );
     return selectedGroup?.name || '';
   }, [expenseGroups, formData.expenseGroup]);
+
+  const selectedExpenseGroup = useMemo(
+    () => expenseGroups.find((group) => String(group._id || '') === String(formData.expenseGroup || '')) || null,
+    [expenseGroups, formData.expenseGroup]
+  );
+
+  const isGoodsExpense = String(selectedExpenseGroup?.type || '').toLowerCase() === 'goods';
+  const goodsItemUnit = String(selectedExpenseGroup?.unit || '').trim() || '-';
+  const goodsQuantity = Number(goodsItem.quantity || 0);
+  const goodsUnitPrice = Number(goodsItem.unitPrice || 0);
+  const goodsAmount = Math.max(0, goodsQuantity * goodsUnitPrice);
 
   const selectedPartyName = useMemo(() => {
     const selectedParty = parties.find(
@@ -327,6 +351,15 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
     const { name, value } = event.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
+
+  useEffect(() => {
+    if (isGoodsExpense) {
+      setFormData((prev) => ({ ...prev, amount: goodsAmount ? String(goodsAmount) : '' }));
+      return;
+    }
+
+    setGoodsItem(getInitialGoodsItem());
+  }, [goodsAmount, isGoodsExpense]);
 
   useEffect(() => {
     if (!showForm) return;
@@ -640,6 +673,7 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
 
   const handleOpenForm = () => {
     setFormData(getInitialForm());
+    setGoodsItem(getInitialGoodsItem());
     setExpenseGroupQuery('');
     setExpenseGroupListIndex(-1);
     setIsExpenseGroupSectionActive(false);
@@ -656,6 +690,7 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
   const handleCloseForm = () => {
     setShowForm(false);
     setFormData(getInitialForm());
+    setGoodsItem(getInitialGoodsItem());
     setExpenseGroupQuery('');
     setExpenseGroupListIndex(-1);
     setIsExpenseGroupSectionActive(false);
@@ -679,8 +714,15 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
       return;
     }
 
-    if (!formData.amount || Number(formData.amount) <= 0) {
+    const resolvedAmount = isGoodsExpense ? goodsAmount : Number(formData.amount);
+
+    if (!Number.isFinite(resolvedAmount) || resolvedAmount <= 0) {
       setError('Valid amount is required');
+      return;
+    }
+
+    if (isGoodsExpense && goodsQuantity <= 0) {
+      setError('Valid quantity is required');
       return;
     }
 
@@ -689,10 +731,13 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
       await apiClient.post('/expenses', {
         expenseGroup: formData.expenseGroup,
         party: formData.party || null,
-        amount: Number(formData.amount),
+        amount: resolvedAmount,
         method: formData.method,
         expenseDate: formData.expenseDate ? new Date(formData.expenseDate) : new Date(),
-        notes: formData.notes
+        notes: formData.notes,
+        quantity: isGoodsExpense ? goodsQuantity : undefined,
+        unit: isGoodsExpense ? goodsItemUnit : undefined,
+        unitPrice: isGoodsExpense ? goodsUnitPrice : undefined
       });
 
       setError('');
@@ -832,7 +877,9 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2 backdrop-blur-[1.5px] md:p-4" onClick={handleCloseForm}>
           <div
-            className="flex max-h-[92vh] w-full max-w-[28rem] flex-col overflow-hidden rounded-xl bg-white shadow-2xl ring-1 ring-slate-200/80 md:rounded-2xl"
+            className={`flex max-h-[92vh] w-full flex-col overflow-hidden rounded-xl bg-white shadow-2xl ring-1 ring-slate-200/80 md:rounded-2xl ${
+              isGoodsExpense ? 'max-w-[68rem]' : 'max-w-[28rem]'
+            }`}
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex-shrink-0 border-b border-white/15 bg-gradient-to-r from-cyan-700 via-blue-700 to-indigo-700 px-3 py-1.5 text-white md:px-4 md:py-2">
@@ -1068,38 +1115,148 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <label className="mb-0 w-32 shrink-0 text-xs font-semibold text-gray-700 md:text-sm">Amount</label>
-                        <input
-                          type="number"
-                          name="amount"
-                          value={formData.amount}
-                          onChange={handleChange}
-                          step="0.01"
-                          className={getInlineFieldClass('indigo')}
-                          placeholder="Enter amount"
-                          required
-                        />
-                      </div>
+                      {selectedExpenseGroup && (
+                        <div className="flex items-center gap-2">
+                          <label className="mb-0 w-32 shrink-0 text-xs font-semibold text-gray-700 md:text-sm">Type</label>
+                          <div className="flex-1">
+                            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] ${
+                              isGoodsExpense
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : 'bg-sky-100 text-sky-800'
+                            }`}>
+                              {isGoodsExpense ? 'Goods' : 'Services'}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {!isGoodsExpense && (
+                        <div className="flex items-center gap-2">
+                          <label className="mb-0 w-32 shrink-0 text-xs font-semibold text-gray-700 md:text-sm">Amount</label>
+                          <input
+                            type="number"
+                            name="amount"
+                            value={formData.amount}
+                            onChange={handleChange}
+                            step="0.01"
+                            className={getInlineFieldClass('indigo')}
+                            placeholder="Enter amount"
+                            required
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
 
+                  {isGoodsExpense && (
+                    <div className="flex flex-1 flex-col rounded-xl border-2 border-emerald-200 bg-gradient-to-r from-green-50 to-emerald-50 p-2.5 md:p-4">
+                      <h3 className="mb-2.5 flex items-center gap-2 text-sm font-bold text-gray-800 md:mb-3 md:text-base">
+                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-600 text-[10px] text-white md:h-6 md:w-6 md:text-xs">2</span>
+                        Expense Items
+                      </h3>
+
+                      <div className="flex flex-1 flex-col overflow-hidden rounded-xl border border-emerald-200 bg-white shadow-sm">
+                        <div className="border-b border-emerald-100 bg-emerald-50 px-3 py-2">
+                          <p className="text-xs font-semibold text-emerald-800">Expense group entry table</p>
+                        </div>
+                        <div className="flex-1 overflow-auto">
+                          <table className="w-full min-w-[720px] table-fixed text-[13px]">
+                            <colgroup>
+                              <col className="w-[36%]" />
+                              <col className="w-[12%]" />
+                              <col className="w-[12%]" />
+                              <col className="w-[20%]" />
+                              <col className="w-[20%]" />
+                            </colgroup>
+                            <thead className="bg-white text-gray-600">
+                              <tr>
+                                <th className="border-b border-r border-slate-400 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider">Expense Group</th>
+                                <th className="border-b border-r border-slate-400 px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wider">Qty</th>
+                                <th className="border-b border-r border-slate-400 px-3 py-2 text-center text-[11px] font-semibold uppercase tracking-wider">Per</th>
+                                <th className="border-b border-r border-slate-400 px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wider">Price</th>
+                                <th className="border-b border-r border-slate-400 px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wider">Total</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-emerald-50">
+                              <tr className="bg-emerald-50/50 align-top">
+                                <td className="px-3 py-2.5 align-middle">
+                                  <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-white px-3 py-2">
+                                    <Package className="h-4 w-4 text-emerald-600" />
+                                    <div className="min-w-0">
+                                      <p className="truncate font-semibold text-gray-800">{selectedExpenseGroup?.name}</p>
+                                      <p className="text-[11px] uppercase tracking-[0.18em] text-emerald-700">Goods expense</p>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="px-3 py-2.5 align-middle">
+                                  <input
+                                    type="number"
+                                    placeholder="0"
+                                    value={goodsItem.quantity}
+                                    onChange={(event) => setGoodsItem((prev) => ({ ...prev, quantity: event.target.value }))}
+                                    className={`${getTableFieldClass('emerald')} text-right`}
+                                    min="0"
+                                    step="0.01"
+                                    required={isGoodsExpense}
+                                  />
+                                </td>
+                                <td className="px-3 py-2.5 text-center align-middle">
+                                  <div className="block w-full rounded-lg border border-emerald-200 bg-white px-2.5 py-2 font-medium text-gray-700">
+                                    {goodsItemUnit}
+                                  </div>
+                                </td>
+                                <td className="px-3 py-2.5 align-middle">
+                                  <input
+                                    type="number"
+                                    placeholder="0.00"
+                                    value={goodsItem.unitPrice}
+                                    onChange={(event) => setGoodsItem((prev) => ({ ...prev, unitPrice: event.target.value }))}
+                                    className={`${getTableFieldClass('emerald')} text-right`}
+                                    min="0"
+                                    step="0.01"
+                                    required={isGoodsExpense}
+                                  />
+                                </td>
+                                <td className="px-3 py-2.5 text-right align-middle">
+                                  <div className="block w-full rounded-lg border border-emerald-200 bg-white px-2.5 py-2 font-semibold text-gray-800">
+                                    {formatCurrency(goodsAmount)}
+                                  </div>
+                                </td>
+                              </tr>
+                              <tr className="bg-emerald-50/40">
+                                <td colSpan={4} className="border-t border-emerald-200 px-3 py-3 text-right text-[12px] font-bold uppercase tracking-wide text-emerald-800">
+                                  Total Amount
+                                </td>
+                                <td className="border-t border-emerald-200 px-3 py-3 text-right text-sm font-bold text-emerald-900">
+                                  {formatCurrency(goodsAmount)}
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="rounded-xl border-2 border-emerald-200 bg-gradient-to-r from-green-50 to-emerald-50 p-2.5 md:p-4">
                     <h3 className="mb-3 flex items-center gap-2 text-base font-bold text-gray-800 md:mb-4 md:text-lg">
-                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-xs text-white md:h-8 md:w-8 md:text-sm">2</span>
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-xs text-white md:h-8 md:w-8 md:text-sm">{isGoodsExpense ? '3' : '2'}</span>
                       Payment Details
                     </h3>
 
                     <div className="space-y-3 md:space-y-4">
                       <div className="flex items-center gap-2">
                         <label className="mb-0 w-32 shrink-0 text-xs font-semibold text-gray-700 md:text-sm">Expense Date</label>
-                        <input
-                          type="date"
-                          name="expenseDate"
-                          value={formData.expenseDate}
-                          onChange={handleChange}
-                          className={getInlineFieldClass('emerald')}
-                        />
+                        <div className="relative flex-1">
+                          <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-emerald-500" />
+                          <input
+                            type="date"
+                            name="expenseDate"
+                            value={formData.expenseDate}
+                            onChange={handleChange}
+                            className={`${getInlineFieldClass('emerald')} pl-10`}
+                          />
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-2">
@@ -1252,6 +1409,7 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
                     <div className="flex items-start justify-between gap-3 border-b border-cyan-900/20 bg-[linear-gradient(135deg,#0f766e_0%,#0d9488_38%,#0891b2_72%,#0284c7_100%)] px-4 py-3 text-white">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-bold text-white">{expense.expenseGroup?.name || 'Expense'}</p>
+                        <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-100">{expense.expenseNumber || '-'}</p>
                         <p className="mt-1 text-xs text-cyan-100">{formatDate(expense.expenseDate)}</p>
                       </div>
                       <div className="rounded-xl bg-white/15 px-3 py-1.5 text-right">
@@ -1293,6 +1451,7 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
                   <thead className="bg-[linear-gradient(135deg,#0f766e_0%,#0d9488_38%,#0891b2_72%,#0284c7_100%)] text-white">
                     <tr>
                       <th className="border-y-2 border-l-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold shadow-[inset_0_-1px_0_rgba(148,163,184,0.2)]">Date</th>
+                      <th className="border-y-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold shadow-[inset_0_-1px_0_rgba(148,163,184,0.2)]">Ref</th>
                       <th className="border-y-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold shadow-[inset_0_-1px_0_rgba(148,163,184,0.2)]">Expense Group</th>
                       <th className="border-y-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold shadow-[inset_0_-1px_0_rgba(148,163,184,0.2)]">Party</th>
                       <th className="border-y-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold shadow-[inset_0_-1px_0_rgba(148,163,184,0.2)]">Amount</th>
@@ -1305,6 +1464,9 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
                       <tr key={expense._id} className="transition-colors duration-150 hover:bg-slate-200/45">
                         <td className="border border-slate-400 px-4 py-3 text-center font-medium text-slate-700">
                           {formatDate(expense.expenseDate)}
+                        </td>
+                        <td className="border border-slate-400 px-4 py-3 text-center font-semibold text-slate-800">
+                          {expense.expenseNumber || '-'}
                         </td>
                         <td className="border border-slate-400 px-4 py-3 text-center font-semibold text-slate-800">
                           {expense.expenseGroup?.name || '-'}
@@ -1325,7 +1487,7 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
                     ))}
                     {expenses.length === 0 && (
                       <tr>
-                        <td colSpan="6" className="border border-slate-400 px-6 py-10 text-center text-slate-500">
+                        <td colSpan="7" className="border border-slate-400 px-6 py-10 text-center text-slate-500">
                           No expenses found
                         </td>
                       </tr>

@@ -10,7 +10,7 @@ const homeQuickShortcuts = [
   { label: 'New Payment', hint: 'Money Paid', combo: '', stateKey: 'homeQuickPayment', imageSrc: '/buttons/money paid.png', imageClassName: 'sm:scale-90' },
   { label: 'New Receipt', hint: 'Money Received', combo: '', stateKey: 'homeQuickReceipt', imageSrc: '/buttons/money received.png' },
   { label: 'Material Used', hint: '', combo: '', stateKey: 'homeQuickMaterialUsed', imageSrc: '/buttons/material used.png' },
-  { label: 'New Expense', hint: '', combo: 'Alt + 6', stateKey: 'homeQuickExpense', accent: 'from-emerald-500 to-lime-500' },
+  { label: 'New Expense', hint: '', combo: 'Alt + 6', stateKey: 'homeQuickExpense', imageSrc: '/buttons/new expense.png', imageClassName: 'sm:scale-58' },
   { label: 'Expense Group', hint: '', combo: '', path: '/expense-groups', accent: 'from-teal-500 to-cyan-500' },
   { label: 'Purchase Return', hint: '', combo: '', stateKey: 'homeQuickPurchaseReturn', accent: 'from-rose-500 to-pink-500' }
 ];

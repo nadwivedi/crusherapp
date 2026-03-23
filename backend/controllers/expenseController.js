@@ -2,10 +2,35 @@ const mongoose = require("mongoose");
 const Expense = require("../models/Expense");
 const ExpenseGroup = require("../models/ExpenseGroup");
 const Party = require("../models/Party");
+const Counter = require("../models/Counter");
 
 const toNumber = (value, fallback = 0) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const getExpenseYear = (expenseDateValue) => {
+  const expenseDate = expenseDateValue ? new Date(expenseDateValue) : new Date();
+  if (Number.isNaN(expenseDate.getTime())) {
+    return new Date().getFullYear();
+  }
+  return expenseDate.getFullYear();
+};
+
+const createExpenseNumber = async (expenseDateValue) => {
+  const expenseYear = getExpenseYear(expenseDateValue);
+  const counterKey = `expenses:${expenseYear}`;
+  const counter = await Counter.findOneAndUpdate(
+    { key: counterKey },
+    { $inc: { seq: 1 } },
+    {
+      new: true,
+      upsert: true,
+      setDefaultsOnInsert: true,
+    }
+  );
+
+  return `EXP-${expenseYear}-${String(counter.seq).padStart(2, "0")}`;
 };
 
 const createExpense = async (req, res) => {
@@ -14,6 +39,9 @@ const createExpense = async (req, res) => {
       expenseGroup,
       party,
       amount,
+      quantity,
+      unit,
+      unitPrice,
       method,
       expenseDate,
       notes,
@@ -43,6 +71,26 @@ const createExpense = async (req, res) => {
       });
     }
 
+    const isGoodsExpense = String(existingExpenseGroup.type || "").toLowerCase() === "goods";
+    const quantityNumber = quantity === undefined ? null : toNumber(quantity, NaN);
+    const unitPriceNumber = unitPrice === undefined ? null : toNumber(unitPrice, NaN);
+
+    if (isGoodsExpense) {
+      if (!Number.isFinite(quantityNumber) || quantityNumber <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Valid quantity is required for goods expense",
+        });
+      }
+
+      if (!Number.isFinite(unitPriceNumber) || unitPriceNumber < 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Valid unit price is required for goods expense",
+        });
+      }
+    }
+
     let resolvedParty = null;
     if (party) {
       if (!mongoose.isValidObjectId(party)) {
@@ -66,8 +114,12 @@ const createExpense = async (req, res) => {
     const expense = await Expense.create({
       userId,
       expenseGroup: existingExpenseGroup._id,
+      expenseNumber: await createExpenseNumber(expenseDate),
       party: resolvedParty,
       amount: amountNumber,
+      quantity: isGoodsExpense ? quantityNumber : null,
+      unit: isGoodsExpense ? String(unit || existingExpenseGroup.unit || "").trim() : "",
+      unitPrice: isGoodsExpense ? unitPriceNumber : null,
       method: method || "cash",
       expenseDate: expenseDate || new Date(),
       notes: String(notes || "").trim(),

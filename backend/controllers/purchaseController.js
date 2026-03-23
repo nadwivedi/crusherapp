@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const Purchase = require("../models/Purchase");
 const Payment = require("../models/Payment");
 const Stock = require("../models/Stock");
+const Counter = require("../models/Counter");
 
 const toNumber = (value, fallback = 0) => {
   const parsed = Number(value);
@@ -13,9 +14,28 @@ const getNextPurchaseNumber = async () => {
   return Math.max(1, Number(lastEntry?.purchaseNumber || 0) + 1);
 };
 
-const getNextPaymentNumber = async () => {
-  const lastEntry = await Payment.findOne().sort({ paymentNumber: -1 }).select("paymentNumber");
-  return Math.max(1, Number(lastEntry?.paymentNumber || 0) + 1);
+const getPaymentYear = (paymentDateValue) => {
+  const paymentDate = paymentDateValue ? new Date(paymentDateValue) : new Date();
+  if (Number.isNaN(paymentDate.getTime())) {
+    return new Date().getFullYear();
+  }
+  return paymentDate.getFullYear();
+};
+
+const createPaymentNumber = async (paymentDateValue) => {
+  const paymentYear = getPaymentYear(paymentDateValue);
+  const counterKey = `payments:${paymentYear}`;
+  const counter = await Counter.findOneAndUpdate(
+    { key: counterKey },
+    { $inc: { seq: 1 } },
+    {
+      new: true,
+      upsert: true,
+      setDefaultsOnInsert: true,
+    }
+  );
+
+  return `PAY-${paymentYear}-${String(counter.seq).padStart(2, "0")}`;
 };
 
 const normalizeItems = (items = []) => (
@@ -100,7 +120,7 @@ const createPurchase = async (req, res) => {
 
     const paymentAmount = Math.max(0, toNumber(req.body.paymentAmount));
     if (paymentAmount > 0) {
-      const paymentNumber = await getNextPaymentNumber();
+      const paymentNumber = await createPaymentNumber(req.body.paymentDate);
       await Payment.create({
         party: req.body.party || null,
         refType: "purchase",

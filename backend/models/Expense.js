@@ -12,6 +12,11 @@ const expenseSchema = new mongoose.Schema(
       ref: "ExpenseGroup",
       required: true,
     },
+    expenseNumber: {
+      type: String,
+      trim: true,
+      default: "",
+    },
     party: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Party",
@@ -21,6 +26,21 @@ const expenseSchema = new mongoose.Schema(
       type: Number,
       required: true,
       min: 0.01,
+    },
+    quantity: {
+      type: Number,
+      default: null,
+      min: 0,
+    },
+    unit: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    unitPrice: {
+      type: Number,
+      default: null,
+      min: 0,
     },
     method: {
       type: String,

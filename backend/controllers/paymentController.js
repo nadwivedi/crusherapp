@@ -1,15 +1,35 @@
 const mongoose = require("mongoose");
 const Payment = require("../models/Payment");
 const Purchase = require("../models/Purchase");
+const Counter = require("../models/Counter");
 
 const toNumber = (value, fallback = 0) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
-const getNextPaymentNumber = async () => {
-  const lastEntry = await Payment.findOne().sort({ paymentNumber: -1 }).select("paymentNumber");
-  return Math.max(1, Number(lastEntry?.paymentNumber || 0) + 1);
+const getPaymentYear = (paymentDateValue) => {
+  const paymentDate = paymentDateValue ? new Date(paymentDateValue) : new Date();
+  if (Number.isNaN(paymentDate.getTime())) {
+    return new Date().getFullYear();
+  }
+  return paymentDate.getFullYear();
+};
+
+const createPaymentNumber = async (paymentDateValue) => {
+  const paymentYear = getPaymentYear(paymentDateValue);
+  const counterKey = `payments:${paymentYear}`;
+  const counter = await Counter.findOneAndUpdate(
+    { key: counterKey },
+    { $inc: { seq: 1 } },
+    {
+      new: true,
+      upsert: true,
+      setDefaultsOnInsert: true,
+    }
+  );
+
+  return `PAY-${paymentYear}-${String(counter.seq).padStart(2, "0")}`;
 };
 
 const getPurchasePaidTotal = async (purchaseId) => {
@@ -55,7 +75,7 @@ const createPayment = async (req, res) => {
       resolvedParty = resolvedParty || purchase.party || null;
     }
 
-    const paymentNumber = await getNextPaymentNumber();
+    const paymentNumber = await createPaymentNumber(req.body.paymentDate);
     const payment = await Payment.create({
       party: resolvedParty,
       refType,
@@ -93,14 +113,9 @@ const getAllPayments = async (req, res) => {
     let query = Payment.find(filter).populate("party", "name");
 
     if (normalizedSearch) {
-      const paymentNumberSearch = Number.parseInt(
-        normalizedSearch.replace(/^pay-/i, ""),
-        10
-      );
-
       query = query.find({
         $or: [
-          ...(Number.isInteger(paymentNumberSearch) ? [{ paymentNumber: paymentNumberSearch }] : []),
+          { paymentNumber: { $regex: normalizedSearch, $options: "i" } },
           { notes: { $regex: normalizedSearch, $options: "i" } },
           { method: { $regex: normalizedSearch, $options: "i" } },
         ],

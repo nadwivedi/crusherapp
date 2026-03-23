@@ -28,6 +28,9 @@ const formatPurchaseNumber = (value) => {
 };
 
 const formatPaymentNumber = (value) => {
+  const normalized = String(value || "").trim();
+  if (!normalized) return "-";
+  if (/^PAY-\d{4}-\d{2,}$/i.test(normalized)) return normalized.toUpperCase();
   const parsed = Number.parseInt(value, 10);
   if (!Number.isInteger(parsed) || parsed <= 0) return "-";
   return `PAY-${String(parsed).padStart(2, "0")}`;
@@ -557,7 +560,7 @@ const getDayBook = async (req, res) => {
           refId: item._id,
           date: item.expenseDate || item.createdAt,
           entryCreatedAt: item.createdAt,
-          voucherNumber: item._id?.toString()?.slice(-6)?.toUpperCase() || "-",
+          voucherNumber: item.expenseNumber || "-",
           partyName: item.party?.name || item.expenseGroup?.name || "-",
           method: item.method || "-",
           amount: Number(item.amount || 0),

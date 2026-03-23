@@ -90,6 +90,9 @@ const formatDisplayDate = (value) => {
 };
 
 const formatPaymentNumber = (value) => {
+  const normalized = String(value || '').trim();
+  if (!normalized) return '-';
+  if (/^PAY-\d{4}-\d{2,}$/i.test(normalized)) return normalized.toUpperCase();
   const parsed = Number.parseInt(value, 10);
   if (!Number.isInteger(parsed) || parsed <= 0) return '-';
   return `Pay-${String(parsed).padStart(2, '0')}`;
