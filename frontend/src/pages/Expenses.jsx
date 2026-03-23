@@ -65,6 +65,8 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
   const expenseGroupInputRef = useRef(null);
   const partyInputRef = useRef(null);
   const methodInputRef = useRef(null);
+  const goodsQuantityInputRef = useRef(null);
+  const goodsUnitPriceInputRef = useRef(null);
   const expenseGroupSectionRef = useRef(null);
   const partySectionRef = useRef(null);
   const methodSectionRef = useRef(null);
@@ -78,6 +80,7 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
   const [isPartySectionActive, setIsPartySectionActive] = useState(false);
   const [isMethodSectionActive, setIsMethodSectionActive] = useState(false);
   const [goodsItem, setGoodsItem] = useState(getInitialGoodsItem());
+  const [goodsItems, setGoodsItems] = useState([]);
 
   useEffect(() => {
     fetchExpenses();
@@ -218,11 +221,17 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
     [expenseGroups, formData.expenseGroup]
   );
 
-  const isGoodsExpense = String(selectedExpenseGroup?.type || '').toLowerCase() === 'goods';
+  const goodsExpenseGroups = useMemo(
+    () => expenseGroups.filter((group) => String(group.type || '').toLowerCase() === 'goods'),
+    [expenseGroups]
+  );
+  const isGoodsSelection = String(selectedExpenseGroup?.type || '').toLowerCase() === 'goods';
+  const isGoodsExpense = isGoodsSelection || goodsItems.length > 0;
   const goodsItemUnit = String(selectedExpenseGroup?.unit || '').trim() || '-';
   const goodsQuantity = Number(goodsItem.quantity || 0);
   const goodsUnitPrice = Number(goodsItem.unitPrice || 0);
-  const goodsAmount = Math.max(0, goodsQuantity * goodsUnitPrice);
+  const goodsDraftAmount = Math.max(0, goodsQuantity * goodsUnitPrice);
+  const goodsAmount = goodsItems.reduce((sum, item) => sum + Number(item.total || 0), 0);
 
   const selectedPartyName = useMemo(() => {
     const selectedParty = parties.find(
@@ -239,11 +248,12 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
   }, [formData.method]);
 
   const getMatchingExpenseGroups = (queryValue) => {
+    const expenseGroupPool = goodsItems.length > 0 ? goodsExpenseGroups : expenseGroups;
     const normalized = normalizeText(queryValue);
-    if (!normalized) return expenseGroups;
+    if (!normalized) return expenseGroupPool;
 
-    const startsWith = expenseGroups.filter((group) => normalizeText(group.name).startsWith(normalized));
-    const includes = expenseGroups.filter((group) => (
+    const startsWith = expenseGroupPool.filter((group) => normalizeText(group.name).startsWith(normalized));
+    const includes = expenseGroupPool.filter((group) => (
       !normalizeText(group.name).startsWith(normalized)
       && normalizeText(group.name).includes(normalized)
     ));
@@ -283,11 +293,11 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
       && normalizedQuery
       && normalizedQuery === normalizedSelectedName
     ) {
-      return expenseGroups;
+      return goodsItems.length > 0 ? goodsExpenseGroups : expenseGroups;
     }
 
     return filteredExpenseGroups;
-  }, [expenseGroupQuery, expenseGroups, filteredExpenseGroups, isExpenseGroupSectionActive, selectedExpenseGroupName]);
+  }, [expenseGroupQuery, expenseGroups, filteredExpenseGroups, goodsExpenseGroups, goodsItems.length, isExpenseGroupSectionActive, selectedExpenseGroupName]);
 
   const partyOptions = useMemo(() => {
     const normalizedQuery = normalizeText(partyQuery);
@@ -359,6 +369,7 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
     }
 
     setGoodsItem(getInitialGoodsItem());
+    setGoodsItems([]);
   }, [goodsAmount, isGoodsExpense]);
 
   useEffect(() => {
@@ -572,6 +583,14 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
         selectExpenseGroup(matchedGroup);
       }
       setIsExpenseGroupSectionActive(false);
+      if ((matchedGroup && String(matchedGroup.type || '').toLowerCase() === 'goods') || goodsItems.length > 0) {
+        requestAnimationFrame(() => {
+          goodsQuantityInputRef.current?.focus();
+          goodsQuantityInputRef.current?.select?.();
+        });
+        return;
+      }
+
       focusNextPopupField(event.currentTarget);
     }
   };
@@ -674,6 +693,7 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
   const handleOpenForm = () => {
     setFormData(getInitialForm());
     setGoodsItem(getInitialGoodsItem());
+    setGoodsItems([]);
     setExpenseGroupQuery('');
     setExpenseGroupListIndex(-1);
     setIsExpenseGroupSectionActive(false);
@@ -691,6 +711,7 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
     setShowForm(false);
     setFormData(getInitialForm());
     setGoodsItem(getInitialGoodsItem());
+    setGoodsItems([]);
     setExpenseGroupQuery('');
     setExpenseGroupListIndex(-1);
     setIsExpenseGroupSectionActive(false);
@@ -706,44 +727,104 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
     }
   };
 
+  const buildCurrentGoodsItem = () => {
+    if (!selectedExpenseGroup || !isGoodsSelection) return null;
+    if (!Number.isFinite(goodsQuantity) || goodsQuantity <= 0) return null;
+    if (!Number.isFinite(goodsUnitPrice) || goodsUnitPrice < 0) return null;
+
+    return {
+      expenseGroup: selectedExpenseGroup._id,
+      expenseGroupName: selectedExpenseGroup.name,
+      quantity: goodsQuantity,
+      unit: goodsItemUnit,
+      unitPrice: goodsUnitPrice,
+      total: goodsDraftAmount,
+    };
+  };
+
+  const handleAddGoodsItem = () => {
+    const nextItem = buildCurrentGoodsItem();
+    if (!nextItem) {
+      setError('Select a goods expense group and enter valid quantity and price');
+      return false;
+    }
+
+    setGoodsItems((prev) => [...prev, nextItem]);
+    setGoodsItem(getInitialGoodsItem());
+    setExpenseGroupQuery('');
+    setFormData((prev) => ({ ...prev, expenseGroup: '' }));
+    setExpenseGroupListIndex(-1);
+    setIsExpenseGroupSectionActive(false);
+    setError('');
+    requestAnimationFrame(() => {
+      expenseGroupInputRef.current?.focus();
+      expenseGroupInputRef.current?.select?.();
+    });
+    return true;
+  };
+
+  const handleRemoveGoodsItem = (indexToRemove) => {
+    setGoodsItems((prev) => prev.filter((_, index) => index !== indexToRemove));
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (!formData.expenseGroup) {
+    if (!formData.expenseGroup && goodsItems.length === 0) {
       setError('Expense group is required');
       return;
     }
 
-    const resolvedAmount = isGoodsExpense ? goodsAmount : Number(formData.amount);
+    let expenseItems = goodsItems;
+    const pendingGoodsItem = buildCurrentGoodsItem();
+
+    if (isGoodsExpense) {
+      if (pendingGoodsItem) {
+        expenseItems = [...goodsItems, pendingGoodsItem];
+      } else if (selectedExpenseGroup && isGoodsSelection && (String(goodsItem.quantity || '').trim() || String(goodsItem.unitPrice || '').trim())) {
+        setError('Complete the goods item row before saving');
+        return;
+      }
+    }
+
+    const resolvedAmount = isGoodsExpense
+      ? expenseItems.reduce((sum, item) => sum + Number(item.total || 0), 0)
+      : Number(formData.amount);
 
     if (!Number.isFinite(resolvedAmount) || resolvedAmount <= 0) {
       setError('Valid amount is required');
       return;
     }
 
-    if (isGoodsExpense && goodsQuantity <= 0) {
-      setError('Valid quantity is required');
+    if (isGoodsExpense && expenseItems.length === 0) {
+      setError('Add at least one goods item');
       return;
     }
 
     try {
       setLoading(true);
       await apiClient.post('/expenses', {
-        expenseGroup: formData.expenseGroup,
+        expenseGroup: isGoodsExpense ? expenseItems[0]?.expenseGroup : formData.expenseGroup,
         party: formData.party || null,
         amount: resolvedAmount,
         method: formData.method,
         expenseDate: formData.expenseDate ? new Date(formData.expenseDate) : new Date(),
         notes: formData.notes,
-        quantity: isGoodsExpense ? goodsQuantity : undefined,
-        unit: isGoodsExpense ? goodsItemUnit : undefined,
-        unitPrice: isGoodsExpense ? goodsUnitPrice : undefined
+        items: isGoodsExpense
+          ? expenseItems.map((item) => ({
+            expenseGroup: item.expenseGroup,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            total: item.total,
+          }))
+          : undefined
       });
 
       setError('');
       toast.success('Expense created successfully', TOAST_OPTIONS);
       handleCloseForm();
       fetchExpenses();
+      fetchExpenseGroups();
     } catch (err) {
       setError(err.message || 'Error creating expense');
     } finally {
@@ -922,6 +1003,20 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
                     </h3>
 
                     <div className="space-y-3 md:space-y-4">
+                      <div className="flex items-center gap-2">
+                        <label className="mb-0 w-32 shrink-0 text-xs font-semibold text-gray-700 md:text-sm">Expense Date</label>
+                        <div className="relative flex-1">
+                          <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-indigo-500" />
+                          <input
+                            type="date"
+                            name="expenseDate"
+                            value={formData.expenseDate}
+                            onChange={handleChange}
+                            className={`${getInlineFieldClass('indigo')} pl-10`}
+                          />
+                        </div>
+                      </div>
+
                       <div className="flex items-center gap-2">
                         <label className="mb-0 w-32 shrink-0 text-xs font-semibold text-gray-700 md:text-sm">Expense Group</label>
                         <div
@@ -1162,11 +1257,12 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
                         <div className="flex-1 overflow-auto">
                           <table className="w-full min-w-[720px] table-fixed text-[13px]">
                             <colgroup>
-                              <col className="w-[36%]" />
+                              <col className="w-[30%]" />
                               <col className="w-[12%]" />
                               <col className="w-[12%]" />
-                              <col className="w-[20%]" />
-                              <col className="w-[20%]" />
+                              <col className="w-[16%]" />
+                              <col className="w-[18%]" />
+                              <col className="w-[12%]" />
                             </colgroup>
                             <thead className="bg-white text-gray-600">
                               <tr>
@@ -1175,25 +1271,55 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
                                 <th className="border-b border-r border-slate-400 px-3 py-2 text-center text-[11px] font-semibold uppercase tracking-wider">Per</th>
                                 <th className="border-b border-r border-slate-400 px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wider">Price</th>
                                 <th className="border-b border-r border-slate-400 px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wider">Total</th>
+                                <th className="border-b border-r border-slate-400 px-3 py-2 text-center text-[11px] font-semibold uppercase tracking-wider">Action</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-emerald-50">
+                              {goodsItems.map((item, index) => (
+                                <tr key={`${item.expenseGroup}-${index}`} className="hover:bg-emerald-50/40">
+                                  <td className="border-r border-slate-400 px-3 py-2.5 font-medium text-gray-800">{item.expenseGroupName}</td>
+                                  <td className="border-r border-slate-400 px-3 py-2.5 text-right text-gray-700">{item.quantity}</td>
+                                  <td className="border-r border-slate-400 px-3 py-2.5 text-center text-gray-700">{item.unit}</td>
+                                  <td className="border-r border-slate-400 px-3 py-2.5 text-right text-gray-700">{formatCurrency(item.unitPrice)}</td>
+                                  <td className="border-r border-slate-400 px-3 py-2.5 text-right font-semibold text-gray-800">{formatCurrency(item.total)}</td>
+                                  <td className="border-r border-slate-400 px-3 py-2.5 text-center">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveGoodsItem(index)}
+                                      className="rounded-md border border-rose-200 bg-rose-50 px-2.5 py-1 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-100"
+                                    >
+                                      Remove
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
                               <tr className="bg-emerald-50/50 align-top">
                                 <td className="px-3 py-2.5 align-middle">
                                   <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-white px-3 py-2">
                                     <Package className="h-4 w-4 text-emerald-600" />
                                     <div className="min-w-0">
-                                      <p className="truncate font-semibold text-gray-800">{selectedExpenseGroup?.name}</p>
-                                      <p className="text-[11px] uppercase tracking-[0.18em] text-emerald-700">Goods expense</p>
+                                      <p className="truncate font-semibold text-gray-800">{selectedExpenseGroup?.name || 'Select expense group above'}</p>
+                                      <p className="text-[11px] uppercase tracking-[0.18em] text-emerald-700">
+                                        {selectedExpenseGroup ? `Stock ${selectedExpenseGroup.currentStock ?? 0}` : 'Goods expense'}
+                                      </p>
                                     </div>
                                   </div>
                                 </td>
                                 <td className="px-3 py-2.5 align-middle">
                                   <input
+                                    ref={goodsQuantityInputRef}
                                     type="number"
                                     placeholder="0"
                                     value={goodsItem.quantity}
                                     onChange={(event) => setGoodsItem((prev) => ({ ...prev, quantity: event.target.value }))}
+                                    onKeyDown={(event) => {
+                                      if (event.key === 'Enter' && !event.shiftKey) {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                        goodsUnitPriceInputRef.current?.focus();
+                                        goodsUnitPriceInputRef.current?.select?.();
+                                      }
+                                    }}
                                     className={`${getTableFieldClass('emerald')} text-right`}
                                     min="0"
                                     step="0.01"
@@ -1207,10 +1333,18 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
                                 </td>
                                 <td className="px-3 py-2.5 align-middle">
                                   <input
+                                    ref={goodsUnitPriceInputRef}
                                     type="number"
                                     placeholder="0.00"
                                     value={goodsItem.unitPrice}
                                     onChange={(event) => setGoodsItem((prev) => ({ ...prev, unitPrice: event.target.value }))}
+                                    onKeyDown={(event) => {
+                                      if (event.key === 'Enter' && !event.shiftKey) {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                        handleAddGoodsItem();
+                                      }
+                                    }}
                                     className={`${getTableFieldClass('emerald')} text-right`}
                                     min="0"
                                     step="0.01"
@@ -1219,8 +1353,17 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
                                 </td>
                                 <td className="px-3 py-2.5 text-right align-middle">
                                   <div className="block w-full rounded-lg border border-emerald-200 bg-white px-2.5 py-2 font-semibold text-gray-800">
-                                    {formatCurrency(goodsAmount)}
+                                    {formatCurrency(goodsDraftAmount)}
                                   </div>
+                                </td>
+                                <td className="px-3 py-2.5 text-center align-middle">
+                                  <button
+                                    type="button"
+                                    onClick={handleAddGoodsItem}
+                                    className="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                                  >
+                                    Add
+                                  </button>
                                 </td>
                               </tr>
                               <tr className="bg-emerald-50/40">
@@ -1230,6 +1373,7 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
                                 <td className="border-t border-emerald-200 px-3 py-3 text-right text-sm font-bold text-emerald-900">
                                   {formatCurrency(goodsAmount)}
                                 </td>
+                                <td className="border-t border-emerald-200" />
                               </tr>
                             </tbody>
                           </table>
@@ -1245,20 +1389,6 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
                     </h3>
 
                     <div className="space-y-3 md:space-y-4">
-                      <div className="flex items-center gap-2">
-                        <label className="mb-0 w-32 shrink-0 text-xs font-semibold text-gray-700 md:text-sm">Expense Date</label>
-                        <div className="relative flex-1">
-                          <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-emerald-500" />
-                          <input
-                            type="date"
-                            name="expenseDate"
-                            value={formData.expenseDate}
-                            onChange={handleChange}
-                            className={`${getInlineFieldClass('emerald')} pl-10`}
-                          />
-                        </div>
-                      </div>
-
                       <div className="flex items-center gap-2">
                         <label className="mb-0 w-32 shrink-0 text-xs font-semibold text-gray-700 md:text-sm">Method</label>
                         <div

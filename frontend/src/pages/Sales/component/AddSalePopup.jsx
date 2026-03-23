@@ -54,6 +54,9 @@ export default function AddSalePopup({
   handleCancel,
   handleSubmit,
   handleInputChange,
+  saleTypePreview,
+  pendingAmountPreview,
+  excessAmountPreview,
   handleLeadgerFocus,
   handleLeadgerInputChange,
   handleLeadgerInputKeyDown,
@@ -654,6 +657,13 @@ export default function AddSalePopup({
                       step="0.01"
                       min="0"
                     />
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-600">
+                      <p className="font-semibold text-slate-800">{saleTypePreview || 'Credit Sale'}</p>
+                      <p className="mt-1">Pending: Rs {Number(pendingAmountPreview || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                      {Number(excessAmountPreview || 0) > 0 ? (
+                        <p className="mt-1 text-sky-700">Extra receipt for old dues: Rs {Number(excessAmountPreview || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
             </div>

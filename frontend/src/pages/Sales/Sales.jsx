@@ -132,6 +132,21 @@ const calculateSaleTotalAmount = (netWeight, ratePerTon) => {
   return (numericNetWeight / 1000) * numericRate;
 };
 
+const deriveSaleType = (totalAmountValue, paidAmountValue) => {
+  const totalAmount = Math.max(0, Number(totalAmountValue || 0));
+  const paidAmount = Math.max(0, Number(paidAmountValue || 0));
+
+  if (paidAmount <= 0) return 'credit sale';
+  if (paidAmount === totalAmount) return 'cash sale';
+  return 'sale';
+};
+
+const formatSaleTypeLabel = (value) => {
+  if (value === 'sale') return 'Sale';
+  if (value === 'cash sale') return 'Cash Sale';
+  return 'Credit Sale';
+};
+
 export default function Sales({ modalOnly = false, onModalFinish = null }) {
   const toastOptions = { autoClose: 1200 };
   const location = useLocation();
@@ -423,6 +438,11 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
     return [...startsWith, ...includes];
   }, [materialQuery, isMaterialSectionActive, formData.materialType]);
   const isCashParty = String(selectedLeadger?.type || '').trim().toLowerCase() === 'cash-in-hand';
+  const paidAmount = Math.max(0, Number(formData.paidAmount || 0));
+  const totalAmountValue = Math.max(0, Number(formData.totalAmount || 0));
+  const saleTypePreview = formatSaleTypeLabel(deriveSaleType(totalAmountValue, paidAmount));
+  const pendingAmountPreview = Math.max(0, totalAmountValue - paidAmount);
+  const excessAmountPreview = Math.max(0, paidAmount - totalAmountValue);
 
   useEffect(() => {
     if (!showForm) return;
@@ -1547,6 +1567,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         materialWeight: Number(formData.materialWeight || 0),
         rate: Number(formData.rate || 0),
         totalAmount: Number(formData.totalAmount || 0),
+        paidAmount: Number(formData.paidAmount || 0),
         saleDate: saleDateTime.toISOString(),
         saleTime: formData.saleTime || ''
       };
@@ -1556,18 +1577,6 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         savedSale = await apiClient.put(`/sales/${editingId}`, submitData);
       } else {
         savedSale = await apiClient.post('/sales', submitData);
-        const paidAmount = Number(formData.paidAmount || 0);
-        if (paidAmount > 0) {
-          await apiClient.post('/receipts', {
-            party: formData.party || null,
-            amount: paidAmount,
-            method: 'Cash Account',
-            receiptDate: saleDateTime.toISOString(),
-            notes: `Auto receipt for ${savedSale?.invoiceNumber || 'sale payment'}`,
-            refType: 'sale',
-            refId: savedSale?._id || null
-          });
-        }
       }
       toast.success(
         editingId ? 'Sale updated successfully' : 'Sale added successfully',
@@ -1598,9 +1607,9 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
   };
 
   const handleEdit = (sale) => {
-    const normalizedPartyId = typeof sale.party === 'object'
-      ? sale.party?._id || ''
-      : (sale.party || '');
+    const normalizedPartyId = typeof (sale.partyId || sale.party) === 'object'
+      ? (sale.partyId || sale.party)?._id || ''
+      : (sale.partyId || sale.party || '');
     const resolvedLeadgerName = resolveLeadgerNameById(normalizedPartyId) || sale.customerName || '';
 
       setFormData({
@@ -1618,7 +1627,8 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         netWeight: sale.netWeight || '',
           materialWeight: sale.materialWeight || '',
         rate: sale.rate || '',
-        totalAmount: sale.totalAmount || 0
+        totalAmount: sale.totalAmount || 0,
+        paidAmount: sale.paidAmount ?? ''
       });
       setLeadgerQuery(resolvedLeadgerName);
       setLeadgerListIndex(resolvedLeadgerName ? 0 : -1);
@@ -1799,6 +1809,9 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
           handleCancel={handleCancel}
           handleSubmit={handleSubmit}
           handleInputChange={handleInputChange}
+          saleTypePreview={saleTypePreview}
+          pendingAmountPreview={pendingAmountPreview}
+          excessAmountPreview={excessAmountPreview}
           handleLeadgerFocus={handleLeadgerFocus}
           handleLeadgerInputChange={handleLeadgerInputChange}
             handleLeadgerInputKeyDown={handleLeadgerInputKeyDown}
@@ -1950,6 +1963,9 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         handleCancel={handleCancel}
         handleSubmit={handleSubmit}
         handleInputChange={handleInputChange}
+        saleTypePreview={saleTypePreview}
+        pendingAmountPreview={pendingAmountPreview}
+        excessAmountPreview={excessAmountPreview}
         handleLeadgerFocus={handleLeadgerFocus}
         handleLeadgerInputChange={handleLeadgerInputChange}
         handleLeadgerInputKeyDown={handleLeadgerInputKeyDown}
@@ -2134,6 +2150,8 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
                   <th className="border-y-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold">Net Wt</th>
                   <th className="border-y-2 border-r border-black px-4 py-3.5 text-sm font-semibold">Products</th>
                   <th className="border-y-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold">Date</th>
+                  <th className="border-y-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold">Sale Type</th>
+                  <th className="border-y-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold">Paid</th>
                   <th className="border-y-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold">Total</th>
                   <th className="border-y-2 border-r-2 border-black px-4 py-3.5 text-center text-sm font-semibold">Actions</th>
                 </tr>
@@ -2151,7 +2169,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
                         {sale.invoiceNumber}
                       </button>
                     </td>
-                    <td className="border border-slate-400 px-4 py-3 text-center font-medium text-slate-700">{resolveLeadgerNameById(sale.party) || sale.customerName || '-'}</td>
+                    <td className="border border-slate-400 px-4 py-3 text-center font-medium text-slate-700">{resolveLeadgerNameById(sale.partyId || sale.party) || sale.customerName || '-'}</td>
                     <td className="border border-slate-400 px-4 py-3 text-center font-medium text-slate-700">{sale.vehicleNo || '-'}</td>
                     <td className="border border-slate-400 px-4 py-3 text-center">
                       {sale.materialType ? (
@@ -2182,6 +2200,20 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
                         : '-'}
                     </td>
                     <td className="border border-slate-400 px-4 py-3 text-center text-slate-600">{new Date(sale.saleDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                    <td className="border border-slate-400 px-4 py-3 text-center">
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                        sale.type === 'cash sale'
+                          ? 'border border-emerald-200 bg-emerald-50 text-emerald-700'
+                          : sale.type === 'sale'
+                            ? 'border border-amber-200 bg-amber-50 text-amber-700'
+                            : 'border border-rose-200 bg-rose-50 text-rose-700'
+                      }`}>
+                        {formatSaleTypeLabel(sale.type)}
+                      </span>
+                    </td>
+                    <td className="border border-slate-400 px-4 py-3 text-center font-semibold text-sky-700">
+                      Rs {Number(sale.paidAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </td>
                     <td className="border border-slate-400 px-4 py-3 text-center font-semibold text-emerald-600">
                       Rs {Number(sale.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </td>

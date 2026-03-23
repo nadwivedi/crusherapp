@@ -60,6 +60,53 @@ const toNumber = (value, fallback = 0) => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const formatAmount = (value) => `Rs ${toNumber(value).toLocaleString("en-IN", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+})}`;
+
+const getSaleTypeLabel = (value) => {
+  const normalized = String(value || "").trim();
+  if (normalized === "sale") return "Sale";
+  if (normalized === "cash sale") return "Cash Sale";
+  if (normalized === "credit sale") return "Credit Sale";
+  return "Sale";
+};
+
+const getEntryDisplayType = (baseType, saleType = "") => {
+  if (baseType === "sale") {
+    return getSaleTypeLabel(saleType);
+  }
+
+  if (baseType === "purchase") return "Purchase";
+  if (baseType === "receipt") return "Receipt";
+  if (baseType === "payment") return "Payment";
+  if (baseType === "opening") return "Opening";
+  if (baseType === "expense") return "Expense";
+  if (baseType === "boulder") return "Boulder";
+  if (baseType === "materialUsed") return "Material Used";
+  if (baseType === "purchaseReturn") return "Purchase Return";
+  if (baseType === "saleReturn") return "Sale Return";
+
+  return String(baseType || "").trim() || "-";
+};
+
+const getSaleAmounts = (sale) => {
+  const totalAmount = Math.max(0, toNumber(sale?.totalAmount));
+  const paidAmount = Math.max(0, toNumber(sale?.paidAmount));
+  const appliedAmount = Math.min(totalAmount, paidAmount);
+  const pendingAmount = Math.max(0, totalAmount - paidAmount);
+  const excessAmount = Math.max(0, paidAmount - totalAmount);
+
+  return {
+    totalAmount,
+    paidAmount,
+    appliedAmount,
+    pendingAmount,
+    excessAmount,
+  };
+};
+
 const getPartyOpeningImpact = (party) => {
   const openingBalance = Math.abs(toNumber(party?.openingBalance));
   if (openingBalance <= 0) return 0;
@@ -70,6 +117,11 @@ const buildSaleSummary = (sale) => {
   const parts = [];
   if (sale.vehicleNo) parts.push(`Vehicle ${sale.vehicleNo}`);
   if (sale.stoneSize) parts.push(`Material ${String(sale.stoneSize).toUpperCase()}`);
+  parts.push(`Type ${getSaleTypeLabel(sale.type)}`);
+  const amounts = getSaleAmounts(sale);
+  if (amounts.paidAmount > 0) parts.push(`Paid ${formatAmount(amounts.paidAmount)}`);
+  if (amounts.pendingAmount > 0) parts.push(`Due ${formatAmount(amounts.pendingAmount)}`);
+  if (amounts.excessAmount > 0) parts.push(`Excess ${formatAmount(amounts.excessAmount)}`);
   return parts.join(" | ");
 };
 
@@ -104,6 +156,7 @@ const buildLedgerRowsForParty = ({ party, sales, purchases, receipts, payments, 
   if (!fromDate && openingImpact !== 0) {
     rows.push({
       type: "opening",
+      displayType: getEntryDisplayType("opening"),
       refId: `opening-${party._id}`,
       partyId: party._id,
       partyName: party.name || "-",
@@ -123,26 +176,33 @@ const buildLedgerRowsForParty = ({ party, sales, purchases, receipts, payments, 
     ...sales
       .filter((item) => String(item.partyId?._id || item.partyId) === String(party._id))
       .filter((item) => withinRange(item.saleDate || item.createdAt, fromDate, toDate))
-      .map((item) => ({
-        type: "sale",
-        refId: item._id,
-        partyId: party._id,
-        partyName: party.name || "-",
-        date: item.saleDate || item.createdAt,
-        entryCreatedAt: item.createdAt,
-        refNumber: item.invoiceNumber || "-",
-        itemSummary: buildSaleSummary(item),
-        note: "",
-        method: item.vehicleNo || "-",
-        quantity: toNumber(item.materialWeight, toNumber(item.netWeight)),
-        amount: toNumber(item.totalAmount),
-        impact: toNumber(item.totalAmount),
-      })),
+      .map((item) => {
+        const saleAmounts = getSaleAmounts(item);
+        const saleImpact = item.type === "cash sale" ? 0 : saleAmounts.totalAmount;
+
+        return {
+          type: "sale",
+          displayType: getEntryDisplayType("sale", item.type),
+          refId: item._id,
+          partyId: party._id,
+          partyName: party.name || "-",
+          date: item.saleDate || item.createdAt,
+          entryCreatedAt: item.createdAt,
+          refNumber: item.invoiceNumber || "-",
+          itemSummary: buildSaleSummary(item),
+          note: item.type === "cash sale" ? "Cash sale does not create receivable." : "",
+          method: item.vehicleNo || "-",
+          quantity: toNumber(item.materialWeight, toNumber(item.netWeight)),
+          amount: saleAmounts.totalAmount,
+          impact: saleImpact,
+        };
+      }),
     ...purchases
       .filter((item) => String(item.party?._id || item.party) === String(party._id))
       .filter((item) => withinRange(item.purchaseDate || item.createdAt, fromDate, toDate))
       .map((item) => ({
         type: "purchase",
+        displayType: getEntryDisplayType("purchase"),
         refId: item._id,
         partyId: party._id,
         partyName: party.name || "-",
@@ -163,6 +223,7 @@ const buildLedgerRowsForParty = ({ party, sales, purchases, receipts, payments, 
       .filter((item) => withinRange(item.receiptDate || item.createdAt, fromDate, toDate))
       .map((item) => ({
         type: "receipt",
+        displayType: getEntryDisplayType("receipt"),
         refId: item._id,
         partyId: party._id,
         partyName: party.name || "-",
@@ -181,6 +242,7 @@ const buildLedgerRowsForParty = ({ party, sales, purchases, receipts, payments, 
       .filter((item) => withinRange(item.paymentDate || item.createdAt, fromDate, toDate))
       .map((item) => ({
         type: "payment",
+        displayType: getEntryDisplayType("payment"),
         refId: item._id,
         partyId: party._id,
         partyName: party.name || "-",
@@ -354,6 +416,9 @@ const getPartyLedgerEntryDetail = async (req, res) => {
         notes: "",
         fields: [
           { label: "Invoice Date", value: sale.saleDate || sale.createdAt },
+          { label: "Sale Type", value: getSaleTypeLabel(sale.type) },
+          { label: "Paid Amount", value: formatAmount(getSaleAmounts(sale).paidAmount) },
+          { label: "Pending Amount", value: formatAmount(getSaleAmounts(sale).pendingAmount) },
           { label: "Vehicle No", value: sale.vehicleNo || "-" },
           { label: "Material Type", value: sale.stoneSize || "-" },
           { label: "Gross Weight", value: toNumber(sale.netWeight) || "-" },
@@ -495,26 +560,34 @@ const getDayBook = async (req, res) => {
     const entries = [
       ...sales
         .filter((item) => withinRange(item.saleDate || item.createdAt, fromDate, toDate))
-        .map((item) => ({
+        .map((item) => {
+          const saleAmounts = getSaleAmounts(item);
+          const saleCashIn = item.type === "cash sale" ? saleAmounts.appliedAmount : 0;
+
+          return {
           type: "sale",
+          displayType: getEntryDisplayType("sale", item.type),
           refId: item._id,
-          date: item.saleDate || item.createdAt,
-          entryCreatedAt: item.createdAt,
-          voucherNumber: item.invoiceNumber || "-",
-          partyName: item.partyId?.name || "-",
-          materialSummary: buildSaleMaterialSummary(item),
-          method: [
-            item.vehicleNo ? `Vehicle ${item.vehicleNo}` : "",
-            item.stoneSize ? `Material ${String(item.stoneSize).toUpperCase()}` : "",
-          ].filter(Boolean).join(" | ") || "-",
-          amount: Number(item.totalAmount || 0),
-          inAmount: 0,
-          outAmount: 0,
-        })),
+            date: item.saleDate || item.createdAt,
+            entryCreatedAt: item.createdAt,
+            voucherNumber: item.invoiceNumber || "-",
+            partyName: item.partyId?.name || "-",
+            materialSummary: buildSaleMaterialSummary(item),
+            method: [
+              getSaleTypeLabel(item.type),
+              item.vehicleNo ? `Vehicle ${item.vehicleNo}` : "",
+              item.stoneSize ? `Material ${String(item.stoneSize).toUpperCase()}` : "",
+            ].filter(Boolean).join(" | ") || "-",
+            amount: saleAmounts.totalAmount,
+            inAmount: saleCashIn,
+            outAmount: 0,
+          };
+        }),
       ...purchases
         .filter((item) => withinRange(item.purchaseDate || item.createdAt, fromDate, toDate))
         .map((item) => ({
           type: "purchase",
+          displayType: getEntryDisplayType("purchase"),
           refId: item._id,
           date: item.purchaseDate || item.createdAt,
           entryCreatedAt: item.createdAt,
@@ -529,6 +602,7 @@ const getDayBook = async (req, res) => {
         .filter((item) => withinRange(item.paymentDate || item.createdAt, fromDate, toDate))
         .map((item) => ({
           type: "payment",
+          displayType: getEntryDisplayType("payment"),
           refId: item._id,
           date: item.paymentDate || item.createdAt,
           entryCreatedAt: item.createdAt,
@@ -543,6 +617,7 @@ const getDayBook = async (req, res) => {
         .filter((item) => withinRange(item.receiptDate || item.createdAt, fromDate, toDate))
         .map((item) => ({
           type: "receipt",
+          displayType: getEntryDisplayType("receipt"),
           refId: item._id,
           date: item.receiptDate || item.createdAt,
           entryCreatedAt: item.createdAt,
@@ -557,6 +632,7 @@ const getDayBook = async (req, res) => {
         .filter((item) => withinRange(item.expenseDate || item.createdAt, fromDate, toDate))
         .map((item) => ({
           type: "expense",
+          displayType: getEntryDisplayType("expense"),
           refId: item._id,
           date: item.expenseDate || item.createdAt,
           entryCreatedAt: item.createdAt,
@@ -571,6 +647,7 @@ const getDayBook = async (req, res) => {
         .filter((item) => withinRange(item.boulderDate || item.createdAt, fromDate, toDate))
         .map((item) => ({
           type: "boulder",
+          displayType: getEntryDisplayType("boulder"),
           refId: item._id,
           date: item.boulderDate || item.createdAt,
           entryCreatedAt: item.createdAt,
@@ -585,6 +662,7 @@ const getDayBook = async (req, res) => {
         .filter((item) => withinRange(item.usedDate || item.createdAt, fromDate, toDate))
         .map((item) => ({
           type: "materialUsed",
+          displayType: getEntryDisplayType("materialUsed"),
           refId: item._id,
           date: item.usedDate || item.createdAt,
           entryCreatedAt: item.createdAt,

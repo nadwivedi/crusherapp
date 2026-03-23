@@ -42,6 +42,7 @@ const formatCurrency = (value) => (
 );
 
 const formatNumber = (value) => Number(value || 0).toLocaleString('en-IN');
+const getEntryTypeLabel = (entry) => String(entry?.displayType || entry?.type || 'N/A');
 
 const formatDate = (value) => {
   const date = new Date(value);
@@ -141,9 +142,9 @@ export default function DayBook() {
     }
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(entry =>
-        (entry.partyName || '').toLowerCase().includes(term) ||
-        (entry.type || '').toLowerCase().includes(term) ||
+        filtered = filtered.filter(entry =>
+          (entry.partyName || '').toLowerCase().includes(term) ||
+        getEntryTypeLabel(entry).toLowerCase().includes(term) ||
         (entry.voucherNumber || '').toLowerCase().includes(term) ||
         (entry.method || '').toLowerCase().includes(term)
       );
@@ -308,7 +309,7 @@ export default function DayBook() {
                         </td>
                         <td className="px-6 py-4">
                           <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${colors.bg} ${colors.text}`}>
-                            {entry.type || 'N/A'}
+                            {getEntryTypeLabel(entry)}
                           </span>
                         </td>
                         <td className="px-6 py-4">

@@ -46,7 +46,10 @@ const createReceipt = async (req, res) => {
       }
 
       const receivedAmount = await getSaleReceiptTotal(sale._id);
-      const pendingAmount = Math.max(0, toNumber(sale.totalAmount) - receivedAmount);
+      const saleEntrySettledAmount = String(sale.type || "").trim() === "cash sale"
+        ? Math.min(toNumber(sale.totalAmount), toNumber(sale.paidAmount))
+        : 0;
+      const pendingAmount = Math.max(0, toNumber(sale.totalAmount) - saleEntrySettledAmount - receivedAmount);
       if (amount > pendingAmount) {
         return res.status(400).json({ message: "Amount exceeds sale pending amount" });
       }

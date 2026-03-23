@@ -67,6 +67,7 @@ const TYPE_BADGE_STYLES = {
   purchase: 'bg-amber-100 text-amber-700',
   expense: 'bg-fuchsia-100 text-fuchsia-700',
 };
+const getEntryTypeLabel = (entry) => String(entry?.displayType || entry?.type || '-');
 
 function StatCard({ title, value, icon: Icon, tone }) {
   return (
@@ -221,7 +222,7 @@ export default function HomeDayBookPanel() {
                       </td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${typeBadgeClass}`}>
-                          {entry.type || '-'}
+                          {getEntryTypeLabel(entry)}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-xs font-semibold text-slate-700">{entry.voucherNumber || '-'}</td>

@@ -412,7 +412,7 @@ export default function ReportsDashboard({ initialReport = 'partyLedger', showPi
                 {partyLedger.map((row, index) => (
                   <tr key={`${row.refId || 'ledger'}-${index}`} className="transition-colors hover:bg-slate-200/45">
                     <td className="border border-slate-300 px-4 py-3 text-center">{formatDate(row.date)}</td>
-                    <td className="border border-slate-300 px-4 py-3 text-center font-semibold capitalize">{row.type || '-'}</td>
+                    <td className="border border-slate-300 px-4 py-3 text-center font-semibold">{row.displayType || row.type || '-'}</td>
                     <td className="border border-slate-300 px-4 py-3 text-center">{row.refNumber || '-'}</td>
                     <td className="border border-slate-300 px-4 py-3 text-center">{row.partyName || '-'}</td>
                     <td className="border border-slate-300 px-4 py-3 text-center font-semibold">{formatCurrency(row.amount)}</td>
@@ -508,7 +508,7 @@ export default function ReportsDashboard({ initialReport = 'partyLedger', showPi
                   <tr key={`${row.refId || 'stock'}-${index}`} className="transition-colors hover:bg-slate-200/45">
                     <td className="border border-slate-300 px-4 py-3 text-center">{formatDate(row.date)}</td>
                     <td className="border border-slate-300 px-4 py-3 text-center">{row.productName || '-'}</td>
-                    <td className="border border-slate-300 px-4 py-3 text-center font-semibold capitalize">{row.type || '-'}</td>
+                    <td className="border border-slate-300 px-4 py-3 text-center font-semibold">{row.displayType || row.type || '-'}</td>
                     <td className="border border-slate-300 px-4 py-3 text-center">{row.refNumber || '-'}</td>
                     <td className="border border-slate-300 px-4 py-3 text-center font-semibold text-emerald-700">{formatNumber(row.inQty)}</td>
                     <td className="border border-slate-300 px-4 py-3 text-center font-semibold text-rose-700">{formatNumber(row.outQty)}</td>

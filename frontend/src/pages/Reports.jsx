@@ -199,7 +199,7 @@ export default function Reports() {
                 {partyLedger.map((row, idx) => (
                   <tr key={`${row.refId}-${idx}`} className="border-b border-slate-100 transition-colors hover:bg-slate-700/[0.05]">
                     <td className="px-6 py-3">{new Date(row.date).toLocaleDateString()}</td>
-                    <td className="px-6 py-3 capitalize">{row.type}</td>
+                    <td className="px-6 py-3">{row.displayType || row.type}</td>
                     <td className="px-6 py-3">{row.partyName}</td>
                     <td className="px-6 py-3">Rs {Number(row.amount || 0).toFixed(2)}</td>
                     <td className={`px-6 py-3 ${Number(row.runningBalance || 0) >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
@@ -256,7 +256,7 @@ export default function Reports() {
                   <tr key={`${row.refId}-${idx}`} className="border-b border-slate-100 transition-colors hover:bg-slate-700/[0.05]">
                     <td className="px-6 py-3">{new Date(row.date).toLocaleDateString()}</td>
                     <td className="px-6 py-3">{row.productName}</td>
-                    <td className="px-6 py-3 capitalize">{row.type}</td>
+                    <td className="px-6 py-3">{row.displayType || row.type}</td>
                     <td className="px-6 py-3 text-emerald-700">{Number(row.inQty || 0)}</td>
                     <td className="px-6 py-3 text-rose-700">{Number(row.outQty || 0)}</td>
                     <td className="px-6 py-3">{Number(row.runningQty || 0)}</td>

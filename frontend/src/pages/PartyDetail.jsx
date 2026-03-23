@@ -122,6 +122,8 @@ const getLedgerDetails = (row) => {
   return details;
 };
 
+const getEntryTypeLabel = (row) => String(row?.displayType || row?.type || '-');
+
 const isLedgerDetailSupported = (row) => Boolean(row?.refId && row?.type);
 
 function VoucherDetailModal({ detail, loading, error, onClose }) {
@@ -644,7 +646,7 @@ export default function PartyDetail() {
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${typeMeta.className}`}>
-                          {typeMeta.label}
+                          {getEntryTypeLabel(row)}
                         </span>
                         <p className="mt-2 text-sm font-semibold text-slate-900">{formatDate(row.date)}</p>
                         {isLedgerDetailSupported(row) ? (
@@ -719,7 +721,7 @@ export default function PartyDetail() {
                         <td className="border border-slate-300 px-4 py-3 text-center">{formatDate(row.date)}</td>
                         <td className="border border-slate-300 px-4 py-3 text-center">
                           <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${typeMeta.className}`}>
-                            {typeMeta.label}
+                            {getEntryTypeLabel(row)}
                           </span>
                         </td>
                         <td className="border border-slate-300 px-4 py-3 text-center font-medium text-slate-800">
