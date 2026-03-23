@@ -16,7 +16,7 @@ import Receipts from './pages/Receipts/Receipts';
 import MaterialUsed from './pages/MaterialUsed';
 import Party from './pages/Party/Party';
 import PartyDetail from './pages/PartyDetail';
-import Expenses from './pages/Expenses';
+import Expenses from './pages/Expenses/Expenses';
 import ExpenseGroups from './pages/ExpenseGroups';
 import BoulderEntry from './pages/BoulderEntry/BoulderEntry';
 import StockAdjustment from './pages/StockAdjustment';
