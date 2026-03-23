@@ -185,13 +185,6 @@ export default function HomeDayBookPanel() {
         </div>
 
         <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white">
-          <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3">
-            <div>
-              <h3 className="text-sm font-black uppercase tracking-[0.18em] text-slate-700">Recent Entries</h3>
-              <p className="text-xs text-slate-500">{summary.entryCount} entries today</p>
-            </div>
-          </div>
-
           {loading ? (
             <div className="px-4 py-12 text-center text-sm font-medium text-slate-500">Loading day book...</div>
           ) : recentEntries.length > 0 ? (
