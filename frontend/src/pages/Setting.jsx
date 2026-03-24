@@ -61,18 +61,18 @@ const readStoredSettings = () => {
 
 function SettingCard({ icon, title, description, children, className = '' }) {
   return (
-    <div className={`relative overflow-hidden rounded-2xl border border-slate-200/60 bg-white p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] ${className}`}>
+    <div className={`relative overflow-hidden rounded-2xl border border-slate-200/60 bg-white p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] md:p-5 ${className}`}>
       <div className="absolute right-0 top-0 h-32 w-32 translate-x-8 translate-y-[-50%] rounded-full bg-gradient-to-br from-sky-50 to-cyan-50 opacity-50"></div>
       <div className="relative">
-        <div className="mb-5 flex items-center gap-3">
+        <div className="mb-4 flex items-center gap-3">
           {icon && (
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-100 text-sky-600">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-100 text-sky-600">
               {icon}
             </div>
           )}
           <div>
-            <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
-            {description && <p className="mt-1 text-sm text-slate-500">{description}</p>}
+            <h3 className="text-base font-semibold text-slate-900 md:text-lg">{title}</h3>
+            {description && <p className="mt-0.5 text-xs text-slate-500 md:text-sm">{description}</p>}
           </div>
         </div>
         {children}
@@ -234,32 +234,34 @@ export default function Setting() {
               description="Your signed-in business profile details."
               icon={<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>}
             >
-              <div className="space-y-3">
-                <div className="rounded-xl bg-slate-50 p-4">
-                  <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Company</p>
-                  <p className="mt-1 font-semibold text-slate-800">{displayName}</p>
+              <div className="space-y-2.5">
+                <div className="grid grid-cols-1 gap-2.5 xl:grid-cols-5">
+                  <div className="rounded-xl bg-slate-50 px-3 py-3">
+                    <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">Company</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-800">{displayName}</p>
+                  </div>
+                  <div className="rounded-xl bg-slate-50 px-3 py-3">
+                    <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">Email</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-800">{user?.email || '-'}</p>
+                  </div>
+                  <div className="rounded-xl bg-slate-50 px-3 py-3">
+                    <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">Phone</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-800">{user?.mobile || user?.phone || '-'}</p>
+                  </div>
+                  <div className="rounded-xl bg-slate-50 px-3 py-3">
+                    <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">State</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-800">{user?.state || user?.address?.state || '-'}</p>
+                  </div>
+                  <div className="rounded-xl bg-slate-50 px-3 py-3">
+                    <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">District</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-800">{user?.district || '-'}</p>
+                  </div>
                 </div>
-                <div className="rounded-xl bg-slate-50 p-4">
-                  <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Email</p>
-                  <p className="mt-1 font-semibold text-slate-800">{user?.email || '-'}</p>
-                </div>
-                <div className="rounded-xl bg-slate-50 p-4">
-                  <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Phone</p>
-                  <p className="mt-1 font-semibold text-slate-800">{user?.mobile || user?.phone || '-'}</p>
-                </div>
-                <div className="rounded-xl bg-slate-50 p-4">
-                  <p className="text-xs font-medium uppercase tracking-wider text-slate-500">State</p>
-                  <p className="mt-1 font-semibold text-slate-800">{user?.state || user?.address?.state || '-'}</p>
-                </div>
-                <div className="rounded-xl bg-slate-50 p-4">
-                  <p className="text-xs font-medium uppercase tracking-wider text-slate-500">District</p>
-                  <p className="mt-1 font-semibold text-slate-800">{user?.district || '-'}</p>
-                </div>
-                <div className="rounded-xl bg-slate-50 p-4">
+                <div className="rounded-xl bg-slate-50 px-3 py-3">
                   <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Sale Return Access</p>
                   <p className="mt-1 font-semibold text-slate-800">{featureAccess.saleReturn ? 'Enabled' : 'Hidden'}</p>
                 </div>
-                <div className="rounded-xl bg-slate-50 p-4">
+                <div className="rounded-xl bg-slate-50 px-3 py-3">
                   <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Stock Adjustment Access</p>
                   <p className="mt-1 font-semibold text-slate-800">{featureAccess.stockAdjustment ? 'Enabled' : 'Hidden'}</p>
                 </div>
