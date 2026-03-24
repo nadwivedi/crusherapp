@@ -3,8 +3,8 @@ import { CalendarDays, ChevronDown, Package, Plus, ReceiptIndianRupee, Search } 
 import { toast } from 'react-toastify';
 import apiClient from '../../utils/api';
 import { useFloatingDropdownPosition } from '../../utils/useFloatingDropdownPosition';
+import Purchases from '../Purchases/Purchases';
 import AddExpensePopup from './component/AddExpensePopup';
-import AddPurchaseExpensePopup from './component/AddPurchaseExpensePopup';
 import ExpenseTypePicker from './component/ExpenseTypePicker';
 
 const TOAST_OPTIONS = { autoClose: 1200 };
@@ -66,6 +66,7 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
   const [dateFilter, setDateFilter] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [showExpenseTypePicker, setShowExpenseTypePicker] = useState(false);
+  const [showPurchaseExpenseModal, setShowPurchaseExpenseModal] = useState(false);
   const [expenseEntryType, setExpenseEntryType] = useState('');
   const expenseGroupInputRef = useRef(null);
   const partyInputRef = useRef(null);
@@ -751,6 +752,14 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
   };
 
   const handleChooseExpenseType = (type) => {
+    if (type === 'purchase') {
+      setExpenseEntryType('');
+      setShowExpenseTypePicker(false);
+      setShowForm(false);
+      setShowPurchaseExpenseModal(true);
+      return;
+    }
+
     setExpenseEntryType(type);
     setShowExpenseTypePicker(false);
     setShowForm(true);
@@ -769,6 +778,7 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
   const handleCloseForm = () => {
     setShowForm(false);
     setShowExpenseTypePicker(false);
+    setShowPurchaseExpenseModal(false);
     setFormData(getInitialForm());
     setGoodsItem(getInitialGoodsItem());
     setGoodsItems([]);
@@ -1123,6 +1133,16 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
         onChooseType={handleChooseExpenseType}
       />
 
+      {showPurchaseExpenseModal && (
+        <Purchases
+          modalOnly
+          onModalFinish={() => {
+            setShowPurchaseExpenseModal(false);
+            setShowExpenseTypePicker(false);
+          }}
+        />
+      )}
+
       {showForm && !isGoodsExpense && (
         <AddExpensePopup
           open={showForm}
@@ -1343,55 +1363,6 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
             </div>
           </div>
         </AddExpensePopup>
-      )}
-
-      {showForm && isGoodsExpense && (
-        <AddPurchaseExpensePopup
-          showForm={showForm}
-          editingId={null}
-          loading={loading}
-          isCashParty={false}
-          formData={purchaseExpenseFormData}
-          currentItem={purchaseExpenseCurrentItem}
-          products={goodsExpenseGroups}
-          uploadingInvoice={false}
-          leadgerSectionRef={partySectionRef}
-          leadgerInputRef={partyInputRef}
-          leadgerQuery={partyQuery}
-          leadgerListIndex={partyListIndex}
-          filteredLeadgers={partyOptions}
-          isLeadgerSectionActive={isPartySectionActive}
-          productSectionRef={expenseGroupSectionRef}
-          productInputRef={expenseGroupInputRef}
-          productQuery={expenseGroupQuery}
-          productListIndex={expenseGroupListIndex}
-          filteredProducts={expenseGroupOptions}
-          isProductSectionActive={isExpenseGroupSectionActive}
-          getLeadgerDisplayName={(party) => party?.name || ''}
-          getProductDisplayName={(group) => group?.name || ''}
-          setCurrentItem={setPurchaseExpenseCurrentItem}
-          setIsLeadgerSectionActive={setIsPartySectionActive}
-          setLeadgerListIndex={setPartyListIndex}
-          setIsProductSectionActive={setIsExpenseGroupSectionActive}
-          setProductListIndex={setExpenseGroupListIndex}
-          handleCancel={handleCloseForm}
-          handleSubmit={handleSubmit}
-          handleInputChange={handlePurchaseExpenseInputChange}
-          handleLeadgerFocus={handlePartyFocus}
-          handleLeadgerInputChange={handlePartyInputChange}
-          handleLeadgerInputKeyDown={handlePartyInputKeyDown}
-          onOpenNewParty={() => {}}
-          handleProductFocus={handleGoodsExpenseGroupFocus}
-          handleProductInputChange={handleExpenseGroupInputChange}
-          handleProductInputKeyDown={handleGoodsExpenseGroupInputKeyDown}
-          onOpenNewProduct={() => {}}
-          handleSelectEnterMoveNext={handleSelectEnterMoveNext}
-          handleInvoiceUpload={() => {}}
-          handleAddItem={handleAddGoodsItem}
-          handleRemoveItem={handleRemoveGoodsItem}
-          selectLeadger={selectParty}
-          selectProduct={selectExpenseGroup}
-        />
       )}
 
           {loading ? (
