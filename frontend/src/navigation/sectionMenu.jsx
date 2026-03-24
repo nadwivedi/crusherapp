@@ -254,24 +254,4 @@ export const SECTION_CONFIG = {
   }
 };
 
-export const SECTION_ORDER = ['Masters', 'Vouchers', 'Expense', 'Reports'];
-
-export const SECTION_HUB_PATHS = SECTION_ORDER.map((sectionName) => SECTION_CONFIG[sectionName].hubPath);
-
 export const getSectionConfig = (sectionName) => SECTION_CONFIG[sectionName] || null;
-
-export const getSectionForPath = (pathname) => {
-  if (!pathname) return null;
-
-  return SECTION_ORDER.find((sectionName) => {
-    const config = SECTION_CONFIG[sectionName];
-    return config.items.some(
-      (item) => pathname === item.path || pathname.startsWith(`${item.path}/`)
-    );
-  }) || null;
-};
-
-export const getHubPathForPath = (pathname) => {
-  const sectionName = getSectionForPath(pathname);
-  return sectionName ? SECTION_CONFIG[sectionName].hubPath : '/';
-};
