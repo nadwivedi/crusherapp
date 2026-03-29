@@ -185,7 +185,7 @@ export default function Vehicle() {
                   placeholder="Search by vehicle number or owner..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  className="w-full rounded-lg border border-slate-400 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                 />
               </div>
               <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -217,7 +217,7 @@ export default function Vehicle() {
             <div className="overflow-x-auto">
               <table className="w-full min-w-[900px]">
                 <thead>
-                  <tr className="bg-slate-50/80 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  <tr className="bg-slate-700 text-left text-xs font-semibold uppercase tracking-wider text-slate-100">
                     <th className="px-6 py-4">Vehicle Number</th>
                     <th className="px-6 py-4">Owner / Party</th>
                     <th className="px-6 py-4">Unladen Weight</th>
@@ -229,7 +229,7 @@ export default function Vehicle() {
                   {vehicles.map((vehicle) => (
                     <tr key={vehicle._id} className="group transition-colors hover:bg-slate-50/70">
                       <td className="px-6 py-4">
-                        <span className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-1.5 font-mono text-sm font-semibold text-white">
+                        <span className="inline-flex items-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 font-mono text-sm font-semibold text-sky-700">
                           <Truck className="h-3.5 w-3.5" />
                           {vehicle.vehicleNo}
                         </span>
