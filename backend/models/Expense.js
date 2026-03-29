@@ -1,5 +1,40 @@
 const mongoose = require("mongoose");
 
+const expenseItemSchema = new mongoose.Schema(
+  {
+    expenseGroup: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ExpenseType",
+      required: true,
+      alias: "expenseType",
+    },
+    expenseGroupName: {
+      type: String,
+      trim: true,
+      default: "",
+      alias: "expenseTypeName",
+    },
+    quantity: {
+      type: Number,
+      default: null,
+    },
+    unit: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    unitPrice: {
+      type: Number,
+      default: null,
+    },
+    total: {
+      type: Number,
+      default: 0,
+    },
+  },
+  { _id: false }
+);
+
 const expenseSchema = new mongoose.Schema(
   {
     userId: {
@@ -9,8 +44,9 @@ const expenseSchema = new mongoose.Schema(
     },
     expenseGroup: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "ExpenseGroup",
+      ref: "ExpenseType",
       required: true,
+      alias: "expenseType",
     },
     expenseNumber: {
       type: String,
@@ -26,6 +62,10 @@ const expenseSchema = new mongoose.Schema(
       type: Number,
       required: true,
       min: 0.01,
+    },
+    items: {
+      type: [expenseItemSchema],
+      default: [],
     },
     method: {
       type: String,

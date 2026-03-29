@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const Expense = require("../models/Expense");
-const ExpenseGroup = require("../models/ExpenseGroup");
+const ExpenseType = require("../models/ExpenseType");
 const Party = require("../models/Party");
 const Counter = require("../models/Counter");
 
@@ -81,26 +81,26 @@ const createExpense = async (req, res) => {
     if (!expenseGroup && !hasGoodsItems) {
       return res.status(400).json({
         success: false,
-        message: "Valid expense group is required",
+        message: "Valid expense type is required",
       });
     }
 
-    let existingExpenseGroup = null;
+    let existingExpenseType = null;
     if (expenseGroup && mongoose.isValidObjectId(expenseGroup)) {
-      existingExpenseGroup = await ExpenseGroup.findOne({ _id: expenseGroup, userId });
+      existingExpenseType = await ExpenseType.findOne({ _id: expenseGroup, userId });
     }
 
-    if (expenseGroup && !existingExpenseGroup && !hasGoodsItems) {
+    if (expenseGroup && !existingExpenseType && !hasGoodsItems) {
       return res.status(404).json({
         success: false,
-        message: "Expense group not found",
+        message: "Expense type not found",
       });
     }
 
-    const isGoodsExpense = hasGoodsItems || String(existingExpenseGroup?.type || "").toLowerCase() === "goods";
+    const isGoodsExpense = hasGoodsItems || String(existingExpenseType?.type || "").toLowerCase() === "goods";
     const quantityNumber = quantity === undefined ? null : toNumber(quantity, NaN);
     const unitPriceNumber = unitPrice === undefined ? null : toNumber(unitPrice, NaN);
-    let resolvedExpenseGroup = existingExpenseGroup;
+    let resolvedExpenseType = existingExpenseType;
     let goodsItems = [];
 
     if (hasGoodsItems) {
@@ -108,11 +108,11 @@ const createExpense = async (req, res) => {
       if (goodsItemIds.some((id) => !mongoose.isValidObjectId(id))) {
         return res.status(400).json({
           success: false,
-          message: "Valid expense group is required for each goods item",
+          message: "Valid expense type is required for each goods item",
         });
       }
 
-      const goodsGroups = await ExpenseGroup.find({
+      const goodsGroups = await ExpenseType.find({
         _id: { $in: goodsItemIds },
         userId,
       });
@@ -121,14 +121,14 @@ const createExpense = async (req, res) => {
       if (goodsGroups.length !== goodsItemIds.length) {
         return res.status(400).json({
           success: false,
-          message: "One or more expense groups were not found",
+          message: "One or more expense types were not found",
         });
       }
 
       goodsItems = normalizedItems.map((item) => {
         const goodsGroup = goodsGroupMap.get(String(item.expenseGroup));
         if (!goodsGroup || String(goodsGroup.type || "").toLowerCase() !== "goods") {
-          throw new Error(`Invalid goods expense group for item`);
+          throw new Error(`Invalid goods expense type for item`);
         }
 
         if (!Number.isFinite(item.quantity) || item.quantity <= 0) {
@@ -154,7 +154,7 @@ const createExpense = async (req, res) => {
         };
       });
 
-      resolvedExpenseGroup = goodsGroupMap.get(String(goodsItems[0].expenseGroup));
+      resolvedExpenseType = goodsGroupMap.get(String(goodsItems[0].expenseGroup));
     } else if (isGoodsExpense) {
       if (!Number.isFinite(quantityNumber) || quantityNumber <= 0) {
         return res.status(400).json({
@@ -170,28 +170,28 @@ const createExpense = async (req, res) => {
         });
       }
 
-      if (!existingExpenseGroup) {
+      if (!existingExpenseType) {
         return res.status(404).json({
           success: false,
-          message: "Expense group not found",
+          message: "Expense type not found",
         });
       }
 
-      if (toNumber(existingExpenseGroup.currentStock) < quantityNumber) {
+      if (toNumber(existingExpenseType.currentStock) < quantityNumber) {
         return res.status(400).json({
           success: false,
-          message: `Insufficient stock for ${existingExpenseGroup.name}`,
+          message: `Insufficient stock for ${existingExpenseType.name}`,
         });
       }
 
       goodsItems = [{
-        expenseGroup: existingExpenseGroup._id,
-        expenseGroupName: existingExpenseGroup.name,
+        expenseGroup: existingExpenseType._id,
+        expenseGroupName: existingExpenseType.name,
         quantity: quantityNumber,
-        unit: String(unit || existingExpenseGroup.unit || "").trim(),
+        unit: String(unit || existingExpenseType.unit || "").trim(),
         unitPrice: unitPriceNumber,
         total: toNumber(amountNumber, quantityNumber * unitPriceNumber),
-        currentStock: toNumber(existingExpenseGroup.currentStock),
+        currentStock: toNumber(existingExpenseType.currentStock),
       }];
     }
 
@@ -215,23 +215,23 @@ const createExpense = async (req, res) => {
       resolvedParty = existingParty._id;
     }
 
-    if (!resolvedExpenseGroup) {
+    if (!resolvedExpenseType) {
       return res.status(400).json({
         success: false,
-        message: "Valid expense group is required",
+        message: "Valid expense type is required",
       });
     }
 
     for (const item of goodsItems) {
       const nextStock = toNumber(item.currentStock) - toNumber(item.quantity);
-      await ExpenseGroup.findByIdAndUpdate(item.expenseGroup, {
+      await ExpenseType.findByIdAndUpdate(item.expenseGroup, {
         $set: { currentStock: nextStock },
       });
     }
 
     const expense = await Expense.create({
       userId,
-      expenseGroup: resolvedExpenseGroup._id,
+      expenseGroup: resolvedExpenseType._id,
       expenseNumber: await createExpenseNumber(expenseDate),
       party: resolvedParty,
       amount: amountNumber,
@@ -264,12 +264,13 @@ const createExpense = async (req, res) => {
 
 const getAllExpenses = async (req, res) => {
   try {
-    const { search, fromDate, expenseGroup, party } = req.query;
+    const { search, fromDate, expenseGroup, expenseType, party } = req.query;
     const userId = req.userId;
     const filter = { userId };
 
-    if (expenseGroup && mongoose.isValidObjectId(expenseGroup)) {
-      filter.expenseGroup = expenseGroup;
+    const resolvedExpenseTypeId = expenseType || expenseGroup;
+    if (resolvedExpenseTypeId && mongoose.isValidObjectId(resolvedExpenseTypeId)) {
+      filter.expenseGroup = resolvedExpenseTypeId;
     }
 
     if (party && mongoose.isValidObjectId(party)) {

@@ -17,7 +17,7 @@ import MaterialUsed from './pages/MaterialUsed';
 import Party from './pages/Party/Party';
 import PartyDetail from './pages/PartyDetail';
 import Expenses from './pages/Expenses/Expenses';
-import ExpenseGroups from './pages/ExpenseGroups';
+import ExpenseTypes from './pages/ExpenseGroups';
 import BoulderEntry from './pages/BoulderEntry/BoulderEntry';
 import StockAdjustment from './pages/StockAdjustment';
 import SaleReturn from './pages/SaleReturn/SaleReturn';
@@ -321,13 +321,15 @@ function App() {
         />
 
         <Route
-          path="/expense-groups"
+          path="/expense-types"
           element={
             <ProtectedRoute>
-              <ExpenseGroups />
+              <ExpenseTypes />
             </ProtectedRoute>
           }
         />
+
+        <Route path="/expense-groups" element={<Navigate to="/expense-types" replace />} />
 
         <Route
           path="/party"

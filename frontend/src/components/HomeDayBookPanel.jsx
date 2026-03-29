@@ -4,6 +4,7 @@ import apiClient from '../utils/api';
 import HomePartyLedger from './HomePartyLedger';
 import HomeBoulderLedger from './HomeBoulderLedger';
 import HomeSalesLedger from './HomeSalesLedger';
+import HomeExpenseLedger from './HomeExpenseLedger';
 
 const DEFAULT_SUMMARY = {
   entryCount: 0,
@@ -174,6 +175,17 @@ export default function HomeDayBookPanel() {
           >
             Sales Ledger
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveView('expense-ledger')}
+            className={`inline-flex items-center justify-center rounded-lg border px-3 py-2 text-xs font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
+              activeView === 'expense-ledger'
+                ? 'border-rose-300 bg-rose-100 text-rose-800'
+                : 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100'
+            }`}
+          >
+            Expense Ledger
+          </button>
         </div>
       </div>
 
@@ -183,6 +195,8 @@ export default function HomeDayBookPanel() {
         <HomeBoulderLedger />
       ) : activeView === 'sales-ledger' ? (
         <HomeSalesLedger />
+      ) : activeView === 'expense-ledger' ? (
+        <HomeExpenseLedger />
       ) : (
       <div className="space-y-5 p-5 sm:p-6 lg:space-y-4 lg:p-4 xl:space-y-5 xl:p-6">
         {error ? (

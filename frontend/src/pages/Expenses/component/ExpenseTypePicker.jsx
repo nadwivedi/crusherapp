@@ -93,7 +93,7 @@ export default function ExpenseTypePicker({ open, onClose, onChooseType }) {
           >
             <div>
               <p className="font-semibold text-slate-900">Normal Expense</p>
-              <p className="text-xs text-slate-500">Services and regular expense groups.</p>
+              <p className="text-xs text-slate-500">Services and regular expense types.</p>
             </div>
             <span className="rounded-full bg-sky-100 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-sky-700">Services</span>
           </button>

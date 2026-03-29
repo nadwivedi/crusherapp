@@ -62,7 +62,7 @@ function ExpenseIcon() {
   );
 }
 
-function ExpenseGroupIcon() {
+function ExpenseTypeIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-6 w-6">
       <path d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v9A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5v-9Z" />
@@ -219,7 +219,7 @@ export const SECTION_CONFIG = {
     name: 'Expense',
     hubPath: '/expenses',
     Icon: ExpenseIcon,
-    description: 'Expenses and expense groups in one place',
+    description: 'Expenses and expense types in one place',
     theme: {
       card: 'from-emerald-500 via-teal-500 to-cyan-500',
       soft: 'from-emerald-50 via-teal-50 to-cyan-50',
@@ -229,7 +229,7 @@ export const SECTION_CONFIG = {
     },
     items: [
       { name: 'Manage Expense', path: '/expenses', Icon: ExpenseIcon },
-      { name: 'Expense Group', path: '/expense-groups', Icon: ExpenseGroupIcon }
+      { name: 'Expense Type', path: '/expense-types', Icon: ExpenseTypeIcon }
     ]
   },
   Reports: {

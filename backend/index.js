@@ -6,7 +6,7 @@ const path = require("path");
 const connectDB = require("./config/mongodb");
 const authRoutes = require("./routes/authRoutes");
 const boulderRoutes = require("./routes/boulderRoutes");
-const expenseGroupRoutes = require("./routes/expenseGroupRoutes");
+const expenseTypeRoutes = require("./routes/expenseTypeRoutes");
 const expenseRoutes = require("./routes/expenseRoutes");
 const materialUsedRoutes = require("./routes/materialUsedRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
@@ -42,7 +42,8 @@ app.get("/", (req, res) => {
 
 app.use("/api/users", authRoutes);
 app.use("/api/boulders", boulderRoutes);
-app.use("/api/expense-groups", expenseGroupRoutes);
+app.use("/api/expense-types", expenseTypeRoutes);
+app.use("/api/expense-groups", expenseTypeRoutes);
 app.use("/api/expenses", expenseRoutes);
 app.use("/api/material-used", materialUsedRoutes);
 app.use("/api/payments", paymentRoutes);

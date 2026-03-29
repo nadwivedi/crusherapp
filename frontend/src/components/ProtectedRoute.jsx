@@ -15,7 +15,7 @@ const homeNavigationEntries = [
   { section: 'Vouchers', path: '/payments' },
   { section: 'Vouchers', path: '/receipts' },
   { section: 'Expense', path: '/expenses' },
-  { section: 'Expense', path: '/expense-groups' },
+  { section: 'Expense', path: '/expense-types' },
   { section: 'Reports', path: '/reports' },
   { section: 'Reports', path: '/settings' }
 ];
