@@ -99,8 +99,8 @@ export default function Home() {
       <div className="flex flex-col">
         <Navbar />
 
-        <div className="px-4 py-4 sm:px-6 sm:py-5">
-          <div className="mx-auto grid min-h-[calc(100vh-7rem)] max-w-[96rem] grid-cols-1 gap-5 xl:grid-cols-[18rem_minmax(0,1.35fr)] xl:items-start">
+        <div className="px-4 py-4 sm:px-6 sm:py-5 lg:px-5 xl:px-6">
+          <div className="mx-auto grid min-h-[calc(100vh-7rem)] max-w-[96rem] grid-cols-1 gap-5 lg:grid-cols-[15rem_minmax(0,1fr)] lg:items-start lg:gap-4 xl:grid-cols-[18rem_minmax(0,1.35fr)] xl:gap-5">
             <Sidebar
               shortcuts={homeQuickShortcuts}
               activeShortcutIndex={activeShortcutIndex}
@@ -108,7 +108,7 @@ export default function Home() {
               onHighlightShortcut={setActiveShortcutIndex}
             />
 
-            <div className="min-w-0 xl:pl-1">
+            <div className="min-w-0 lg:pl-0.5 xl:pl-1">
               <HomeDayBookPanel />
             </div>
           </div>

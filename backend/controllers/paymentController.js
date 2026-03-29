@@ -80,11 +80,13 @@ const createPayment = async (req, res) => {
       party: resolvedParty,
       refType,
       refId: resolvedRefId,
+      originPurchaseId: null,
       amount,
       paymentNumber,
       method: String(req.body.method || "Cash Account").trim() || "Cash Account",
       paymentDate: req.body.paymentDate ? new Date(req.body.paymentDate) : new Date(),
       notes: String(req.body.notes || "").trim(),
+      paymentSource: "manual",
     });
 
     const savedPayment = await Payment.findById(payment._id).populate("party", "name");

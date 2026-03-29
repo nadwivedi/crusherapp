@@ -62,10 +62,6 @@ const purchaseSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
-    dueDate: {
-      type: Date,
-      default: null,
-    },
     invoiceLink: {
       type: String,
       trim: true,
@@ -75,6 +71,18 @@ const purchaseSchema = new mongoose.Schema(
       type: Number,
       required: true,
       min: 0,
+    },
+    paidAmount: {
+      type: Number,
+      min: 0,
+      default: 0,
+    },
+    type: {
+      type: String,
+      enum: ["purchase", "cash purchase", "credit purchase"],
+      default: "credit purchase",
+      trim: true,
+      lowercase: true,
     },
     notes: {
       type: String,

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowDownCircle, ArrowUpCircle, Banknote, BookText, Package, TrendingUp } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import apiClient from '../utils/api';
 import HomePartyLedger from './HomePartyLedger';
+import HomeBoulderLedger from './HomeBoulderLedger';
+import HomeSalesLedger from './HomeSalesLedger';
 
 const DEFAULT_SUMMARY = {
   entryCount: 0,
@@ -71,14 +72,14 @@ const getEntryTypeLabel = (entry) => String(entry?.displayType || entry?.type ||
 
 function StatCard({ title, value, icon: Icon, tone }) {
   return (
-    <div className="rounded-2xl border border-white/70 bg-white/90 px-4 py-3 shadow-[0_16px_30px_rgba(15,23,42,0.08)]">
+    <div className="rounded-2xl border border-white/70 bg-white/90 px-4 py-3 shadow-[0_16px_30px_rgba(15,23,42,0.08)] lg:px-3 lg:py-2.5 xl:px-4 xl:py-3">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">{title}</p>
-          <p className="mt-1 text-lg font-black text-slate-800">{value}</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500 lg:text-[9px] xl:text-[10px]">{title}</p>
+          <p className="mt-1 text-lg font-black text-slate-800 lg:text-base xl:text-lg">{value}</p>
         </div>
-        <div className={`rounded-xl bg-gradient-to-br p-2 text-white ${tone}`}>
-          <Icon className="h-4 w-4" />
+        <div className={`rounded-xl bg-gradient-to-br p-2 text-white lg:p-1.5 xl:p-2 ${tone}`}>
+          <Icon className="h-4 w-4 lg:h-3.5 lg:w-3.5 xl:h-4 xl:w-4" />
         </div>
       </div>
     </div>
@@ -126,13 +127,13 @@ export default function HomeDayBookPanel() {
   const recentEntries = sortedEntries.slice(0, 8);
 
   return (
-    <section className="w-full rounded-[28px] border border-slate-200/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(241,245,249,0.96))] shadow-[0_28px_70px_rgba(15,23,42,0.18)]">
-      <div className="border-b border-slate-200/80 px-5 py-5 sm:px-6">
+    <section className="w-full rounded-[28px] border border-slate-200/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(241,245,249,0.96))] shadow-[0_28px_70px_rgba(15,23,42,0.18)] lg:rounded-[24px] xl:rounded-[28px]">
+      <div className="border-b border-slate-200/80 px-5 py-5 sm:px-6 lg:px-4 lg:py-4 xl:px-6 xl:py-5">
         <div className="flex flex-wrap items-center justify-start gap-2">
           <button
             type="button"
             onClick={() => setActiveView('party-ledger')}
-            className={`inline-flex items-center justify-center rounded-lg border px-3 py-2 text-xs font-semibold transition ${
+            className={`inline-flex items-center justify-center rounded-lg border px-3 py-2 text-xs font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
               activeView === 'party-ledger'
                 ? 'border-emerald-300 bg-emerald-100 text-emerald-800'
                 : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
@@ -143,7 +144,7 @@ export default function HomeDayBookPanel() {
           <button
             type="button"
             onClick={() => setActiveView('daybook')}
-            className={`inline-flex items-center justify-center rounded-lg border px-3 py-2 text-xs font-semibold transition ${
+            className={`inline-flex items-center justify-center rounded-lg border px-3 py-2 text-xs font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
               activeView === 'daybook'
                 ? 'border-sky-300 bg-sky-100 text-sky-800'
                 : 'border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100'
@@ -151,32 +152,46 @@ export default function HomeDayBookPanel() {
           >
             Day Book
           </button>
-          <Link
-            to="/reports/boulder-ledger"
-            className="inline-flex items-center justify-center rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700 transition hover:bg-amber-100"
+          <button
+            type="button"
+            onClick={() => setActiveView('boulder-ledger')}
+            className={`inline-flex items-center justify-center rounded-lg border px-3 py-2 text-xs font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
+              activeView === 'boulder-ledger'
+                ? 'border-amber-300 bg-amber-100 text-amber-800'
+                : 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100'
+            }`}
           >
             Boulder Ledger
-          </Link>
-          <Link
-            to="/reports/sales-report"
-            className="inline-flex items-center justify-center rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-semibold text-violet-700 transition hover:bg-violet-100"
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveView('sales-ledger')}
+            className={`inline-flex items-center justify-center rounded-lg border px-3 py-2 text-xs font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
+              activeView === 'sales-ledger'
+                ? 'border-violet-300 bg-violet-100 text-violet-800'
+                : 'border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100'
+            }`}
           >
             Sales Ledger
-          </Link>
+          </button>
         </div>
       </div>
 
       {activeView === 'party-ledger' ? (
         <HomePartyLedger />
+      ) : activeView === 'boulder-ledger' ? (
+        <HomeBoulderLedger />
+      ) : activeView === 'sales-ledger' ? (
+        <HomeSalesLedger />
       ) : (
-      <div className="space-y-5 p-5 sm:p-6">
+      <div className="space-y-5 p-5 sm:p-6 lg:space-y-4 lg:p-4 xl:space-y-5 xl:p-6">
         {error ? (
           <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
             {error}
           </div>
         ) : null}
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5 lg:gap-2.5 xl:gap-3">
           <StatCard title="Sales" value={formatCurrency(summary.sales)} icon={TrendingUp} tone="from-emerald-500 to-teal-500" />
           <StatCard title="Purchases" value={formatCurrency(summary.purchases)} icon={Package} tone="from-rose-500 to-pink-500" />
           <StatCard title="Receipts" value={formatCurrency(summary.receipts)} icon={ArrowDownCircle} tone="from-sky-500 to-cyan-500" />
@@ -184,21 +199,21 @@ export default function HomeDayBookPanel() {
           <StatCard title="Expenses" value={formatCurrency(summary.expenses)} icon={Banknote} tone="from-fuchsia-500 to-violet-500" />
         </div>
 
-        <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white">
+        <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white lg:rounded-[20px] xl:rounded-[24px]">
           {loading ? (
             <div className="px-4 py-12 text-center text-sm font-medium text-slate-500">Loading day book...</div>
           ) : recentEntries.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[940px]">
+              <table className="w-full min-w-[840px] xl:min-w-[940px]">
                 <thead>
                   <tr className="bg-[linear-gradient(135deg,#0f766e_0%,#0d9488_38%,#0891b2_72%,#0284c7_100%)] text-white">
-                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em]">Date</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em]">Type</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em]">Ref</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em]">Party</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em]">Material</th>
-                    <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-[0.14em]">In</th>
-                    <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-[0.14em]">Out</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] lg:px-3 lg:py-2.5 lg:text-[11px] xl:px-4 xl:py-3 xl:text-xs">Date</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] lg:px-3 lg:py-2.5 lg:text-[11px] xl:px-4 xl:py-3 xl:text-xs">Type</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] lg:px-3 lg:py-2.5 lg:text-[11px] xl:px-4 xl:py-3 xl:text-xs">Ref</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] lg:px-3 lg:py-2.5 lg:text-[11px] xl:px-4 xl:py-3 xl:text-xs">Party</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] lg:px-3 lg:py-2.5 lg:text-[11px] xl:px-4 xl:py-3 xl:text-xs">Material</th>
+                    <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-[0.14em] lg:px-3 lg:py-2.5 lg:text-[11px] xl:px-4 xl:py-3 xl:text-xs">In</th>
+                    <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-[0.14em] lg:px-3 lg:py-2.5 lg:text-[11px] xl:px-4 xl:py-3 xl:text-xs">Out</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -207,33 +222,33 @@ export default function HomeDayBookPanel() {
 
                     return (
                     <tr key={`${entry.refId || entry.voucherNumber || entry.type}-${index}`} className="hover:bg-slate-50">
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 lg:px-3 lg:py-2.5 xl:px-4 xl:py-3">
                         <div>
-                          <p className="text-sm font-semibold text-slate-700">{formatDate(entry.entryCreatedAt || entry.date)}</p>
-                          <p className="text-xs text-slate-500">{formatTime(entry.entryCreatedAt || entry.date)}</p>
+                          <p className="text-sm font-semibold text-slate-700 lg:text-[13px] xl:text-sm">{formatDate(entry.entryCreatedAt || entry.date)}</p>
+                          <p className="text-xs text-slate-500 lg:text-[11px] xl:text-xs">{formatTime(entry.entryCreatedAt || entry.date)}</p>
                         </div>
                       </td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${typeBadgeClass}`}>
+                      <td className="px-4 py-3 lg:px-3 lg:py-2.5 xl:px-4 xl:py-3">
+                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize lg:px-2 lg:py-0.5 lg:text-[11px] xl:px-2.5 xl:py-1 xl:text-xs ${typeBadgeClass}`}>
                           {getEntryTypeLabel(entry)}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-xs font-semibold text-slate-700">{entry.voucherNumber || '-'}</td>
-                      <td className="px-4 py-3 text-sm text-slate-700">{entry.partyName || '-'}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 text-xs font-semibold text-slate-700 lg:px-3 lg:py-2.5 lg:text-[11px] xl:px-4 xl:py-3 xl:text-xs">{entry.voucherNumber || '-'}</td>
+                      <td className="px-4 py-3 text-sm text-slate-700 lg:px-3 lg:py-2.5 lg:text-[13px] xl:px-4 xl:py-3 xl:text-sm">{entry.partyName || '-'}</td>
+                      <td className="px-4 py-3 lg:px-3 lg:py-2.5 xl:px-4 xl:py-3">
                         {entry.materialSummary && entry.materialSummary !== '-' ? (
                           <div>
-                            <p className="text-sm text-slate-700">{String(entry.materialSummary).split('/')[0]?.trim() || '-'}</p>
-                            <p className="text-xs text-slate-500">{String(entry.materialSummary).split('/')[1]?.trim() || '-'}</p>
+                            <p className="text-sm text-slate-700 lg:text-[13px] xl:text-sm">{String(entry.materialSummary).split('/')[0]?.trim() || '-'}</p>
+                            <p className="text-xs text-slate-500 lg:text-[11px] xl:text-xs">{String(entry.materialSummary).split('/')[1]?.trim() || '-'}</p>
                           </div>
                         ) : (
-                          <span className="text-sm text-slate-700">-</span>
+                          <span className="text-sm text-slate-700 lg:text-[13px] xl:text-sm">-</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-right text-sm font-semibold text-emerald-600">
+                      <td className="px-4 py-3 text-right text-sm font-semibold text-emerald-600 lg:px-3 lg:py-2.5 lg:text-[13px] xl:px-4 xl:py-3 xl:text-sm">
                         {Number(entry.inAmount || 0) > 0 ? formatCurrency(entry.inAmount) : '-'}
                       </td>
-                      <td className="px-4 py-3 text-right text-sm font-semibold text-rose-600">
+                      <td className="px-4 py-3 text-right text-sm font-semibold text-rose-600 lg:px-3 lg:py-2.5 lg:text-[13px] xl:px-4 xl:py-3 xl:text-sm">
                         {Number(entry.outAmount || 0) > 0 ? formatCurrency(entry.outAmount) : '-'}
                       </td>
                     </tr>

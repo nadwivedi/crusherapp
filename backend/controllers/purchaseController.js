@@ -4,6 +4,14 @@ const Payment = require("../models/Payment");
 const Stock = require("../models/Stock");
 const Counter = require("../models/Counter");
 
+const PURCHASE_TYPES = {
+  PURCHASE: "purchase",
+  CREDIT: "credit purchase",
+  CASH: "cash purchase",
+};
+
+const AUTO_PAYMENT_SOURCES = ["purchase-payment", "purchase-excess-payment"];
+
 const toNumber = (value, fallback = 0) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -36,6 +44,76 @@ const createPaymentNumber = async (paymentDateValue) => {
   );
 
   return `PAY-${paymentYear}-${String(counter.seq).padStart(2, "0")}`;
+};
+
+const getPurchasePaymentBreakdown = (totalAmountValue, paidAmountValue) => {
+  const totalAmount = Math.max(0, toNumber(totalAmountValue));
+  const paidAmount = Math.max(0, toNumber(paidAmountValue));
+  const appliedAmount = Math.min(totalAmount, paidAmount);
+  const pendingAmount = Math.max(0, totalAmount - paidAmount);
+  const excessAmount = Math.max(0, paidAmount - totalAmount);
+
+  let type = PURCHASE_TYPES.CREDIT;
+  if (paidAmount <= 0) {
+    type = PURCHASE_TYPES.CREDIT;
+  } else if (paidAmount === totalAmount) {
+    type = PURCHASE_TYPES.CASH;
+  } else {
+    type = PURCHASE_TYPES.PURCHASE;
+  }
+
+  return {
+    totalAmount,
+    paidAmount,
+    appliedAmount,
+    pendingAmount,
+    excessAmount,
+    type,
+  };
+};
+
+const syncPurchaseAutoPayments = async (purchaseDoc, paymentMeta = {}) => {
+  const breakdown = getPurchasePaymentBreakdown(purchaseDoc.totalAmount, purchaseDoc.paidAmount);
+  const paymentMethod = String(paymentMeta.paymentMethod || "Cash Account").trim() || "Cash Account";
+  const paymentDate = paymentMeta.paymentDate ? new Date(paymentMeta.paymentDate) : (purchaseDoc.purchaseDate || new Date());
+  const paymentNotes = String(paymentMeta.paymentNotes || "").trim();
+
+  await Payment.deleteMany({
+    originPurchaseId: purchaseDoc._id,
+    paymentSource: { $in: AUTO_PAYMENT_SOURCES },
+  });
+
+  if (breakdown.appliedAmount > 0 && breakdown.appliedAmount < breakdown.totalAmount) {
+    await Payment.create({
+      party: purchaseDoc.party || null,
+      refType: "purchase",
+      refId: purchaseDoc._id,
+      originPurchaseId: purchaseDoc._id,
+      amount: breakdown.appliedAmount,
+      paymentNumber: await createPaymentNumber(paymentDate),
+      method: paymentMethod,
+      paymentDate,
+      notes: paymentNotes || `Auto payment for ${purchaseDoc.supplierInvoice || `Pur-${purchaseDoc.purchaseNumber}`}`,
+      paymentSource: "purchase-payment",
+    });
+  }
+
+  if (breakdown.excessAmount > 0) {
+    await Payment.create({
+      party: purchaseDoc.party || null,
+      refType: "none",
+      refId: null,
+      originPurchaseId: purchaseDoc._id,
+      amount: breakdown.excessAmount,
+      paymentNumber: await createPaymentNumber(paymentDate),
+      method: paymentMethod,
+      paymentDate,
+      notes: paymentNotes || `Auto excess payment for ${purchaseDoc.supplierInvoice || `Pur-${purchaseDoc.purchaseNumber}`}`,
+      paymentSource: "purchase-excess-payment",
+    });
+  }
+
+  return breakdown;
 };
 
 const normalizeItems = (items = []) => (
@@ -104,34 +182,22 @@ const createPurchase = async (req, res) => {
       req.body.totalAmount,
       normalizedItems.reduce((sum, item) => sum + toNumber(item.total), 0)
     );
+    const breakdown = getPurchasePaymentBreakdown(totalAmount, req.body.paymentAmount);
     const purchase = await Purchase.create({
       supplierInvoice: String(req.body.supplierInvoice || "").trim(),
       purchaseNumber,
       party: req.body.party || null,
       items: normalizedItems,
       purchaseDate: req.body.purchaseDate ? new Date(req.body.purchaseDate) : new Date(),
-      dueDate: req.body.dueDate ? new Date(req.body.dueDate) : null,
       invoiceLink: String(req.body.invoiceLink || "").trim(),
       totalAmount,
+      paidAmount: breakdown.paidAmount,
+      type: breakdown.type,
       notes: String(req.body.notes || "").trim(),
     });
 
     await adjustStockLevels(normalizedItems, 1);
-
-    const paymentAmount = Math.max(0, toNumber(req.body.paymentAmount));
-    if (paymentAmount > 0) {
-      const paymentNumber = await createPaymentNumber(req.body.paymentDate);
-      await Payment.create({
-        party: req.body.party || null,
-        refType: "purchase",
-        refId: purchase._id,
-        amount: paymentAmount,
-        paymentNumber,
-        method: String(req.body.paymentMethod || "Cash Account").trim() || "Cash Account",
-        paymentDate: req.body.paymentDate ? new Date(req.body.paymentDate) : new Date(),
-        notes: String(req.body.paymentNotes || "").trim(),
-      });
-    }
+    await syncPurchaseAutoPayments(purchase, req.body);
 
     const savedPurchase = await populatePurchase(purchase._id);
     return res.status(201).json({ data: savedPurchase });
@@ -211,15 +277,21 @@ const updatePurchase = async (req, res) => {
     purchase.supplierInvoice = String(req.body.supplierInvoice || "").trim();
     purchase.items = normalizedItems;
     purchase.purchaseDate = req.body.purchaseDate ? new Date(req.body.purchaseDate) : purchase.purchaseDate;
-    purchase.dueDate = req.body.dueDate ? new Date(req.body.dueDate) : null;
     purchase.invoiceLink = String(req.body.invoiceLink || "").trim();
     purchase.totalAmount = toNumber(
       req.body.totalAmount,
       normalizedItems.reduce((sum, item) => sum + toNumber(item.total), 0)
     );
+    const nextPaidAmount = Object.prototype.hasOwnProperty.call(req.body, "paymentAmount")
+      ? req.body.paymentAmount
+      : purchase.paidAmount;
+    const breakdown = getPurchasePaymentBreakdown(purchase.totalAmount, nextPaidAmount);
+    purchase.paidAmount = breakdown.paidAmount;
+    purchase.type = breakdown.type;
     purchase.notes = String(req.body.notes || "").trim();
 
     await purchase.save();
+    await syncPurchaseAutoPayments(purchase, req.body);
 
     const savedPurchase = await populatePurchase(purchase._id);
     return res.json({ data: savedPurchase });
@@ -245,7 +317,12 @@ const deletePurchase = async (req, res) => {
     }
 
     await adjustStockLevels(purchase.items || [], -1);
-    await Payment.deleteMany({ refType: "purchase", refId: purchase._id });
+    await Payment.deleteMany({
+      $or: [
+        { refType: "purchase", refId: purchase._id },
+        { originPurchaseId: purchase._id, paymentSource: { $in: AUTO_PAYMENT_SOURCES } },
+      ],
+    });
     await Purchase.findByIdAndDelete(id);
 
     return res.json({ message: "Purchase deleted successfully" });

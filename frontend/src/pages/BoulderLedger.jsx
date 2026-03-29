@@ -13,6 +13,22 @@ const formatDate = (value) => {
   return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
+const parseWeightFromMethod = (method, label) => {
+  const match = String(method || '').match(new RegExp(`${label}\\s+(\\d+(?:\\.\\d+)?)`, 'i'));
+  return match ? Number(match[1]) : 0;
+};
+
+const normalizeFallbackEntry = (entry) => ({
+  _id: entry.refId || `${entry.voucherNumber}-${entry.date}`,
+  boulderDate: entry.date || entry.entryCreatedAt,
+  createdAt: entry.entryCreatedAt || entry.date,
+  vehicleNo: entry.voucherNumber || entry.partyName || '-',
+  grossWeight: parseWeightFromMethod(entry.method, 'Gross'),
+  tareWeight: parseWeightFromMethod(entry.method, 'Tare'),
+  netWeight: parseWeightFromMethod(entry.method, 'Net'),
+  slipImg: ''
+});
+
 const toInputDate = (value) => {
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return '';
@@ -73,8 +89,23 @@ export default function BoulderLedger() {
     setLoading(true);
     setError('');
     try {
-      const response = await apiClient.get('/boulders');
-      setBoulders(Array.isArray(response) ? response : []);
+      try {
+        const response = await apiClient.get('/boulders');
+        setBoulders(Array.isArray(response) ? response : []);
+      } catch (routeError) {
+        if (routeError?.message !== 'Cannot GET /api/boulders' && routeError?.status !== 404) {
+          throw routeError;
+        }
+
+        const fallbackResponse = await apiClient.get('/reports/day-book');
+        const fallbackEntries = Array.isArray(fallbackResponse?.entries)
+          ? fallbackResponse.entries
+              .filter((item) => item.type === 'boulder')
+              .map(normalizeFallbackEntry)
+          : [];
+
+        setBoulders(fallbackEntries);
+      }
     } catch (err) {
       setError(err.message || 'Error loading boulder ledger');
     } finally {

@@ -73,12 +73,17 @@ const getSaleTypeLabel = (value) => {
   return "Sale";
 };
 
-const getEntryDisplayType = (baseType, saleType = "") => {
+const getEntryDisplayType = (baseType, entryType = "") => {
   if (baseType === "sale") {
-    return getSaleTypeLabel(saleType);
+    return getSaleTypeLabel(entryType);
   }
 
-  if (baseType === "purchase") return "Purchase";
+  if (baseType === "purchase") {
+    const normalized = String(entryType || "").trim().toLowerCase();
+    if (normalized === "cash purchase") return "Cash Purchase";
+    if (normalized === "credit purchase") return "Credit Purchase";
+    return "Purchase";
+  }
   if (baseType === "receipt") return "Receipt";
   if (baseType === "payment") return "Payment";
   if (baseType === "opening") return "Opening";
@@ -202,7 +207,7 @@ const buildLedgerRowsForParty = ({ party, sales, purchases, receipts, payments, 
       .filter((item) => withinRange(item.purchaseDate || item.createdAt, fromDate, toDate))
       .map((item) => ({
         type: "purchase",
-        displayType: getEntryDisplayType("purchase"),
+        displayType: getEntryDisplayType("purchase", item.type),
         refId: item._id,
         partyId: party._id,
         partyName: party.name || "-",
@@ -453,7 +458,6 @@ const getPartyLedgerEntryDetail = async (req, res) => {
         fields: [
           { label: "Purchase Date", value: purchase.purchaseDate || purchase.createdAt },
           { label: "Supplier Invoice", value: purchase.supplierInvoice || "-" },
-          { label: "Due Date", value: purchase.dueDate || "" },
           { label: "Invoice Link", value: purchase.invoiceLink || "-" },
         ],
         items: Array.isArray(purchase.items)
@@ -587,7 +591,7 @@ const getDayBook = async (req, res) => {
         .filter((item) => withinRange(item.purchaseDate || item.createdAt, fromDate, toDate))
         .map((item) => ({
           type: "purchase",
-          displayType: getEntryDisplayType("purchase"),
+          displayType: getEntryDisplayType("purchase", item.type),
           refId: item._id,
           date: item.purchaseDate || item.createdAt,
           entryCreatedAt: item.createdAt,

@@ -12,15 +12,15 @@ const formatCurrency = (value) => (
 
 function StatCard({ title, value, subtitle, icon: Icon, tone }) {
   return (
-    <div className="rounded-2xl border border-white/70 bg-white/90 px-4 py-3 shadow-[0_16px_30px_rgba(15,23,42,0.08)]">
+    <div className="rounded-2xl border border-white/70 bg-white/90 px-4 py-3 shadow-[0_16px_30px_rgba(15,23,42,0.08)] lg:px-3 lg:py-2.5 xl:px-4 xl:py-3">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">{title}</p>
-          <p className="mt-1 text-lg font-black text-slate-800">{value}</p>
-          <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500 lg:text-[9px] xl:text-[10px]">{title}</p>
+          <p className="mt-1 text-lg font-black text-slate-800 lg:text-base xl:text-lg">{value}</p>
+          <p className="mt-0.5 text-xs text-slate-500 lg:text-[11px] xl:text-xs">{subtitle}</p>
         </div>
-        <div className={`rounded-xl bg-gradient-to-br p-2 text-white ${tone}`}>
-          <Icon className="h-4 w-4" />
+        <div className={`rounded-xl bg-gradient-to-br p-2 text-white lg:p-1.5 xl:p-2 ${tone}`}>
+          <Icon className="h-4 w-4 lg:h-3.5 lg:w-3.5 xl:h-4 xl:w-4" />
         </div>
       </div>
     </div>
@@ -110,31 +110,31 @@ export default function HomePartyLedger() {
   };
 
   return (
-    <div className="space-y-5 p-5 sm:p-6">
+    <div className="space-y-5 p-5 sm:p-6 lg:space-y-4 lg:p-4 xl:space-y-5 xl:p-6">
       {error ? (
         <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
           {error}
         </div>
       ) : null}
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 lg:gap-2.5 xl:gap-3">
         <StatCard title="Total Parties" value={parties.length} subtitle="registered parties" icon={Users} tone="from-blue-500 to-cyan-500" />
         <StatCard title="Receivable" value={formatCurrency(totalReceivable)} subtitle="to receive" icon={TrendingUp} tone="from-emerald-500 to-teal-500" />
         <StatCard title="Payable" value={formatCurrency(totalPayable)} subtitle="to pay" icon={TrendingDown} tone="from-rose-500 to-pink-500" />
       </div>
 
-      <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white">
-        <div className="flex flex-col gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+      <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white lg:rounded-[20px] xl:rounded-[24px]">
+        <div className="flex flex-col gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3 lg:flex-row lg:items-center lg:justify-between lg:px-3 lg:py-2.5 xl:px-4 xl:py-3">
           <div>
-            <h3 className="text-sm font-black uppercase tracking-[0.18em] text-slate-700">Party Ledger</h3>
-            <p className="text-xs text-slate-500">Outstanding summary for all parties</p>
+            <h3 className="text-sm font-black uppercase tracking-[0.18em] text-slate-700 lg:text-[13px] xl:text-sm">Party Ledger</h3>
+            <p className="text-xs text-slate-500 lg:text-[11px] xl:text-xs">Outstanding summary for all parties</p>
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row">
             <select
               value={balanceFilter}
               onChange={(event) => setBalanceFilter(event.target.value)}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100 lg:px-2.5 lg:py-1.5 lg:text-[13px] xl:px-3 xl:py-2 xl:text-sm"
             >
               <option value="all">All Balances</option>
               <option value="receivable">Receivable</option>
@@ -142,13 +142,13 @@ export default function HomePartyLedger() {
             </select>
 
             <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 lg:h-3.5 lg:w-3.5 xl:h-4 xl:w-4" />
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder="Search party..."
-                className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-4 text-sm text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100 sm:w-60"
+                className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-4 text-sm text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100 sm:w-60 lg:py-1.5 lg:pl-8 lg:text-[13px] xl:py-2 xl:pl-9 xl:text-sm"
               />
             </div>
           </div>
@@ -161,12 +161,12 @@ export default function HomePartyLedger() {
             <table className="w-full min-w-[860px]">
               <thead>
                 <tr className="bg-[linear-gradient(135deg,#0f766e_0%,#0d9488_38%,#0891b2_72%,#0284c7_100%)] text-white">
-                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em]">Party</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em]">Type</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em]">Contact</th>
-                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-[0.14em]">Receivable</th>
-                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-[0.14em]">Payable</th>
-                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-[0.14em]">Net</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] lg:px-3 lg:py-2.5 lg:text-[11px] xl:px-4 xl:py-3 xl:text-xs">Party</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] lg:px-3 lg:py-2.5 lg:text-[11px] xl:px-4 xl:py-3 xl:text-xs">Type</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] lg:px-3 lg:py-2.5 lg:text-[11px] xl:px-4 xl:py-3 xl:text-xs">Contact</th>
+                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-[0.14em] lg:px-3 lg:py-2.5 lg:text-[11px] xl:px-4 xl:py-3 xl:text-xs">Receivable</th>
+                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-[0.14em] lg:px-3 lg:py-2.5 lg:text-[11px] xl:px-4 xl:py-3 xl:text-xs">Payable</th>
+                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-[0.14em] lg:px-3 lg:py-2.5 lg:text-[11px] xl:px-4 xl:py-3 xl:text-xs">Net</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -177,39 +177,39 @@ export default function HomePartyLedger() {
                       onClick={() => handlePartyClick(party)}
                       className="cursor-pointer hover:bg-slate-50"
                     >
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 lg:px-3 lg:py-2.5 xl:px-4 xl:py-3">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-cyan-500 text-sm font-bold text-white">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-cyan-500 text-sm font-bold text-white lg:h-8 lg:w-8 lg:text-[13px] xl:h-9 xl:w-9 xl:text-sm">
                             {(party.name || 'P').charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <p className="text-sm font-semibold text-slate-800">{party.name || 'Unknown'}</p>
-                            <p className="text-xs text-slate-500">{party.email || '-'}</p>
+                            <p className="text-sm font-semibold text-slate-800 lg:text-[13px] xl:text-sm">{party.name || 'Unknown'}</p>
+                            <p className="text-xs text-slate-500 lg:text-[11px] xl:text-xs">{party.email || '-'}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 lg:px-3 lg:py-2.5 xl:px-4 xl:py-3">
                         <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
                           party.type === 'customer'
                             ? 'bg-amber-100 text-amber-700'
                             : party.type === 'supplier'
                             ? 'bg-emerald-100 text-emerald-700'
                             : 'bg-cyan-100 text-cyan-700'
-                        }`}>
+                        } lg:px-2 lg:py-0.5 lg:text-[11px] xl:px-2.5 xl:py-1 xl:text-xs`}>
                           {party.type === 'customer' ? 'Customer' : party.type === 'supplier' ? 'Supplier' : 'Cash'}
                         </span>
                       </td>
-                      <td className="px-4 py-3">
-                        <p className="text-sm text-slate-700">{party.mobile || '-'}</p>
-                        <p className="text-xs text-slate-500">{party.state || '-'}</p>
+                      <td className="px-4 py-3 lg:px-3 lg:py-2.5 xl:px-4 xl:py-3">
+                        <p className="text-sm text-slate-700 lg:text-[13px] xl:text-sm">{party.mobile || '-'}</p>
+                        <p className="text-xs text-slate-500 lg:text-[11px] xl:text-xs">{party.state || '-'}</p>
                       </td>
-                      <td className="px-4 py-3 text-right text-sm font-semibold text-emerald-600">
+                      <td className="px-4 py-3 text-right text-sm font-semibold text-emerald-600 lg:px-3 lg:py-2.5 lg:text-[13px] xl:px-4 xl:py-3 xl:text-sm">
                         {party.receivable > 0 ? formatCurrency(party.receivable) : '-'}
                       </td>
-                      <td className="px-4 py-3 text-right text-sm font-semibold text-rose-600">
+                      <td className="px-4 py-3 text-right text-sm font-semibold text-rose-600 lg:px-3 lg:py-2.5 lg:text-[13px] xl:px-4 xl:py-3 xl:text-sm">
                         {party.payable > 0 ? formatCurrency(party.payable) : '-'}
                       </td>
-                      <td className={`px-4 py-3 text-right text-sm font-black ${(party.netBalance || 0) >= 0 ? 'text-sky-600' : 'text-rose-600'}`}>
+                      <td className={`px-4 py-3 text-right text-sm font-black lg:px-3 lg:py-2.5 lg:text-[13px] xl:px-4 xl:py-3 xl:text-sm ${(party.netBalance || 0) >= 0 ? 'text-sky-600' : 'text-rose-600'}`}>
                         {formatCurrency(party.netBalance || 0)}
                       </td>
                     </tr>

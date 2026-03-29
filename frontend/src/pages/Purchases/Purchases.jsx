@@ -76,7 +76,6 @@ export default function Purchases({ modalOnly = false, onModalFinish = null }) {
     supplierInvoice: '',
     items: [],
     purchaseDate: formatDateInput(),
-    dueDate: '',
     totalAmount: 0,
     invoiceLink: '',
     notes: '',
@@ -328,7 +327,6 @@ export default function Purchases({ modalOnly = false, onModalFinish = null }) {
       if (
         String(prev.paymentAmount || '') === nextPaymentAmount
         && prev.paymentMethod === 'cash'
-        && prev.dueDate === ''
       ) {
         return prev;
       }
@@ -336,8 +334,7 @@ export default function Purchases({ modalOnly = false, onModalFinish = null }) {
       return {
         ...prev,
         paymentAmount: nextPaymentAmount,
-        paymentMethod: 'cash',
-        dueDate: ''
+        paymentMethod: 'cash'
       };
     });
   }, [showForm, editingId, isCashParty, formData.totalAmount]);
@@ -925,10 +922,6 @@ export default function Purchases({ modalOnly = false, onModalFinish = null }) {
     const entryPaymentAmount = isCashParty
       ? Math.max(0, Number(formData.totalAmount || 0))
       : Math.max(0, Number(formData.paymentAmount || 0));
-    if (entryPaymentAmount > Number(formData.totalAmount || 0)) {
-      setError('Entry payment amount cannot exceed total purchase amount');
-      return;
-    }
 
     const parsedPurchaseDate = parseDateInput(formData.purchaseDate);
     if (!parsedPurchaseDate) {
@@ -944,10 +937,9 @@ export default function Purchases({ modalOnly = false, onModalFinish = null }) {
         ...formData,
         supplierInvoice: String(formData.supplierInvoice || '').trim(),
         purchaseDate: parsedPurchaseDate,
-        dueDate: formData.dueDate ? new Date(formData.dueDate) : null,
         totalAmount: Number(formData.totalAmount || 0),
         invoiceLink: formData.invoiceLink || '',
-        paymentAmount: isEditMode ? 0 : entryPaymentAmount,
+        paymentAmount: entryPaymentAmount,
         paymentMethod: formData.paymentMethod || 'cash',
         paymentDate: formData.paymentDate ? new Date(formData.paymentDate) : new Date(),
         paymentNotes: formData.paymentNotes || '',
@@ -1007,12 +999,11 @@ export default function Purchases({ modalOnly = false, onModalFinish = null }) {
       supplierInvoice: purchase.supplierInvoice || purchase.invoiceNo || purchase.invoiceNumber || '',
       items: normalizedItems,
       purchaseDate: purchase.purchaseDate ? formatDateInput(purchase.purchaseDate) : '',
-      dueDate: purchase.dueDate ? new Date(purchase.dueDate).toISOString().split('T')[0] : '',
       totalAmount: Number(purchase.totalAmount || 0),
       invoiceLink: purchase.invoiceLink || '',
       notes: purchase.notes || '',
-      paymentAmount: '',
-      paymentMethod: 'cash',
+      paymentAmount: String(Number(purchase.paidAmount || 0)),
+      paymentMethod: purchase.paymentMethod || 'cash',
       paymentDate: purchase.purchaseDate ? new Date(purchase.purchaseDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
       paymentNotes: '',
       isBillWisePayment: false

@@ -144,8 +144,8 @@ export default function AddPurchasePopup({
                     Purchase Details
                   </h3>
 
-                  <div className="grid grid-cols-1 gap-2.5 md:grid-cols-3 md:gap-3">
-                    <div>
+                  <div className="grid grid-cols-1 gap-2.5 md:grid-cols-[9.5rem_22rem_minmax(0,1fr)_11rem] md:gap-3">
+                    <div className="md:max-w-[9.5rem]">
                       <label className="mb-1 block text-[11px] font-semibold text-gray-700 md:text-xs">Purchase Date</label>
                       <div className="relative">
                         <CalendarDays className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-indigo-400" />
@@ -161,7 +161,7 @@ export default function AddPurchasePopup({
                       </div>
                     </div>
 
-                    <div className="relative">
+                    <div className="relative md:max-w-[22rem]">
                       <div className="relative mb-1 min-h-[16px]">
                         <label className="block pr-24 text-[11px] font-semibold text-gray-700 md:text-xs">
                           Party Name <span className="text-red-500">*</span>
@@ -279,19 +279,7 @@ export default function AddPurchasePopup({
                       />
                     </div>
 
-                    <div>
-                      <label className="mb-1 block text-[11px] font-semibold text-gray-700 md:text-xs">Due Date</label>
-                      <input
-                        type="date"
-                        name="dueDate"
-                        value={formData.dueDate || ''}
-                        onChange={handleInputChange}
-                        onKeyDown={handleSelectEnterMoveNext}
-                        className={`${inputClass} focus:ring-indigo-500`}
-                      />
-                    </div>
-
-                    <div className="md:col-span-2">
+                    <div className="md:max-w-[11rem]">
                       <label className="mb-1 block text-[11px] font-semibold text-gray-700 md:text-xs">Invoice File</label>
                       <input
                         id="purchase-invoice-upload"
@@ -303,7 +291,7 @@ export default function AddPurchasePopup({
                       />
                       <label
                         htmlFor="purchase-invoice-upload"
-                        className={`flex min-h-[36px] cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed px-2.5 py-1.5 text-center text-[13px] font-semibold transition ${
+                        className={`flex min-h-[36px] cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed px-2.5 py-1.5 text-center text-[13px] font-semibold transition md:min-h-[34px] ${
                           uploadingInvoice
                             ? 'border-indigo-200 bg-indigo-50 text-indigo-500 opacity-75'
                             : 'border-indigo-300 bg-white text-indigo-700 hover:bg-indigo-50'
