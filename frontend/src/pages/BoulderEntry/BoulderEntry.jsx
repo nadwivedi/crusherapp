@@ -48,7 +48,6 @@ export default function BoulderEntry({ onModalFinish = null }) {
   useEffect(() => {
     requestAnimationFrame(() => {
       dateInputRef.current?.focus();
-      dateInputRef.current?.showPicker?.();
     });
   }, []);
 

@@ -5,6 +5,7 @@ const dotenv = require("dotenv");
 const path = require("path");
 const connectDB = require("./config/mongodb");
 const authRoutes = require("./routes/authRoutes");
+const bankRoutes = require("./routes/bankRoutes");
 const boulderRoutes = require("./routes/boulderRoutes");
 const expenseTypeRoutes = require("./routes/expenseTypeRoutes");
 const expenseRoutes = require("./routes/expenseRoutes");
@@ -41,6 +42,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/users", authRoutes);
+app.use("/api/banks", bankRoutes);
 app.use("/api/boulders", boulderRoutes);
 app.use("/api/expense-types", expenseTypeRoutes);
 app.use("/api/expense-groups", expenseTypeRoutes);
