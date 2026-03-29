@@ -15,10 +15,23 @@ const formatDate = (value) => {
   return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
+const formatNumber = (value) => Number(value || 0).toLocaleString('en-IN', {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2
+});
+
 const formatSaleTypeLabel = (value) => {
   if (value === 'cash sale') return 'Cash Sale';
   if (value === 'credit sale') return 'Credit Sale';
   return 'Sale';
+};
+
+const getMaterialBadgeClass = (value) => {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === '10mm') return 'border border-sky-200 bg-sky-50 text-sky-700';
+  if (normalized === '20mm') return 'border border-emerald-200 bg-emerald-50 text-emerald-700';
+  if (normalized === '40mm') return 'border border-violet-200 bg-violet-50 text-violet-700';
+  return 'border border-amber-200 bg-amber-50 text-amber-700';
 };
 
 function StatCard({ title, value, subtitle, icon: Icon, tone }) {
@@ -26,12 +39,12 @@ function StatCard({ title, value, subtitle, icon: Icon, tone }) {
     <div className="rounded-2xl border border-white/70 bg-white/90 px-4 py-3 shadow-[0_16px_30px_rgba(15,23,42,0.08)] lg:px-3 lg:py-2.5 xl:px-4 xl:py-3">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500 lg:text-[9px] xl:text-[10px]">{title}</p>
-          <p className="mt-1 text-lg font-black text-slate-800 lg:text-base xl:text-lg">{value}</p>
-          <p className="mt-0.5 text-xs text-slate-500 lg:text-[11px] xl:text-xs">{subtitle}</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500 lg:text-[8px] xl:text-[10px]">{title}</p>
+          <p className="mt-1 text-lg font-black text-slate-800 lg:text-[14px] xl:text-lg">{value}</p>
+          <p className="mt-0.5 text-xs text-slate-500 lg:text-[10px] xl:text-xs">{subtitle}</p>
         </div>
         <div className={`rounded-xl bg-gradient-to-br p-2 text-white lg:p-1.5 xl:p-2 ${tone}`}>
-          <Icon className="h-4 w-4 lg:h-3.5 lg:w-3.5 xl:h-4 xl:w-4" />
+          <Icon className="h-4 w-4 lg:h-3 lg:w-3 xl:h-4 xl:w-4" />
         </div>
       </div>
     </div>
@@ -114,48 +127,44 @@ export default function HomeSalesLedger() {
             <table className="w-full min-w-[900px] xl:min-w-[980px]">
               <thead>
                 <tr className="bg-[linear-gradient(135deg,#0f766e_0%,#0d9488_38%,#0891b2_72%,#0284c7_100%)] text-white">
-                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-xs">Invoice</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-xs">Party</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-xs">Vehicle</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-xs">Material</th>
                   <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-xs">Date</th>
-                  <th className="px-4 py-3 text-center text-xs font-bold uppercase tracking-[0.14em] lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-xs">Type</th>
-                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-[0.14em] lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-xs">Paid</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-xs">Invoice</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-xs">Vehicle</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-xs">Party</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-xs">Material</th>
+                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-[0.14em] lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-xs">Gross</th>
+                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-[0.14em] lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-xs">Tare</th>
+                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-[0.14em] lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-xs">Net</th>
                   <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-[0.14em] lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-xs">Total</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {recentSales.map((sale) => {
                   const partyName = partyMap.get(String(sale.partyId || sale.party)) || sale.customerName || '-';
+                  const materialName = sale.materialType || sale.stoneSize || '-';
+                  const grossWeight = Number(sale.netWeight || 0);
+                  const tareWeight = Number(sale.vehicleWeight || 0);
+                  const netWeight = Number(sale.materialWeight || 0);
 
                   return (
                     <tr key={sale._id} className="hover:bg-slate-50">
-                      <td className="px-4 py-3 text-sm font-semibold text-slate-700 lg:px-2.5 lg:py-2 lg:text-[12px] xl:px-4 xl:py-3 xl:text-sm">{sale.invoiceNumber || '-'}</td>
-                      <td className="px-4 py-3 text-sm text-slate-700 lg:px-2.5 lg:py-2 lg:text-[12px] xl:px-4 xl:py-3 xl:text-sm">{partyName}</td>
-                      <td className="px-4 py-3 text-sm text-slate-700 lg:px-2.5 lg:py-2 lg:text-[12px] xl:px-4 xl:py-3 xl:text-sm">{sale.vehicleNo || '-'}</td>
+                      <td className="px-4 py-3 text-sm text-slate-700 lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-[12px]">{formatDate(sale.saleDate || sale.createdAt)}</td>
+                      <td className="px-4 py-3 text-sm font-semibold text-slate-700 lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-[12px]">{sale.invoiceNumber || '-'}</td>
+                      <td className="px-4 py-3 text-sm text-slate-700 lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-[12px]">{sale.vehicleNo || '-'}</td>
+                      <td className="px-4 py-3 text-sm text-slate-700 lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-[12px]">{partyName}</td>
                       <td className="px-4 py-3 lg:px-2.5 lg:py-2 xl:px-4 xl:py-3">
-                        {sale.materialType ? (
-                          <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 lg:px-1.5 lg:py-0.5 lg:text-[10px] xl:px-2.5 xl:py-1 xl:text-xs">
-                            {String(sale.materialType).toUpperCase()}
+                        {materialName && materialName !== '-' ? (
+                          <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold lg:px-1.5 lg:py-0.5 lg:text-[10px] xl:px-2.5 xl:py-1 xl:text-xs ${getMaterialBadgeClass(materialName)}`}>
+                            {String(materialName).toUpperCase()}
                           </span>
                         ) : (
                           <span className="text-sm text-slate-700 lg:text-[12px] xl:text-sm">-</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-sm text-slate-700 lg:px-2.5 lg:py-2 lg:text-[12px] xl:px-4 xl:py-3 xl:text-sm">{formatDate(sale.saleDate || sale.createdAt)}</td>
-                      <td className="px-4 py-3 text-center lg:px-2.5 lg:py-2 xl:px-4 xl:py-3">
-                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold lg:px-1.5 lg:py-0.5 lg:text-[10px] xl:px-2.5 xl:py-1 xl:text-xs ${
-                          sale.type === 'cash sale'
-                            ? 'border border-emerald-200 bg-emerald-50 text-emerald-700'
-                            : sale.type === 'sale'
-                              ? 'border border-amber-200 bg-amber-50 text-amber-700'
-                              : 'border border-rose-200 bg-rose-50 text-rose-700'
-                        }`}>
-                          {formatSaleTypeLabel(sale.type)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right text-sm font-semibold text-sky-700 lg:px-2.5 lg:py-2 lg:text-[12px] xl:px-4 xl:py-3 xl:text-sm">{formatCurrency(sale.paidAmount)}</td>
-                      <td className="px-4 py-3 text-right text-sm font-semibold text-emerald-600 lg:px-2.5 lg:py-2 lg:text-[12px] xl:px-4 xl:py-3 xl:text-sm">{formatCurrency(sale.totalAmount)}</td>
+                      <td className="px-4 py-3 text-right text-sm font-semibold text-slate-700 lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-[12px]">{formatNumber(grossWeight)}</td>
+                      <td className="px-4 py-3 text-right text-sm font-semibold text-slate-700 lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-[12px]">{formatNumber(tareWeight)}</td>
+                      <td className="px-4 py-3 text-right text-sm font-semibold text-sky-700 lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-[12px]">{formatNumber(netWeight)}</td>
+                      <td className="px-4 py-3 text-right text-sm font-semibold text-emerald-600 lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-[12px]">{formatCurrency(sale.totalAmount)}</td>
                     </tr>
                   );
                 })}
