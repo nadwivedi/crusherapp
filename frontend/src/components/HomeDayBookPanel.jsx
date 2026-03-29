@@ -46,6 +46,11 @@ const formatTime = (value) => {
   return date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 };
 
+const parseWeightFromMethod = (method, label) => {
+  const match = String(method || '').match(new RegExp(`${label}\\s+(\\d+(?:\\.\\d+)?)`, 'i'));
+  return match ? Number(match[1]) : 0;
+};
+
 const buildSummary = (entries) => entries.reduce((acc, entry) => {
   const amount = Number(entry.amount || 0);
   const inward = Number(entry.inAmount || 0);
@@ -78,11 +83,11 @@ function StatCard({ title, value, icon: Icon, tone }) {
     <div className="rounded-2xl border border-white/70 bg-white/90 px-4 py-3 shadow-[0_16px_30px_rgba(15,23,42,0.08)] lg:px-3 lg:py-2.5 xl:px-4 xl:py-3">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500 lg:text-[9px] xl:text-[10px]">{title}</p>
-          <p className="mt-1 text-lg font-black text-slate-800 lg:text-base xl:text-lg">{value}</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500 lg:text-[8px] xl:text-[10px]">{title}</p>
+          <p className="mt-1 text-lg font-black text-slate-800 lg:text-[14px] xl:text-lg">{value}</p>
         </div>
         <div className={`rounded-xl bg-gradient-to-br p-2 text-white lg:p-1.5 xl:p-2 ${tone}`}>
-          <Icon className="h-4 w-4 lg:h-3.5 lg:w-3.5 xl:h-4 xl:w-4" />
+          <Icon className="h-4 w-4 lg:h-3 lg:w-3 xl:h-4 xl:w-4" />
         </div>
       </div>
     </div>
@@ -278,7 +283,14 @@ export default function HomeDayBookPanel() {
                       <td className="px-4 py-3 text-xs font-semibold text-slate-700 lg:px-3 lg:py-2.5 lg:text-[11px] xl:px-4 xl:py-3 xl:text-xs">{entry.voucherNumber || '-'}</td>
                       <td className="px-4 py-3 text-sm text-slate-700 lg:px-3 lg:py-2.5 lg:text-[13px] xl:px-4 xl:py-3 xl:text-sm">{entry.partyName || '-'}</td>
                       <td className="px-4 py-3 lg:px-3 lg:py-2.5 xl:px-4 xl:py-3">
-                        {entry.materialSummary && entry.materialSummary !== '-' ? (
+                        {entry.type === 'boulder' ? (
+                          <div>
+                            <p className="text-sm text-slate-700 lg:text-[13px] xl:text-sm">Boulder</p>
+                            <p className="text-xs text-slate-500 lg:text-[11px] xl:text-xs">
+                              {parseWeightFromMethod(entry.method, 'Net') > 0 ? `${parseWeightFromMethod(entry.method, 'Net')} kg` : '-'}
+                            </p>
+                          </div>
+                        ) : entry.materialSummary && entry.materialSummary !== '-' ? (
                           <div>
                             <p className="text-sm text-slate-700 lg:text-[13px] xl:text-sm">{String(entry.materialSummary).split('/')[0]?.trim() || '-'}</p>
                             <p className="text-xs text-slate-500 lg:text-[11px] xl:text-xs">{String(entry.materialSummary).split('/')[1]?.trim() || '-'}</p>

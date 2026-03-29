@@ -144,7 +144,7 @@ export default function HomeExpenseLedger() {
                 <tr className="bg-[linear-gradient(135deg,#0f766e_0%,#0d9488_38%,#0891b2_72%,#0284c7_100%)] text-white">
                   <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-xs">Date</th>
                   <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] lg:px-2 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-xs">Ref</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-xs">Group / Items</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-xs">Items</th>
                   <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-xs">Qty</th>
                   <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-xs">Party</th>
                   <th className="px-4 py-3 text-center text-xs font-bold uppercase tracking-[0.14em] lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-xs">Type</th>
@@ -159,12 +159,12 @@ export default function HomeExpenseLedger() {
                   return (
                     <tr key={expense._id} className="hover:bg-slate-50">
                       <td className="px-4 py-3 text-sm font-semibold text-slate-700 lg:px-2.5 lg:py-2 lg:text-[12px] xl:px-4 xl:py-3 xl:text-sm">{formatDate(expense.expenseDate || expense.createdAt)}</td>
-                      <td className="truncate px-4 py-3 text-xs font-semibold text-slate-700 lg:px-2 lg:py-2 lg:text-[11px] xl:px-4 xl:py-3 xl:text-xs">{expense.expenseNumber || '-'}</td>
+                      <td className="truncate px-4 py-3 text-xs font-semibold text-slate-700 lg:px-2 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-[11px]">{expense.expenseNumber || '-'}</td>
                       <td className="px-4 py-3 text-sm text-slate-700 lg:px-2.5 lg:py-2 lg:text-[12px] xl:px-4 xl:py-3 xl:text-sm">{getExpenseItemSummary(expense)}</td>
                       <td className="px-4 py-3 text-sm text-slate-700 lg:px-2.5 lg:py-2 lg:text-[12px] xl:px-4 xl:py-3 xl:text-sm">{kind === 'purchase' ? getExpenseQuantitySummary(expense) : '-'}</td>
                       <td className="px-4 py-3 text-sm text-slate-700 lg:px-2.5 lg:py-2 lg:text-[12px] xl:px-4 xl:py-3 xl:text-sm">{expense.party?.name || '-'}</td>
                       <td className="px-4 py-3 text-center lg:px-2.5 lg:py-2 xl:px-4 xl:py-3">
-                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold lg:px-1.5 lg:py-0.5 lg:text-[10px] xl:px-2.5 xl:py-1 xl:text-xs ${
+                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold lg:px-1.5 lg:py-0.5 lg:text-[9px] xl:px-2.5 xl:py-1 xl:text-[11px] ${
                           kind === 'purchase'
                             ? 'border border-amber-200 bg-amber-50 text-amber-700'
                             : 'border border-violet-200 bg-violet-50 text-violet-700'

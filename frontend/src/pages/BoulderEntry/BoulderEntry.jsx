@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import apiClient from '../../utils/api';
 import { handlePopupFormKeyDown } from '../../utils/popupFormKeyboard';
 import { useFloatingDropdownPosition } from '../../utils/useFloatingDropdownPosition';
+import AddVehiclePopup from '../Vehicle/component/AddVehiclePopup';
 
 const formatDateForInput = (value = new Date()) => {
   const date = value instanceof Date ? value : new Date(value);
@@ -30,16 +31,25 @@ export default function BoulderEntry({ onModalFinish = null }) {
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [uploadingSlip, setUploadingSlip] = useState(false);
+  const [showVehicleForm, setShowVehicleForm] = useState(false);
   const [isVehicleSectionActive, setIsVehicleSectionActive] = useState(false);
   const [vehicleListIndex, setVehicleListIndex] = useState(-1);
   const vehicleSectionRef = useRef(null);
   const vehicleInputRef = useRef(null);
+  const dateInputRef = useRef(null);
   const inputClass = 'w-full rounded-lg border border-slate-400 bg-white px-2.5 py-1.5 text-[13px] text-gray-800 transition placeholder:text-slate-400 focus:border-transparent focus:outline-none focus:ring-2';
   const labelClass = 'mb-1 block text-[11px] font-semibold text-gray-700 md:text-xs';
   const getVehicleDisplayName = (vehicle) => String(vehicle?.vehicleNumber || vehicle?.vehicleNo || '').trim();
 
   useEffect(() => {
     fetchVehicles();
+  }, []);
+
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      dateInputRef.current?.focus();
+      dateInputRef.current?.showPicker?.();
+    });
   }, []);
 
   const filteredVehicles = useMemo(() => {
@@ -92,6 +102,23 @@ export default function BoulderEntry({ onModalFinish = null }) {
     setIsVehicleSectionActive(false);
   };
 
+  const openInlineVehicleForm = () => {
+    setIsVehicleSectionActive(false);
+    setShowVehicleForm(true);
+  };
+
+  const closeInlineVehicleForm = (shouldRefocusVehicle = true) => {
+    setShowVehicleForm(false);
+
+    if (!shouldRefocusVehicle) return;
+
+    requestAnimationFrame(() => {
+      vehicleInputRef.current?.focus();
+      vehicleInputRef.current?.select?.();
+      setIsVehicleSectionActive(true);
+    });
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => updateWeights({ ...prev, [name]: value }));
@@ -114,6 +141,13 @@ export default function BoulderEntry({ onModalFinish = null }) {
   };
 
   const handleVehicleInputKeyDown = (event) => {
+    if (event.key === 'Control' && !event.altKey && !event.metaKey) {
+      event.preventDefault();
+      event.stopPropagation();
+      openInlineVehicleForm();
+      return;
+    }
+
     if (event.key === 'ArrowDown') {
       event.preventDefault();
       setIsVehicleSectionActive(true);
@@ -247,11 +281,13 @@ export default function BoulderEntry({ onModalFinish = null }) {
                   <div className="space-y-1">
                     <label className={labelClass}>Entry Date</label>
                     <input
+                      ref={dateInputRef}
                       type="date"
                       name="boulderDate"
                       value={formData.boulderDate || ''}
                       onChange={handleChange}
                       className={`${inputClass} focus:ring-indigo-500`}
+                      autoFocus
                     />
                   </div>
 
@@ -278,7 +314,6 @@ export default function BoulderEntry({ onModalFinish = null }) {
                           className={`${inputClass} pl-9 focus:ring-indigo-500`}
                           placeholder="Type to search vehicle..."
                           autoComplete="off"
-                          autoFocus
                         />
                       </div>
 
@@ -333,6 +368,11 @@ export default function BoulderEntry({ onModalFinish = null }) {
                         </div>
                       )}
                     </div>
+                    {isVehicleSectionActive ? (
+                      <div className="mt-1 text-[11px] text-indigo-600">
+                        Press <span className="rounded bg-indigo-100 px-1.5 py-0.5 font-mono text-[10px]">Ctrl</span> to create new vehicle
+                      </div>
+                    ) : null}
                   </div>
 
                   <div className="space-y-1">
@@ -457,6 +497,23 @@ export default function BoulderEntry({ onModalFinish = null }) {
           </div>
         </form>
       </div>
+      {showVehicleForm ? (
+        <AddVehiclePopup
+          vehicle={null}
+          defaultVehicleType="boulder"
+          onClose={() => closeInlineVehicleForm(true)}
+          onSave={fetchVehicles}
+          onVehicleSaved={async (savedVehicle) => {
+            if (!savedVehicle) return;
+            setVehicles((prev) => [
+              savedVehicle,
+              ...prev.filter((item) => String(item._id) !== String(savedVehicle._id))
+            ]);
+            selectVehicle(savedVehicle);
+            closeInlineVehicleForm(true);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

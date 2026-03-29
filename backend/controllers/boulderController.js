@@ -1,6 +1,31 @@
 const mongoose = require("mongoose");
 const Boulder = require("../models/Boulder");
+const Counter = require("../models/Counter");
 const Vehicle = require("../models/Vehicle");
+
+const getBoulderYear = (boulderDateValue) => {
+  const boulderDate = boulderDateValue ? new Date(boulderDateValue) : new Date();
+  if (Number.isNaN(boulderDate.getTime())) {
+    return new Date().getFullYear();
+  }
+  return boulderDate.getFullYear();
+};
+
+const createBoulderNumber = async (boulderDateValue) => {
+  const boulderYear = getBoulderYear(boulderDateValue);
+  const counterKey = `boulders:${boulderYear}`;
+  const counter = await Counter.findOneAndUpdate(
+    { key: counterKey },
+    { $inc: { seq: 1 } },
+    {
+      new: true,
+      upsert: true,
+      setDefaultsOnInsert: true,
+    }
+  );
+
+  return `BOL-${boulderYear}-${String(counter.seq).padStart(2, "0")}`;
+};
 
 const normalizeBoulderPayload = async (payload) => {
   const normalizedPayload = { ...payload };
@@ -100,6 +125,7 @@ const normalizeBoulderPayload = async (payload) => {
 const createBoulder = async (req, res) => {
   try {
     const payload = await normalizeBoulderPayload(req.body);
+    payload.boulderNumber = await createBoulderNumber(payload.boulderDate);
     const boulder = await Boulder.create(payload);
     return res.status(201).json(boulder);
   } catch (error) {
@@ -156,6 +182,10 @@ const editBoulder = async (req, res) => {
 
   try {
     const payload = await normalizeBoulderPayload(req.body);
+    const existingBoulder = await Boulder.findById(id).select("boulderNumber");
+    if (existingBoulder?.boulderNumber) {
+      payload.boulderNumber = existingBoulder.boulderNumber;
+    }
     const boulder = await Boulder.findByIdAndUpdate(id, payload, {
       new: true,
       runValidators: true,

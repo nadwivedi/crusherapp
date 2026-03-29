@@ -772,7 +772,7 @@ const getDayBook = async (req, res) => {
           refId: item._id,
           date: item.boulderDate || item.createdAt,
           entryCreatedAt: item.createdAt,
-          voucherNumber: item.vehicleNo || "-",
+          voucherNumber: item.boulderNumber || item.vehicleNo || "-",
           partyName: item.vehicleNo || "-",
           method: `Gross ${Number(item.grossWeight || 0)} | Tare ${Number(item.tareWeight || 0)} | Net ${Number(item.netWeight || 0)}`,
           amount: 0,

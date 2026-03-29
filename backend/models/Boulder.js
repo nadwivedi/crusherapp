@@ -13,6 +13,13 @@ const boulderSchema = new mongoose.Schema(
       trim: true,
       uppercase: true,
     },
+    boulderNumber: {
+      type: String,
+      trim: true,
+      uppercase: true,
+      unique: true,
+      sparse: true,
+    },
     grossWeight: {
       type: Number,
       required: true,

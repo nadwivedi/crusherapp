@@ -99,7 +99,7 @@ const toTitleCase = (value) => String(value || '')
   .toLowerCase()
   .replace(/\b[a-z]/g, (char) => char.toUpperCase());
 
-export default function AddVehiclePopup({ vehicle, onClose, onSave, onVehicleSaved = null }) {
+export default function AddVehiclePopup({ vehicle, onClose, onSave, onVehicleSaved = null, defaultVehicleType = 'sales' }) {
   const [formData, setFormData] = useState(vehicle || initialFormData);
   const [parties, setParties] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -121,8 +121,8 @@ export default function AddVehiclePopup({ vehicle, onClose, onSave, onVehicleSav
   const isEditing = Boolean(vehicle?._id);
 
   useEffect(() => {
-    setFormData(vehicle || initialFormData);
-  }, [vehicle]);
+    setFormData(vehicle || { ...initialFormData, vehicleType: defaultVehicleType || 'sales' });
+  }, [defaultVehicleType, vehicle]);
 
   useEffect(() => {
     const fetchParties = async () => {
