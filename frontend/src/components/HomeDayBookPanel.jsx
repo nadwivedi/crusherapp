@@ -5,6 +5,8 @@ import HomePartyLedger from './HomePartyLedger';
 import HomeBoulderLedger from './HomeBoulderLedger';
 import HomeSalesLedger from './HomeSalesLedger';
 import HomeExpenseLedger from './HomeExpenseLedger';
+import HomeMaterialUsedLedger from './HomeMaterialUsedLedger';
+import HomeStockLedger from './HomeStockLedger';
 
 const DEFAULT_SUMMARY = {
   entryCount: 0,
@@ -186,6 +188,28 @@ export default function HomeDayBookPanel() {
           >
             Expense Ledger
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveView('material-used-ledger')}
+            className={`inline-flex items-center justify-center rounded-lg border px-3 py-2 text-xs font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
+              activeView === 'material-used-ledger'
+                ? 'border-cyan-300 bg-cyan-100 text-cyan-800'
+                : 'border-cyan-200 bg-cyan-50 text-cyan-700 hover:bg-cyan-100'
+            }`}
+          >
+            Material Used Ledger
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveView('stock-ledger')}
+            className={`inline-flex items-center justify-center rounded-lg border px-3 py-2 text-xs font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
+              activeView === 'stock-ledger'
+                ? 'border-indigo-300 bg-indigo-100 text-indigo-800'
+                : 'border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+            }`}
+          >
+            Stock Ledger
+          </button>
         </div>
       </div>
 
@@ -197,6 +221,10 @@ export default function HomeDayBookPanel() {
         <HomeSalesLedger />
       ) : activeView === 'expense-ledger' ? (
         <HomeExpenseLedger />
+      ) : activeView === 'material-used-ledger' ? (
+        <HomeMaterialUsedLedger />
+      ) : activeView === 'stock-ledger' ? (
+        <HomeStockLedger />
       ) : (
       <div className="space-y-5 p-5 sm:p-6 lg:space-y-4 lg:p-4 xl:space-y-5 xl:p-6">
         {error ? (

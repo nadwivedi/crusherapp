@@ -281,13 +281,13 @@ export default function ReportsDashboard({ initialReport = 'partyLedger', showPi
     if (results[1].status === 'fulfilled') setProducts(results[1].value.data || []);
     else failures.push('product list');
 
-    if (results[2].status === 'fulfilled') setOutstanding(results[2].value.data || null);
+    if (results[2].status === 'fulfilled') setOutstanding(results[2].value || null);
     else failures.push('outstanding summary');
 
-    if (results[3].status === 'fulfilled') setPartyLedger(results[3].value.data || []);
+    if (results[3].status === 'fulfilled') setPartyLedger(results[3].value || []);
     else failures.push('party ledger');
 
-    if (results[4].status === 'fulfilled') setStockLedger(results[4].value.data || { ledger: [], currentStock: [] });
+    if (results[4].status === 'fulfilled') setStockLedger(results[4].value || { ledger: [], currentStock: [] });
     else failures.push('stock ledger');
 
     if (results[5].status === 'fulfilled') setSales(results[5].value.data || []);
@@ -309,7 +309,7 @@ export default function ReportsDashboard({ initialReport = 'partyLedger', showPi
       const response = await apiClient.get('/reports/party-ledger', {
         params: { partyId: selectedPartyId || undefined }
       });
-      setPartyLedger(response.data || []);
+      setPartyLedger(response || []);
       setError('');
     } catch (err) {
       setError(getErrorMessage(err, 'Error loading party ledger'));
@@ -324,7 +324,7 @@ export default function ReportsDashboard({ initialReport = 'partyLedger', showPi
       const response = await apiClient.get('/reports/stock-ledger', {
         params: { productId: selectedProductId || undefined }
       });
-      setStockLedger(response.data || { ledger: [], currentStock: [] });
+      setStockLedger(response || { ledger: [], currentStock: [] });
       setError('');
     } catch (err) {
       setError(getErrorMessage(err, 'Error loading stock ledger'));

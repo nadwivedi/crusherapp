@@ -15,6 +15,13 @@ import {
 
 const formatNumber = (value) => Number(value || 0).toLocaleString('en-IN');
 
+const formatCurrency = (value) => (
+  `Rs ${Number(value || 0).toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })}`
+);
+
 const formatDate = (value) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '-';
@@ -56,7 +63,7 @@ export default function StockLedger() {
         })
       ]);
       setProducts(productsRes.data || []);
-      setStockLedger(stockRes.data || { ledger: [], currentStock: [] });
+      setStockLedger(stockRes || { ledger: [], currentStock: [] });
     } catch (err) {
       setError(err.message || 'Error loading data');
     } finally {
@@ -70,7 +77,7 @@ export default function StockLedger() {
       const response = await apiClient.get('/reports/stock-ledger', {
         params: { productId: productId || undefined }
       });
-      setStockLedger(response.data || { ledger: [], currentStock: [] });
+      setStockLedger(response || { ledger: [], currentStock: [] });
       setError('');
     } catch (err) {
       setError(err.message || 'Error loading stock ledger');
@@ -296,6 +303,7 @@ export default function StockLedger() {
                   <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Product</th>
                   <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Type</th>
                   <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Reference</th>
+                  <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider">Rate</th>
                   <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider">Stock In</th>
                   <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider">Stock Out</th>
                   <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider">Balance</th>
@@ -327,6 +335,11 @@ export default function StockLedger() {
                         <p className="text-sm text-slate-600 font-mono">{row.refNumber || '-'}</p>
                       </td>
                       <td className="px-6 py-4 text-right">
+                        <p className="text-sm font-semibold text-slate-700">
+                          {Number(row.rate || 0) > 0 ? formatCurrency(row.rate) : '-'}
+                        </p>
+                      </td>
+                      <td className="px-6 py-4 text-right">
                         {Number(row.inQty || 0) > 0 ? (
                           <p className="text-sm font-bold text-emerald-600">+{formatNumber(row.inQty)}</p>
                         ) : <span className="text-slate-300">-</span>}
@@ -343,7 +356,7 @@ export default function StockLedger() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={7} className="px-6 py-16 text-center">
+                    <td colSpan={8} className="px-6 py-16 text-center">
                       <div className="flex flex-col items-center">
                         <div className="p-4 rounded-full bg-slate-100 mb-4">
                           <Boxes className="w-8 h-8 text-slate-400" />

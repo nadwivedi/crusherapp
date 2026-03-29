@@ -7,6 +7,7 @@ const Payment = require("../models/Payment");
 const Purchase = require("../models/Purchase");
 const Receipt = require("../models/Receipt");
 const Sales = require("../models/Sales");
+const Stock = require("../models/Stock");
 
 const toDateBoundary = (value, endOfDay = false) => {
   const parsed = value ? new Date(value) : null;
@@ -362,6 +363,106 @@ const getPartyLedgerData = async ({ partyId, fromDate, toDate }) => {
   };
 };
 
+const getStockLedgerData = async ({ productId, fromDate, toDate }) => {
+  const stockFilter = productId ? { _id: productId } : {};
+  const purchaseFilter = {};
+  const materialUsedFilter = {};
+
+  if (productId) {
+    purchaseFilter["items.product"] = productId;
+    materialUsedFilter.materialType = productId;
+  }
+
+  const [stocks, purchases, materialUsedEntries] = await Promise.all([
+    Stock.find(stockFilter).sort({ name: 1 }),
+    Purchase.find(purchaseFilter)
+      .populate("party", "name")
+      .populate("items.product", "name unit")
+      .sort({ purchaseDate: 1, createdAt: 1 }),
+    MaterialUsed.find(materialUsedFilter)
+      .populate("vehicle", "vehicleNo vehicleNumber")
+      .populate("materialType", "name unit")
+      .sort({ usedDate: 1, createdAt: 1 }),
+  ]);
+
+  const ledgerRows = [
+    ...purchases.flatMap((purchase) => (
+      Array.isArray(purchase.items)
+        ? purchase.items
+            .filter((item) => !productId || String(item.product?._id || item.product) === String(productId))
+            .filter(() => withinRange(purchase.purchaseDate || purchase.createdAt, fromDate, toDate))
+            .map((item, index) => ({
+              type: "purchase",
+              displayType: getEntryDisplayType("purchase", purchase.type),
+              refId: `${purchase._id}-${index}`,
+              sourceRefId: purchase._id,
+              productId: item.product?._id || item.product,
+              productName: item.productName || item.product?.name || "-",
+              unit: item.unit || item.product?.unit || "",
+              partyName: purchase.party?.name || "-",
+              date: purchase.purchaseDate || purchase.createdAt,
+              entryCreatedAt: purchase.createdAt,
+              refNumber: formatPurchaseNumber(purchase.purchaseNumber),
+              inQty: toNumber(item.quantity),
+              outQty: 0,
+              rate: toNumber(item.unitPrice),
+              amount: toNumber(item.total),
+              note: String(purchase.notes || purchase.supplierInvoice || "").trim(),
+            }))
+        : []
+    )),
+    ...materialUsedEntries
+      .filter((entry) => withinRange(entry.usedDate || entry.createdAt, fromDate, toDate))
+      .map((entry) => ({
+        type: "materialUsed",
+        displayType: getEntryDisplayType("materialUsed"),
+        refId: entry._id,
+        sourceRefId: entry._id,
+        productId: entry.materialType?._id || entry.materialType,
+        productName: entry.materialTypeName || entry.materialType?.name || "-",
+        unit: entry.unit || entry.materialType?.unit || "",
+        partyName: entry.vehicleNo || entry.vehicle?.vehicleNo || entry.vehicle?.vehicleNumber || "-",
+        date: entry.usedDate || entry.createdAt,
+        entryCreatedAt: entry.createdAt,
+        refNumber: entry.vehicleNo || entry.vehicle?.vehicleNo || entry.vehicle?.vehicleNumber || "-",
+        inQty: 0,
+        outQty: toNumber(entry.usedQty),
+        rate: 0,
+        amount: 0,
+        note: String(entry.notes || "").trim(),
+      })),
+  ].sort((firstRow, secondRow) => {
+    const firstTime = new Date(firstRow.entryCreatedAt || firstRow.date).getTime() || 0;
+    const secondTime = new Date(secondRow.entryCreatedAt || secondRow.date).getTime() || 0;
+    if (firstTime !== secondTime) return firstTime - secondTime;
+    return String(firstRow.refId || "").localeCompare(String(secondRow.refId || ""));
+  });
+
+  const runningQtyByProduct = new Map();
+  const ledger = ledgerRows.map((row) => {
+    const key = String(row.productId || row.productName || "");
+    const nextRunningQty = toNumber(runningQtyByProduct.get(key)) + toNumber(row.inQty) - toNumber(row.outQty);
+    runningQtyByProduct.set(key, nextRunningQty);
+
+    return {
+      ...row,
+      runningQty: nextRunningQty,
+    };
+  });
+
+  const currentStock = stocks.map((stock) => ({
+    productId: stock._id,
+    productName: stock.name || "-",
+    unit: stock.unit || "",
+    currentStock: toNumber(stock.currentStock),
+  }));
+
+  return {
+    ledger,
+    currentStock,
+  };
+};
+
 const getOutstanding = async (_req, res) => {
   try {
     const { parties, ledgerRows } = await getPartyLedgerData({
@@ -390,6 +491,22 @@ const getPartyLedger = async (req, res) => {
   } catch (error) {
     return res.status(500).json({
       message: "Failed to load party ledger",
+      error: error.message,
+    });
+  }
+};
+
+const getStockLedger = async (req, res) => {
+  try {
+    const productId = toObjectId(req.query.productId);
+    const fromDate = toDateBoundary(req.query.fromDate);
+    const toDate = toDateBoundary(req.query.toDate, true);
+
+    const stockLedger = await getStockLedgerData({ productId, fromDate, toDate });
+    return res.json(stockLedger);
+  } catch (error) {
+    return res.status(500).json({
+      message: "Failed to load stock ledger",
       error: error.message,
     });
   }
@@ -700,4 +817,5 @@ module.exports = {
   getOutstanding,
   getPartyLedger,
   getPartyLedgerEntryDetail,
+  getStockLedger,
 };

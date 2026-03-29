@@ -37,7 +37,7 @@ export default function Reports() {
     try {
       setLoading(true);
       const response = await apiClient.get('/reports/outstanding');
-      setOutstanding(response.data);
+      setOutstanding(response);
       setError('');
     } catch (err) {
       setError(err.message || 'Error loading outstanding report');
@@ -52,7 +52,7 @@ export default function Reports() {
       const response = await apiClient.get('/reports/party-ledger', {
         params: { partyId: selectedPartyId || undefined }
       });
-      setPartyLedger(response.data || []);
+      setPartyLedger(response || []);
       setError('');
     } catch (err) {
       setError(err.message || 'Error loading party ledger');
@@ -67,7 +67,7 @@ export default function Reports() {
       const response = await apiClient.get('/reports/stock-ledger', {
         params: { productId: selectedProductId || undefined }
       });
-      setStockLedger(response.data || { ledger: [], currentStock: [] });
+      setStockLedger(response || { ledger: [], currentStock: [] });
       setError('');
     } catch (err) {
       setError(err.message || 'Error loading stock ledger');

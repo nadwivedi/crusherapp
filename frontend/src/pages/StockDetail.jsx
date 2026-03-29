@@ -17,6 +17,13 @@ const formatQuantity = (value) => Number(value || 0).toLocaleString('en-IN', {
   maximumFractionDigits: 2
 });
 
+const formatCurrency = (value) => (
+  `Rs ${Number(value || 0).toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })}`
+);
+
 const getTypeMeta = (row) => {
   if (row.type === 'purchase') {
     return {
@@ -50,6 +57,13 @@ const getTypeMeta = (row) => {
     return {
       label: row.inQty > 0 ? 'Adjustment (+)' : 'Adjustment (-)',
       className: 'bg-blue-100 text-blue-800'
+    };
+  }
+
+  if (row.type === 'materialUsed') {
+    return {
+      label: 'Material Used',
+      className: 'bg-amber-100 text-amber-800'
     };
   }
 
@@ -89,7 +103,7 @@ export default function StockDetail() {
       ]);
 
       setProduct(productResponse.data || null);
-      setStockLedger(ledgerResponse.data || { ledger: [], currentStock: [] });
+      setStockLedger(ledgerResponse || { ledger: [], currentStock: [] });
       setError('');
     } catch (err) {
       setError(err.message || 'Error loading stock details');
@@ -255,7 +269,7 @@ export default function StockDetail() {
             <div>
               <h2 className="text-base font-bold text-slate-900 md:text-lg">Stock Ledger</h2>
               <p className="mt-1 text-xs text-slate-500 md:text-sm">
-                Purchase, sale, purchase return, and sale return movement for this stock item.
+                Purchase and material used movement for this stock item.
               </p>
             </div>
             <div className="flex flex-wrap gap-2 text-xs font-semibold">
@@ -281,6 +295,7 @@ export default function StockDetail() {
               <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-600">Reference</th>
               <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-600">In Qty</th>
               <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-600">Out Qty</th>
+              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-600">Rate</th>
               <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-600">Running Qty</th>
               <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-600">Notes</th>
             </tr>
@@ -288,11 +303,11 @@ export default function StockDetail() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="8" className="px-4 py-8 text-center text-slate-500">Loading...</td>
+                <td colSpan="9" className="px-4 py-8 text-center text-slate-500">Loading...</td>
               </tr>
             ) : sortedLedgerRows.length === 0 ? (
               <tr>
-                <td colSpan="8" className="px-4 py-8 text-center text-slate-500">No stock movement found for this item</td>
+                <td colSpan="9" className="px-4 py-8 text-center text-slate-500">No stock movement found for this item</td>
               </tr>
             ) : (
               sortedLedgerRows.map((row, idx) => {
@@ -309,6 +324,9 @@ export default function StockDetail() {
                     <td className="px-4 py-2.5 font-medium text-slate-700">{row.refNumber || '-'}</td>
                     <td className="px-4 py-2.5 font-medium text-emerald-700">{formatQuantity(row.inQty || 0)}</td>
                     <td className="px-4 py-2.5 font-medium text-rose-700">{formatQuantity(row.outQty || 0)}</td>
+                    <td className="px-4 py-2.5 font-medium text-slate-700">
+                      {Number(row.rate || 0) > 0 ? formatCurrency(row.rate) : '-'}
+                    </td>
                     <td className="px-4 py-2.5">
                       <span className="inline-flex rounded-lg bg-slate-100 px-2.5 py-1 font-semibold text-slate-800">
                         {formatQuantity(row.runningQty || 0)}
