@@ -1,5 +1,12 @@
 const mongoose = require("mongoose");
 
+const getCurrentTime = () => {
+  const now = new Date();
+  const hours = `${now.getHours()}`.padStart(2, "0");
+  const minutes = `${now.getMinutes()}`.padStart(2, "0");
+  return `${hours}:${minutes}`;
+};
+
 const boulderSchema = new mongoose.Schema(
   {
     vehicleId: {
@@ -38,6 +45,11 @@ const boulderSchema = new mongoose.Schema(
     boulderDate: {
       type: Date,
       default: Date.now,
+    },
+    boulderTime: {
+      type: String,
+      trim: true,
+      default: getCurrentTime,
     },
     slipImg: {
       type: String,

@@ -3,6 +3,13 @@ const Boulder = require("../models/Boulder");
 const Counter = require("../models/Counter");
 const Vehicle = require("../models/Vehicle");
 
+const getCurrentTime = () => {
+  const now = new Date();
+  const hours = `${now.getHours()}`.padStart(2, "0");
+  const minutes = `${now.getMinutes()}`.padStart(2, "0");
+  return `${hours}:${minutes}`;
+};
+
 const getBoulderYear = (boulderDateValue) => {
   const boulderDate = boulderDateValue ? new Date(boulderDateValue) : new Date();
   if (Number.isNaN(boulderDate.getTime())) {
@@ -77,6 +84,14 @@ const normalizeBoulderPayload = async (payload) => {
 
   if (normalizedPayload.boulderDate !== undefined) {
     normalizedPayload.boulderDate = new Date(normalizedPayload.boulderDate);
+  }
+
+  if (normalizedPayload.boulderTime !== undefined) {
+    normalizedPayload.boulderTime = `${normalizedPayload.boulderTime}`.trim().slice(0, 5);
+  }
+
+  if (!normalizedPayload.boulderTime) {
+    normalizedPayload.boulderTime = getCurrentTime();
   }
 
   let vehicle = null;

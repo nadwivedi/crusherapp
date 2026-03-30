@@ -15,10 +15,19 @@ const formatDateForInput = (value = new Date()) => {
   return `${year}-${month}-${day}`;
 };
 
+const formatTimeForInput = (value = new Date()) => {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const hours = `${date.getHours()}`.padStart(2, '0');
+  const minutes = `${date.getMinutes()}`.padStart(2, '0');
+  return `${hours}:${minutes}`;
+};
+
 const initialFormData = {
   vehicleId: '',
   vehicleNo: '',
   boulderDate: formatDateForInput(),
+  boulderTime: formatTimeForInput(),
   tareWeight: '',
   grossWeight: '',
   netWeight: '',
@@ -191,6 +200,7 @@ export default function BoulderEntry({ onModalFinish = null }) {
         vehicleId: formData.vehicleId,
         vehicleNo: formData.vehicleNo.toUpperCase(),
         boulderDate: formData.boulderDate,
+        boulderTime: formData.boulderTime,
         tareWeight: parseFloat(formData.tareWeight),
         grossWeight: parseFloat(formData.grossWeight),
         netWeight: parseFloat(formData.netWeight),
@@ -277,17 +287,30 @@ export default function BoulderEntry({ onModalFinish = null }) {
                   Boulder Details
                 </h3>
                 <div className="grid grid-cols-1 gap-3">
-                  <div className="space-y-1">
-                    <label className={labelClass}>Entry Date</label>
-                    <input
-                      ref={dateInputRef}
-                      type="date"
-                      name="boulderDate"
-                      value={formData.boulderDate || ''}
-                      onChange={handleChange}
-                      className={`${inputClass} focus:ring-indigo-500`}
-                      autoFocus
-                    />
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="space-y-1">
+                      <label className={labelClass}>Entry Date</label>
+                      <input
+                        ref={dateInputRef}
+                        type="date"
+                        name="boulderDate"
+                        value={formData.boulderDate || ''}
+                        onChange={handleChange}
+                        className={`${inputClass} focus:ring-indigo-500`}
+                        autoFocus
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className={labelClass}>Entry Time</label>
+                      <input
+                        type="time"
+                        name="boulderTime"
+                        value={formData.boulderTime || ''}
+                        onChange={handleChange}
+                        className={`${inputClass} focus:ring-indigo-500`}
+                      />
+                    </div>
                   </div>
 
                   <div className="space-y-1">
