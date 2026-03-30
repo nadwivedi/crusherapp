@@ -142,9 +142,9 @@ export default function HomeSalesLedger() {
                 {recentSales.map((sale) => {
                   const partyName = partyMap.get(String(sale.partyId || sale.party)) || sale.customerName || '-';
                   const materialName = sale.materialType || sale.stoneSize || '-';
-                  const grossWeight = Number(sale.netWeight || 0);
-                  const tareWeight = Number(sale.vehicleWeight || 0);
-                  const netWeight = Number(sale.materialWeight || 0);
+                  const grossWeight = Number(sale.grossWeight || sale.netWeight || 0);
+                  const tareWeight = Number(sale.tareWeight || sale.vehicleWeight || 0);
+                  const netWeight = Number(sale.netWeight || sale.materialWeight || 0);
 
                   return (
                     <tr key={sale._id} className="hover:bg-slate-50">

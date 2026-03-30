@@ -97,9 +97,9 @@ const getInitialFormData = () => ({
   customerAddress: '',
   vehicleNo: '',
   materialType: '',
-  vehicleWeight: '',
+  tareWeight: '',
+  grossWeight: '',
   netWeight: '',
-  materialWeight: '',
   rate: '',
   totalAmount: 0,
   paidAmount: '',
@@ -697,8 +697,8 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
       setFormData((prev) => ({
         ...prev,
         vehicleNo: '',
-        vehicleWeight: '',
-        materialWeight: prev.netWeight ? Number(prev.netWeight || 0) : '',
+        tareWeight: '',
+        netWeight: prev.grossWeight ? Number(prev.grossWeight || 0) : '',
         totalAmount: calculateSaleTotalAmount(prev.netWeight ? Number(prev.netWeight || 0) : '', prev.rate)
       }));
       setVehicleListIndex(-1);
@@ -716,13 +716,13 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
       const nextState = {
         ...prev,
         vehicleNo: vehicleNumber,
-        vehicleWeight: unladenWeight
+        tareWeight: unladenWeight
       };
 
       const numericTareWeight = Number(unladenWeight || 0);
-      const numericGrossWeight = Number(prev.netWeight || 0);
-      nextState.materialWeight = numericGrossWeight - numericTareWeight;
-      nextState.totalAmount = calculateSaleTotalAmount(nextState.materialWeight, prev.rate);
+      const numericGrossWeight = Number(prev.grossWeight || 0);
+      nextState.netWeight = numericGrossWeight - numericTareWeight;
+      nextState.totalAmount = calculateSaleTotalAmount(nextState.netWeight, prev.rate);
 
       if (linkedParty) {
         const partyName = getLeadgerDisplayName(linkedParty);
@@ -776,7 +776,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         ...prev,
         materialType: '',
         rate: '',
-        totalAmount: calculateSaleTotalAmount(prev.materialWeight, '')
+        totalAmount: calculateSaleTotalAmount(prev.netWeight, '')
       }));
       setMaterialListIndex(-1);
       return;
@@ -788,7 +788,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
       ...prev,
       materialType: material.value,
       rate: configuredRate > 0 ? String(configuredRate) : '',
-      totalAmount: calculateSaleTotalAmount(prev.materialWeight, configuredRate)
+      totalAmount: calculateSaleTotalAmount(prev.netWeight, configuredRate)
     }));
 
     const selectedIndex = filteredMaterialTypes.findIndex((item) => String(item.value) === String(material.value));
@@ -811,7 +811,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         ...prev,
         materialType: exactMaterial.value,
         rate: configuredRate > 0 ? String(configuredRate) : '',
-        totalAmount: calculateSaleTotalAmount(prev.materialWeight, configuredRate)
+        totalAmount: calculateSaleTotalAmount(prev.netWeight, configuredRate)
       }));
       const exactIndex = filteredMaterialTypes.findIndex((item) => String(item.value) === String(exactMaterial.value));
       setMaterialListIndex(exactIndex >= 0 ? exactIndex : 0);
@@ -824,7 +824,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
       ...prev,
       materialType: firstMatch?.value || '',
       rate: firstMatch ? (configuredRate > 0 ? String(configuredRate) : '') : prev.rate,
-      totalAmount: firstMatch ? calculateSaleTotalAmount(prev.materialWeight, configuredRate) : prev.totalAmount
+      totalAmount: firstMatch ? calculateSaleTotalAmount(prev.netWeight, configuredRate) : prev.totalAmount
     }));
     setMaterialListIndex(firstMatch ? 0 : -1);
   };
@@ -1390,7 +1390,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         ...formData,
         materialType: value,
         rate: configuredRate > 0 ? String(configuredRate) : '',
-        totalAmount: calculateSaleTotalAmount(formData.materialWeight, configuredRate)
+        totalAmount: calculateSaleTotalAmount(formData.netWeight, configuredRate)
       });
       setMaterialQuery(getMaterialDisplayName(selectedMaterial));
       return;
@@ -1403,16 +1403,16 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
       setFormData({ ...formData, saleTime: value });
       return;
     }
-    if (name === 'vehicleWeight' || name === 'netWeight') {
-      const tareWeight = name === 'vehicleWeight' ? Number(value || 0) : Number(formData.vehicleWeight || 0);
-      const grossWeight = name === 'netWeight' ? Number(value || 0) : Number(formData.netWeight || 0);
-      const materialWeight = grossWeight - tareWeight;
-      const totalAmount = calculateSaleTotalAmount(materialWeight, formData.rate);
-      setFormData({ ...formData, [name]: value, materialWeight, totalAmount });
+    if (name === 'tareWeight' || name === 'grossWeight') {
+      const tareWeight = name === 'tareWeight' ? Number(value || 0) : Number(formData.tareWeight || 0);
+      const grossWeight = name === 'grossWeight' ? Number(value || 0) : Number(formData.grossWeight || 0);
+      const netWeight = grossWeight - tareWeight;
+      const totalAmount = calculateSaleTotalAmount(netWeight, formData.rate);
+      setFormData({ ...formData, [name]: value, netWeight, totalAmount });
       return;
     }
     if (name === 'rate') {
-      const totalAmount = calculateSaleTotalAmount(formData.materialWeight, value);
+      const totalAmount = calculateSaleTotalAmount(formData.netWeight, value);
       setFormData({ ...formData, rate: value, totalAmount });
       return;
     }
@@ -1515,16 +1515,16 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         selectVehicle(matched);
       } else {
         setFormData((prev) => {
-          const tare = Number(tareWeight || prev.vehicleWeight || 0);
-          const gross = Number(grossWeight || prev.netWeight || 0);
+          const tare = Number(tareWeight || prev.tareWeight || 0);
+          const gross = Number(grossWeight || prev.grossWeight || 0);
           const net = Number(netWeight || gross - tare || 0);
           const total = calculateSaleTotalAmount(net, prev.rate);
           return {
             ...prev,
             vehicleNo: upperVehicle,
-            vehicleWeight: tare || prev.vehicleWeight,
-            netWeight: gross || prev.netWeight,
-            materialWeight: net || prev.materialWeight,
+            tareWeight: tare || prev.tareWeight,
+            grossWeight: gross || prev.grossWeight,
+            netWeight: net || prev.netWeight,
             totalAmount: total,
           };
         });
@@ -1543,7 +1543,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
           materialType: matched.value,
           rate: configuredRate > 0 ? String(configuredRate) : prev.rate,
           totalAmount: calculateSaleTotalAmount(
-            Number(prev.materialWeight || prev.netWeight || 0),
+            Number(prev.netWeight || 0),
             configuredRate > 0 ? configuredRate : prev.rate
           )
         }));
@@ -1563,9 +1563,9 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         const total = calculateSaleTotalAmount(net, prev.rate);
         return {
           ...prev,
-          vehicleWeight: tare > 0 ? tare : prev.vehicleWeight,
-          netWeight: gross > 0 ? gross : prev.netWeight,
-          materialWeight: net > 0 ? net : prev.materialWeight,
+          tareWeight: tare > 0 ? tare : prev.tareWeight,
+          grossWeight: gross > 0 ? gross : prev.grossWeight,
+          netWeight: net > 0 ? net : prev.netWeight,
           totalAmount: total,
         };
       });
@@ -1613,9 +1613,9 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         partyId: formData.party,
         vehicleNo: String(formData.vehicleNo || '').trim().toUpperCase(),
         stoneSize: formData.materialType,
-        vehicleWeight: Number(formData.vehicleWeight || 0),
+        tareWeight: Number(formData.tareWeight || 0),
+        grossWeight: Number(formData.grossWeight || 0),
         netWeight: Number(formData.netWeight || 0),
-        materialWeight: Number(formData.materialWeight || 0),
         rate: Number(formData.rate || 0),
         totalAmount: Number(formData.totalAmount || 0),
         paidAmount: Number(formData.paidAmount || 0),
@@ -1674,9 +1674,9 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
       customerAddress: sale.customerAddress || '',
         materialType: sale.materialType || sale.stoneSize || '',
         vehicleNo: sale.vehicleNo || '',
-        vehicleWeight: sale.vehicleWeight || '',
-        netWeight: sale.netWeight || '',
-          materialWeight: sale.materialWeight || '',
+        tareWeight: sale.tareWeight || sale.vehicleWeight || '',
+        grossWeight: sale.grossWeight || sale.netWeight || '',
+        netWeight: sale.netWeight || sale.materialWeight || '',
         rate: sale.rate || '',
         totalAmount: sale.totalAmount || 0,
         paidAmount: sale.paidAmount ?? ''
@@ -2229,9 +2229,9 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
                         </span>
                       ) : '-'}
                     </td>
-                    <td className="border border-slate-400 px-4 py-3 text-center text-slate-600">{sale.netWeight ? `${sale.netWeight} kg` : '-'}</td>
-                    <td className="border border-slate-400 px-4 py-3 text-center text-slate-600">{sale.vehicleWeight ? `${sale.vehicleWeight} kg` : '-'}</td>
-                    <td className="border border-slate-400 px-4 py-3 text-center font-semibold text-emerald-600">{sale.materialWeight ? `${sale.materialWeight} kg` : '-'}</td>
+                    <td className="border border-slate-400 px-4 py-3 text-center text-slate-600">{sale.grossWeight ? `${sale.grossWeight} kg` : '-'}</td>
+                    <td className="border border-slate-400 px-4 py-3 text-center text-slate-600">{sale.tareWeight ? `${sale.tareWeight} kg` : '-'}</td>
+                    <td className="border border-slate-400 px-4 py-3 text-center font-semibold text-emerald-600">{sale.netWeight ? `${sale.netWeight} kg` : '-'}</td>
                     <td className="border border-slate-400 px-4 py-3 text-slate-600">
                       {sale.items?.length
                         ? (

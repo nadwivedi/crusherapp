@@ -574,8 +574,8 @@ export default function AddSalePopup({
                       <label className={labelClass}>Gross Weight (KG)</label>
                       <input
                         type="number"
-                        name="netWeight"
-                        value={formData.netWeight || ''}
+                        name="grossWeight"
+                        value={formData.grossWeight || ''}
                         onChange={handleInputChange}
                         onKeyDown={handleSelectEnterMoveNext}
                         className={`${inputClass} focus:ring-indigo-500`}
@@ -589,8 +589,8 @@ export default function AddSalePopup({
                       <label className={labelClass}>Tare Weight (KG)</label>
                       <input
                         type="number"
-                        name="vehicleWeight"
-                        value={formData.vehicleWeight || ''}
+                        name="tareWeight"
+                        value={formData.tareWeight || ''}
                         onChange={handleInputChange}
                         onKeyDown={handleSelectEnterMoveNext}
                         className={`${inputClass} focus:ring-indigo-500`}
@@ -605,8 +605,8 @@ export default function AddSalePopup({
                     <label className={labelClass}>Net Weight (KG)</label>
                     <input
                       type="number"
-                      name="materialWeight"
-                      value={formData.materialWeight || ''}
+                      name="netWeight"
+                      value={formData.netWeight || ''}
                       onChange={handleInputChange}
                       onKeyDown={handleSelectEnterMoveNext}
                       className={`${inputClass} focus:ring-indigo-500 bg-gray-50`}

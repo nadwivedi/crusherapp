@@ -135,9 +135,9 @@ Return ONLY this JSON format:
     const result = {
       vehicleNo: String(parsed.vehicleNo || "").trim().toUpperCase(),
       materialType: normalizeMaterial(parsed.materialType),
-      grossWeight: Number(parsed.grossWeight) || 0,   // maps to netWeight field in form
-      tareWeight: Number(parsed.tareWeight) || 0,     // maps to vehicleWeight field in form
-      netWeight: Number(parsed.netWeight) || 0,       // maps to materialWeight field in form
+      grossWeight: Number(parsed.grossWeight) || 0,
+      tareWeight: Number(parsed.tareWeight) || 0,
+      netWeight: Number(parsed.netWeight) || 0,
       saleDate: parseSlipDate(parsed.saleDate),
     };
 

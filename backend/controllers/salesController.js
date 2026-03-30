@@ -16,6 +16,76 @@ const toNumber = (value, fallback = 0) => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const normalizeSalesPayload = (payload = {}) => {
+  const nextPayload = { ...payload };
+
+  if (Object.prototype.hasOwnProperty.call(nextPayload, "party") && !Object.prototype.hasOwnProperty.call(nextPayload, "partyId")) {
+    nextPayload.partyId = nextPayload.party;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(nextPayload, "materialType") && !Object.prototype.hasOwnProperty.call(nextPayload, "stoneSize")) {
+    nextPayload.stoneSize = nextPayload.materialType;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(nextPayload, "invoice") && !Object.prototype.hasOwnProperty.call(nextPayload, "invoiceNumber")) {
+    nextPayload.invoiceNumber = nextPayload.invoice;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(nextPayload, "vehicleWeight") && !Object.prototype.hasOwnProperty.call(nextPayload, "tareWeight")) {
+    nextPayload.tareWeight = nextPayload.vehicleWeight;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(nextPayload, "materialWeight") && !Object.prototype.hasOwnProperty.call(nextPayload, "netWeight")) {
+    nextPayload.netWeight = nextPayload.materialWeight;
+  }
+
+  if (
+    Object.prototype.hasOwnProperty.call(nextPayload, "netWeight")
+    && !Object.prototype.hasOwnProperty.call(nextPayload, "grossWeight")
+    && Object.prototype.hasOwnProperty.call(nextPayload, "vehicleWeight")
+  ) {
+    nextPayload.grossWeight = nextPayload.netWeight;
+    nextPayload.netWeight = nextPayload.materialWeight !== undefined
+      ? nextPayload.materialWeight
+      : toNumber(nextPayload.grossWeight) - toNumber(nextPayload.tareWeight);
+  }
+
+  if (
+    !Object.prototype.hasOwnProperty.call(nextPayload, "netWeight")
+    && Object.prototype.hasOwnProperty.call(nextPayload, "grossWeight")
+    && Object.prototype.hasOwnProperty.call(nextPayload, "tareWeight")
+  ) {
+    nextPayload.netWeight = toNumber(nextPayload.grossWeight) - toNumber(nextPayload.tareWeight);
+  }
+
+  delete nextPayload.party;
+  delete nextPayload.materialType;
+  delete nextPayload.invoice;
+  delete nextPayload.vehicleWeight;
+  delete nextPayload.materialWeight;
+
+  return nextPayload;
+};
+
+const serializeSale = (saleDoc) => {
+  if (!saleDoc) return saleDoc;
+
+  const sale = typeof saleDoc.toObject === "function" ? saleDoc.toObject() : { ...saleDoc };
+  const tareWeight = toNumber(sale.tareWeight, toNumber(sale.vehicleWeight));
+  const grossWeight = toNumber(sale.grossWeight, toNumber(sale.netWeight));
+  const netWeight = toNumber(sale.netWeight, toNumber(sale.materialWeight, grossWeight - tareWeight));
+
+  return {
+    ...sale,
+    party: sale.partyId || null,
+    materialType: sale.stoneSize || "",
+    invoice: sale.invoiceNumber || "",
+    tareWeight,
+    grossWeight,
+    netWeight,
+  };
+};
+
 const getNextReceiptNumber = async () => {
   const lastEntry = await Receipt.findOne().sort({ receiptNumber: -1 }).select("receiptNumber");
   return Math.max(1, Number(lastEntry?.receiptNumber || 0) + 1);
@@ -115,17 +185,18 @@ const createInvoiceNumber = async (saleDateValue) => {
 const createSales = async (req, res) => {
   try {
     const breakdown = getSalePaymentBreakdown(req.body.totalAmount, req.body.paidAmount);
+    const normalizedBody = normalizeSalesPayload(req.body);
     const payload = {
-      ...req.body,
-      saleDate: req.body.saleDate || new Date(),
-      invoiceNumber: await createInvoiceNumber(req.body.saleDate),
+      ...normalizedBody,
+      saleDate: normalizedBody.saleDate || new Date(),
+      invoiceNumber: await createInvoiceNumber(normalizedBody.saleDate),
       paidAmount: breakdown.paidAmount,
       type: breakdown.type,
     };
 
     const sales = await Sales.create(payload);
     await syncSaleAutoReceipts(sales);
-    return res.status(201).json(sales);
+    return res.status(201).json(serializeSale(sales));
   } catch (error) {
     return res.status(400).json({
       message: "Failed to create sales",
@@ -137,7 +208,7 @@ const createSales = async (req, res) => {
 const getAllSales = async (_req, res) => {
   try {
     const sales = await Sales.find().sort({ createdAt: -1 });
-    return res.json(sales);
+    return res.json(sales.map(serializeSale));
   } catch (error) {
     return res.status(500).json({
       message: "Failed to fetch sales",
@@ -160,7 +231,7 @@ const getSalesById = async (req, res) => {
       return res.status(404).json({ message: "Sales not found" });
     }
 
-    return res.json(sales);
+    return res.json(serializeSale(sales));
   } catch (error) {
     return res.status(500).json({
       message: "Failed to fetch sales",
@@ -183,7 +254,7 @@ const editSales = async (req, res) => {
       return res.status(404).json({ message: "Sales not found" });
     }
 
-    const updatePayload = { ...req.body };
+    const updatePayload = normalizeSalesPayload(req.body);
     delete updatePayload.invoiceNumber;
 
     const nextTotalAmount = Object.prototype.hasOwnProperty.call(updatePayload, "totalAmount")
@@ -202,7 +273,7 @@ const editSales = async (req, res) => {
     await sales.save();
     await syncSaleAutoReceipts(sales);
 
-    return res.json(sales);
+    return res.json(serializeSale(sales));
   } catch (error) {
     return res.status(400).json({
       message: "Failed to update sales",

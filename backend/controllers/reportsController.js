@@ -146,7 +146,7 @@ const buildPurchaseSummary = (purchase) => (
 
 const buildSaleMaterialSummary = (sale) => {
   const materialType = String(sale?.stoneSize || "").trim().toLowerCase();
-  const quantity = toNumber(sale?.materialWeight, toNumber(sale?.netWeight));
+  const quantity = toNumber(sale?.netWeight, toNumber(sale?.materialWeight));
   const quantityLabel = quantity > 0 ? `${quantity} kg` : "";
 
   return [materialType, quantityLabel]
@@ -198,7 +198,7 @@ const buildLedgerRowsForParty = ({ party, sales, purchases, receipts, payments, 
           itemSummary: buildSaleSummary(item),
           note: item.type === "cash sale" ? "Cash sale does not create receivable." : "",
           method: item.vehicleNo || "-",
-          quantity: toNumber(item.materialWeight, toNumber(item.netWeight)),
+          quantity: toNumber(item.netWeight, toNumber(item.materialWeight)),
           amount: saleAmounts.totalAmount,
           impact: saleImpact,
         };
@@ -530,7 +530,7 @@ const getPartyLedgerEntryDetail = async (req, res) => {
         refNumber: sale.invoiceNumber || "-",
         partyName: sale.partyId?.name || "-",
         amount: toNumber(sale.totalAmount),
-        quantity: toNumber(sale.materialWeight, toNumber(sale.netWeight)),
+        quantity: toNumber(sale.netWeight, toNumber(sale.materialWeight)),
         method: sale.vehicleNo || "-",
         date: sale.saleDate || sale.createdAt,
         accountName: sale.partyId?.name || "-",
@@ -543,9 +543,9 @@ const getPartyLedgerEntryDetail = async (req, res) => {
           { label: "Pending Amount", value: formatAmount(getSaleAmounts(sale).pendingAmount) },
           { label: "Vehicle No", value: sale.vehicleNo || "-" },
           { label: "Material Type", value: sale.stoneSize || "-" },
-          { label: "Gross Weight", value: toNumber(sale.netWeight) || "-" },
-          { label: "Tare Weight", value: toNumber(sale.vehicleWeight) || "-" },
-          { label: "Net Weight", value: toNumber(sale.materialWeight) || "-" },
+          { label: "Gross Weight", value: toNumber(sale.grossWeight, toNumber(sale.netWeight)) || "-" },
+          { label: "Tare Weight", value: toNumber(sale.tareWeight, toNumber(sale.vehicleWeight)) || "-" },
+          { label: "Net Weight", value: toNumber(sale.netWeight, toNumber(sale.materialWeight)) || "-" },
           { label: "Rate Per Ton", value: toNumber(sale.rate) || "-" },
         ],
         items: [],
