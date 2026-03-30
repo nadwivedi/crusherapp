@@ -16,13 +16,16 @@ const upload = multer({
 
 /**
  * Normalize the raw material string from the slip into one of the
- * allowed enum values: 10mm | 20mm | 40mm | dust | wmm | gsb
+ * allowed enum values: 60mm | 40mm | 20mm | 10mm | 6mm | 4mm | dust | wmm | gsb
  */
 const normalizeMaterial = (raw = "") => {
   const s = String(raw).trim().toLowerCase().replace(/\s+/g, "");
-  if (s.includes("10")) return "10mm";
-  if (s.includes("20")) return "20mm";
-  if (s.includes("40")) return "40mm";
+  if (/(^|[^0-9])60([^0-9]|$)/.test(s) || s.includes("60mm")) return "60mm";
+  if (/(^|[^0-9])40([^0-9]|$)/.test(s) || s.includes("40mm")) return "40mm";
+  if (/(^|[^0-9])20([^0-9]|$)/.test(s) || s.includes("20mm")) return "20mm";
+  if (/(^|[^0-9])10([^0-9]|$)/.test(s) || s.includes("10mm")) return "10mm";
+  if (/(^|[^0-9])6([^0-9]|$)/.test(s) || s.includes("6mm")) return "6mm";
+  if (/(^|[^0-9])4([^0-9]|$)/.test(s) || s.includes("4mm")) return "4mm";
   if (s.includes("gsb")) return "gsb";
   if (s.includes("wmm")) return "wmm";
   if (s.includes("dust")) return "dust";
@@ -71,7 +74,7 @@ Extract the following fields from this weighbridge slip image and return ONLY a 
 
 Fields to extract:
 - vehicleNo: vehicle registration number (e.g. MP22ZD6430)
-- materialType: material/stone type (e.g. 10MM, 20MM, 40MM, GSB, WMM, DUST)
+- materialType: material/stone type (e.g. 60MM, 40MM, 20MM, 10MM, 6MM, 4MM, WMM, GSB, DUST)
 - grossWeight: GROSS Wt in kg (numeric, no units)
 - tareWeight: TARE Wt in kg (numeric, no units)  
 - netWeight: NET Wt in kg (numeric, no units)

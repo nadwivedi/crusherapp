@@ -32,7 +32,7 @@ const salesSchema = new mongoose.Schema(
     stoneSize: {
       type: String,
       required: true,
-      enum: ["10mm", "20mm", "40mm", "dust", "wmm", "gsb"],
+      enum: ["60mm", "40mm", "20mm", "10mm", "6mm", "4mm", "dust", "wmm", "gsb"],
       lowercase: true,
       trim: true,
     },

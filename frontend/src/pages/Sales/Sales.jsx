@@ -9,11 +9,15 @@ import AddVehiclePopup from '../Vehicle/component/AddVehiclePopup';
 import AddSalePopup from './component/AddSalePopup';
 
 const MATERIAL_TYPE_OPTIONS = [
-  { value: '10mm', label: '10mm' },
-  { value: '20mm', label: '20mm' },
+  { value: '60mm', label: '60mm' },
   { value: '40mm', label: '40mm' },
+  { value: '20mm', label: '20mm' },
+  { value: '10mm', label: '10mm' },
+  { value: '6mm', label: '6mm' },
+  { value: '4mm', label: '4mm' },
+  { value: 'wmm', label: 'WMM' },
   { value: 'gsb', label: 'GSB' },
-  { value: 'wmm', label: 'WMM' }
+  { value: 'dust', label: 'Dust' }
 ];
 
 const formatDateForInput = (value = new Date()) => {
@@ -164,11 +168,15 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
   const [leadgers, setLeadgers] = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [products, setProducts] = useState([
-    { _id: '1', name: '10mm', unit: 'ton', salePrice: 0 },
-    { _id: '2', name: '20mm', unit: 'ton', salePrice: 0 },
-    { _id: '3', name: '40mm', unit: 'ton', salePrice: 0 },
-    { _id: '4', name: 'dust', unit: 'ton', salePrice: 0 },
-    { _id: '5', name: 'gsb', unit: 'ton', salePrice: 0 }
+    { _id: '1', name: '60mm', unit: 'ton', salePrice: 0 },
+    { _id: '2', name: '40mm', unit: 'ton', salePrice: 0 },
+    { _id: '3', name: '20mm', unit: 'ton', salePrice: 0 },
+    { _id: '4', name: '10mm', unit: 'ton', salePrice: 0 },
+    { _id: '5', name: '6mm', unit: 'ton', salePrice: 0 },
+    { _id: '6', name: '4mm', unit: 'ton', salePrice: 0 },
+    { _id: '7', name: 'wmm', unit: 'ton', salePrice: 0 },
+    { _id: '8', name: 'gsb', unit: 'ton', salePrice: 0 },
+    { _id: '9', name: 'dust', unit: 'ton', salePrice: 0 }
   ]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
