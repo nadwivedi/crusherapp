@@ -44,6 +44,53 @@ const userSchema = new mongoose.Schema(
         default: false,
       },
     },
+    materialRates: {
+      tenMmRate: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
+      twentyMmRate: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
+      fortyMmRate: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
+      sixtyMmRate: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
+      sixMmRate: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
+      fourMmRate: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
+      wmmRate: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
+      gsbRate: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
+      dustRate: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
+    },
   },
   {
     timestamps: true,

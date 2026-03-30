@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { ShoppingCart, IndianRupee, Search } from 'lucide-react';
 import { toast } from 'react-toastify';
 import apiClient from '../../utils/api';
+import { useAuth } from '../../context/AuthContext';
 import AddPartyPopup from '../Party/component/AddPartyPopup';
 import AddProductPopup from '../Products/component/AddProductPopup';
 import AddVehiclePopup from '../Vehicle/component/AddVehiclePopup';
@@ -136,6 +137,21 @@ const calculateSaleTotalAmount = (netWeight, ratePerTon) => {
   return (numericNetWeight / 1000) * numericRate;
 };
 
+const getCrusherMaterialRate = (user, materialType) => {
+  const rates = user?.materialRates || {};
+
+  if (materialType === '10mm') return Number(rates.tenMmRate || 0);
+  if (materialType === '20mm') return Number(rates.twentyMmRate || 0);
+  if (materialType === '40mm') return Number(rates.fortyMmRate || 0);
+  if (materialType === '60mm') return Number(rates.sixtyMmRate || 0);
+  if (materialType === '6mm') return Number(rates.sixMmRate || 0);
+  if (materialType === '4mm') return Number(rates.fourMmRate || 0);
+  if (materialType === 'wmm') return Number(rates.wmmRate || 0);
+  if (materialType === 'gsb') return Number(rates.gsbRate || 0);
+  if (materialType === 'dust') return Number(rates.dustRate || 0);
+  return 0;
+};
+
 const deriveSaleType = (totalAmountValue, paidAmountValue) => {
   const totalAmount = Math.max(0, Number(totalAmountValue || 0));
   const paidAmount = Math.max(0, Number(paidAmountValue || 0));
@@ -155,6 +171,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
   const toastOptions = { autoClose: 1200 };
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const initialFormData = getInitialFormData();
   const initialCurrentItem = {
     product: '',
@@ -757,16 +774,21 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
       setMaterialQuery('');
       setFormData((prev) => ({
         ...prev,
-        materialType: ''
+        materialType: '',
+        rate: '',
+        totalAmount: calculateSaleTotalAmount(prev.materialWeight, '')
       }));
       setMaterialListIndex(-1);
       return;
     }
 
     setMaterialQuery(getMaterialDisplayName(material));
+    const configuredRate = getCrusherMaterialRate(user, material.value);
     setFormData((prev) => ({
       ...prev,
-      materialType: material.value
+      materialType: material.value,
+      rate: configuredRate > 0 ? String(configuredRate) : '',
+      totalAmount: calculateSaleTotalAmount(prev.materialWeight, configuredRate)
     }));
 
     const selectedIndex = filteredMaterialTypes.findIndex((item) => String(item.value) === String(material.value));
@@ -784,9 +806,12 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
 
     const exactMaterial = findExactMaterialType(value);
     if (exactMaterial) {
+      const configuredRate = getCrusherMaterialRate(user, exactMaterial.value);
       setFormData((prev) => ({
         ...prev,
-        materialType: exactMaterial.value
+        materialType: exactMaterial.value,
+        rate: configuredRate > 0 ? String(configuredRate) : '',
+        totalAmount: calculateSaleTotalAmount(prev.materialWeight, configuredRate)
       }));
       const exactIndex = filteredMaterialTypes.findIndex((item) => String(item.value) === String(exactMaterial.value));
       setMaterialListIndex(exactIndex >= 0 ? exactIndex : 0);
@@ -794,9 +819,12 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
     }
 
     const firstMatch = findBestMaterialTypeMatch(value);
+    const configuredRate = firstMatch ? getCrusherMaterialRate(user, firstMatch.value) : 0;
     setFormData((prev) => ({
       ...prev,
-      materialType: firstMatch?.value || ''
+      materialType: firstMatch?.value || '',
+      rate: firstMatch ? (configuredRate > 0 ? String(configuredRate) : '') : prev.rate,
+      totalAmount: firstMatch ? calculateSaleTotalAmount(prev.materialWeight, configuredRate) : prev.totalAmount
     }));
     setMaterialListIndex(firstMatch ? 0 : -1);
   };
@@ -1355,12 +1383,18 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         setFormData({ ...formData, vehicleNo: String(value || '').toUpperCase() });
         return;
       }
-      if (name === 'materialType') {
-        const selectedMaterial = MATERIAL_TYPE_OPTIONS.find((item) => item.value === value) || null;
-        setFormData({ ...formData, materialType: value });
-        setMaterialQuery(getMaterialDisplayName(selectedMaterial));
-        return;
-      }
+    if (name === 'materialType') {
+      const selectedMaterial = MATERIAL_TYPE_OPTIONS.find((item) => item.value === value) || null;
+      const configuredRate = getCrusherMaterialRate(user, value);
+      setFormData({
+        ...formData,
+        materialType: value,
+        rate: configuredRate > 0 ? String(configuredRate) : '',
+        totalAmount: calculateSaleTotalAmount(formData.materialWeight, configuredRate)
+      });
+      setMaterialQuery(getMaterialDisplayName(selectedMaterial));
+      return;
+    }
     if (name === 'saleDate') {
       setFormData({ ...formData, saleDate: value });
       return;
@@ -1503,7 +1537,16 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
       const matched = MATERIAL_TYPE_OPTIONS.find((opt) => opt.value === normalizedMat);
       if (matched) {
         setMaterialQuery(getMaterialDisplayName(matched));
-        setFormData((prev) => ({ ...prev, materialType: matched.value }));
+        const configuredRate = getCrusherMaterialRate(user, matched.value);
+        setFormData((prev) => ({
+          ...prev,
+          materialType: matched.value,
+          rate: configuredRate > 0 ? String(configuredRate) : prev.rate,
+          totalAmount: calculateSaleTotalAmount(
+            Number(prev.materialWeight || prev.netWeight || 0),
+            configuredRate > 0 ? configuredRate : prev.rate
+          )
+        }));
       }
     }
 

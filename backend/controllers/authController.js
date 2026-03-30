@@ -24,6 +24,17 @@ const sanitizeUser = (user) => ({
     saleReturn: Boolean(user.featureAccess?.saleReturn),
     stockAdjustment: Boolean(user.featureAccess?.stockAdjustment),
   },
+  materialRates: {
+    tenMmRate: Number(user.materialRates?.tenMmRate || 0),
+    twentyMmRate: Number(user.materialRates?.twentyMmRate || 0),
+    fortyMmRate: Number(user.materialRates?.fortyMmRate || 0),
+    sixtyMmRate: Number(user.materialRates?.sixtyMmRate || 0),
+    sixMmRate: Number(user.materialRates?.sixMmRate || 0),
+    fourMmRate: Number(user.materialRates?.fourMmRate || 0),
+    wmmRate: Number(user.materialRates?.wmmRate || 0),
+    gsbRate: Number(user.materialRates?.gsbRate || 0),
+    dustRate: Number(user.materialRates?.dustRate || 0),
+  },
 });
 
 const generateToken = (id) => (
@@ -53,6 +64,12 @@ const clearAuthCookie = (res) => {
     ...getCookieOptions(),
     maxAge: undefined,
   });
+};
+
+const normalizeRateValue = (value) => {
+  const numericValue = Number(value || 0);
+  if (!Number.isFinite(numericValue) || numericValue < 0) return 0;
+  return numericValue;
 };
 
 const signupUser = async (req, res) => {
@@ -179,6 +196,17 @@ module.exports = {
       user.featureAccess = {
         saleReturn: Boolean(req.body?.featureAccess?.saleReturn),
         stockAdjustment: Boolean(req.body?.featureAccess?.stockAdjustment),
+      };
+      user.materialRates = {
+        tenMmRate: normalizeRateValue(req.body?.materialRates?.tenMmRate),
+        twentyMmRate: normalizeRateValue(req.body?.materialRates?.twentyMmRate),
+        fortyMmRate: normalizeRateValue(req.body?.materialRates?.fortyMmRate),
+        sixtyMmRate: normalizeRateValue(req.body?.materialRates?.sixtyMmRate),
+        sixMmRate: normalizeRateValue(req.body?.materialRates?.sixMmRate),
+        fourMmRate: normalizeRateValue(req.body?.materialRates?.fourMmRate),
+        wmmRate: normalizeRateValue(req.body?.materialRates?.wmmRate),
+        gsbRate: normalizeRateValue(req.body?.materialRates?.gsbRate),
+        dustRate: normalizeRateValue(req.body?.materialRates?.dustRate),
       };
 
       await user.save();

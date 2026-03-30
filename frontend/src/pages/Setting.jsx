@@ -16,6 +16,18 @@ const defaultSettings = {
   compactTables: false
 };
 
+const defaultMaterialRates = {
+  tenMmRate: '',
+  twentyMmRate: '',
+  fortyMmRate: '',
+  sixtyMmRate: '',
+  sixMmRate: '',
+  fourMmRate: '',
+  wmmRate: '',
+  gsbRate: '',
+  dustRate: ''
+};
+
 const landingPageOptions = [
   { value: '/', label: 'Home' },
   { value: '/expenses', label: 'Expense' },
@@ -58,6 +70,30 @@ const readStoredSettings = () => {
     return defaultSettings;
   }
 };
+
+const readUserMaterialRates = (user) => ({
+  tenMmRate: Number(user?.materialRates?.tenMmRate || 0) || '',
+  twentyMmRate: Number(user?.materialRates?.twentyMmRate || 0) || '',
+  fortyMmRate: Number(user?.materialRates?.fortyMmRate || 0) || '',
+  sixtyMmRate: Number(user?.materialRates?.sixtyMmRate || 0) || '',
+  sixMmRate: Number(user?.materialRates?.sixMmRate || 0) || '',
+  fourMmRate: Number(user?.materialRates?.fourMmRate || 0) || '',
+  wmmRate: Number(user?.materialRates?.wmmRate || 0) || '',
+  gsbRate: Number(user?.materialRates?.gsbRate || 0) || '',
+  dustRate: Number(user?.materialRates?.dustRate || 0) || ''
+});
+
+const materialRateFields = [
+  { key: 'tenMmRate', label: '10mm Rate' },
+  { key: 'twentyMmRate', label: '20mm Rate' },
+  { key: 'fortyMmRate', label: '40mm Rate' },
+  { key: 'sixtyMmRate', label: '60mm Rate' },
+  { key: 'sixMmRate', label: '6mm Rate' },
+  { key: 'fourMmRate', label: '4mm Rate' },
+  { key: 'wmmRate', label: 'WMM Rate' },
+  { key: 'gsbRate', label: 'GSB Rate' },
+  { key: 'dustRate', label: 'Dust Rate' }
+];
 
 function SettingCard({ icon, title, description, children, className = '' }) {
   return (
@@ -123,11 +159,13 @@ export default function Setting() {
   const navigate = useNavigate();
   const [settings, setSettings] = useState(defaultSettings);
   const [featureAccess, setFeatureAccess] = useState({ saleReturn: false, stockAdjustment: false });
+  const [materialRates, setMaterialRates] = useState(defaultMaterialRates);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     setSettings(readStoredSettings());
     setFeatureAccess(getUserFeatureAccess(user));
+    setMaterialRates(readUserMaterialRates(user));
     setIsLoaded(true);
   }, [user]);
 
@@ -157,10 +195,31 @@ export default function Setting() {
     }));
   };
 
+  const handleMaterialRateChange = (event) => {
+    const { name, value } = event.target;
+    setMaterialRates((current) => ({
+      ...current,
+      [name]: value
+    }));
+  };
+
   const handleSave = async () => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
     try {
-      await updateUserSettings({ featureAccess });
+      await updateUserSettings({
+        featureAccess,
+        materialRates: {
+          tenMmRate: Number(materialRates.tenMmRate || 0),
+          twentyMmRate: Number(materialRates.twentyMmRate || 0),
+          fortyMmRate: Number(materialRates.fortyMmRate || 0),
+          sixtyMmRate: Number(materialRates.sixtyMmRate || 0),
+          sixMmRate: Number(materialRates.sixMmRate || 0),
+          fourMmRate: Number(materialRates.fourMmRate || 0),
+          wmmRate: Number(materialRates.wmmRate || 0),
+          gsbRate: Number(materialRates.gsbRate || 0),
+          dustRate: Number(materialRates.dustRate || 0)
+        }
+      });
       toast.success('Settings saved successfully');
     } catch (error) {
       toast.error(error?.message || 'Failed to save settings');
@@ -171,9 +230,23 @@ export default function Setting() {
     const resetFeatureAccess = { saleReturn: false, stockAdjustment: false };
     setSettings(defaultSettings);
     setFeatureAccess(resetFeatureAccess);
+    setMaterialRates(defaultMaterialRates);
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultSettings));
     try {
-      await updateUserSettings({ featureAccess: resetFeatureAccess });
+      await updateUserSettings({
+        featureAccess: resetFeatureAccess,
+        materialRates: {
+          tenMmRate: 0,
+          twentyMmRate: 0,
+          fortyMmRate: 0,
+          sixtyMmRate: 0,
+          sixMmRate: 0,
+          fourMmRate: 0,
+          wmmRate: 0,
+          gsbRate: 0,
+          dustRate: 0
+        }
+      });
       toast.success('Settings reset to default');
     } catch (error) {
       toast.error(error?.message || 'Failed to reset settings');
@@ -191,40 +264,10 @@ export default function Setting() {
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100">
       <div className="mx-auto max-w-[1600px] px-4 py-8 md:px-8">
         <div className="mb-8">
-          <div className="flex items-center gap-2">
-            <span className="rounded-lg bg-sky-100 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-sky-700">Configuration</span>
-          </div>
-          <h1 className="mt-4 text-4xl font-bold tracking-tight text-slate-900">Settings</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 md:text-[2rem]">Settings</h1>
           <p className="mt-2 max-w-2xl text-base text-slate-600">
             Manage your application preferences and account settings from one place.
           </p>
-        </div>
-
-        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <InfoBadge 
-            icon={<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>}
-            label="Saved Location" 
-            value="This Browser" 
-            color="sky" 
-          />
-          <InfoBadge 
-            icon={<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>}
-            label="Landing Page" 
-            value={landingPageLabel} 
-            color="amber" 
-          />
-          <InfoBadge 
-            icon={<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>}
-            label="Shortcuts" 
-            value={settings.keyboardShortcuts ? 'Enabled' : 'Disabled'} 
-            color="emerald" 
-          />
-          <InfoBadge 
-            icon={<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>}
-            label="Quick Actions" 
-            value={settings.showQuickActions ? 'Active' : 'Inactive'} 
-            color="violet" 
-          />
         </div>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -281,6 +324,79 @@ export default function Setting() {
                 <svg className="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
                 Logout
               </button>
+            </SettingCard>
+          </div>
+
+          <div className="space-y-6">
+            <SettingCard
+              title="Crusher Material Rates"
+              description="Fixed sale rates in rupees per ton. These rates auto-fill in add sales."
+              icon={<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-12V4m0 16v-2m8-6a8 8 0 11-16 0 8 8 0 0116 0z" /></svg>}
+            >
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {materialRateFields.map((field) => (
+                  <label key={field.key} className="block">
+                    <span className="mb-1.5 block text-sm font-medium text-slate-700">{field.label}</span>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        name={field.key}
+                        value={materialRates[field.key]}
+                        onChange={handleMaterialRateChange}
+                        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 pr-20 text-sm font-semibold text-slate-800 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                        placeholder="0"
+                      />
+                      <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-xs font-semibold uppercase tracking-wider text-slate-500">Rs / Ton</span>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </SettingCard>
+
+            <SettingCard
+              title="Access Control"
+              description="Choose which advanced screens stay visible in this account."
+              icon={<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11c0 .552-.448 1-1 1H9a1 1 0 010-2h2c.552 0 1 .448 1 1zm0 0V9a3 3 0 116 0v2m-6 0h6m-6 0v4a3 3 0 006 0v-4m-9 0a3 3 0 10-6 0v4a3 3 0 006 0v-4z" /></svg>}
+            >
+              <div className="space-y-3">
+                <ToggleSwitch
+                  checked={featureAccess.saleReturn}
+                  onChange={() => handleFeatureToggle('saleReturn')}
+                  label="Sale Return"
+                  description="Allow sale return entries and screens."
+                />
+                <ToggleSwitch
+                  checked={featureAccess.stockAdjustment}
+                  onChange={() => handleFeatureToggle('stockAdjustment')}
+                  label="Stock Adjustment"
+                  description="Allow manual stock adjustment screens."
+                />
+              </div>
+            </SettingCard>
+
+            <SettingCard
+              title="Actions"
+              description="Save or reset your local preferences and account settings."
+              icon={<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0A8.003 8.003 0 015.06 15m14.36 0H15" /></svg>}
+            >
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  className="inline-flex flex-1 items-center justify-center rounded-xl bg-sky-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-sky-700"
+                >
+                  Save Settings
+                </button>
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  className="inline-flex flex-1 items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                  Reset Settings
+                </button>
+              </div>
             </SettingCard>
           </div>
         </div>
