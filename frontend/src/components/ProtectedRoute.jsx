@@ -111,33 +111,7 @@ export default function ProtectedRoute({ children }) {
         return;
       }
 
-      if (location.pathname === '/') {
-        return;
-      }
-
-      const homeNavigationState = getHomeNavigationState(location.pathname);
-      const sectionHubPath = homeNavigationState ? sectionHubPaths[homeNavigationState.section] : null;
-
-      event.preventDefault();
-      if (sectionHubPath && location.pathname !== sectionHubPath) {
-        navigate(sectionHubPath, {
-          replace: true,
-          state: {
-            activePath: homeNavigationState.path
-          }
-        });
-        return;
-      }
-
-      navigate('/', {
-        replace: true,
-        state: homeNavigationState
-          ? {
-              homeSection: homeNavigationState.section,
-              homePath: homeNavigationState.path
-            }
-          : undefined
-      });
+      return;
     };
 
     window.addEventListener('keydown', handleKeyDown);

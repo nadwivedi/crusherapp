@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Pencil, Search, Trash2, Truck, Scale, Users, ArrowLeft } from 'lucide-react';
 import { toast } from 'react-toastify';
 import apiClient from '../utils/api';
@@ -20,6 +20,7 @@ const getTypeLabel = (type) => {
 };
 
 export default function Vehicle() {
+  const navigate = useNavigate();
   const [vehicles, setVehicles] = useState([]);
   const [parties, setParties] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -46,6 +47,29 @@ export default function Vehicle() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  useEffect(() => {
+    const isTypingTarget = (target) => {
+      const tagName = target?.tagName?.toLowerCase();
+      return tagName === 'input' || tagName === 'textarea' || tagName === 'select' || target?.isContentEditable;
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key !== 'Escape' || event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) {
+        return;
+      }
+
+      if (isTypingTarget(event.target)) {
+        return;
+      }
+
+      event.preventDefault();
+      navigate('/masters');
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [navigate]);
 
   const fetchVehicles = async () => {
     try {

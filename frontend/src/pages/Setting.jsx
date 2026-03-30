@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getUserFeatureAccess } from '../utils/featureAccess';
 
 const STORAGE_KEY = 'crusher-app-settings';
 
@@ -158,16 +157,37 @@ export default function Setting() {
   const { user, logout, updateUserSettings } = useAuth();
   const navigate = useNavigate();
   const [settings, setSettings] = useState(defaultSettings);
-  const [featureAccess, setFeatureAccess] = useState({ saleReturn: false, stockAdjustment: false });
   const [materialRates, setMaterialRates] = useState(defaultMaterialRates);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     setSettings(readStoredSettings());
-    setFeatureAccess(getUserFeatureAccess(user));
     setMaterialRates(readUserMaterialRates(user));
     setIsLoaded(true);
   }, [user]);
+
+  useEffect(() => {
+    const isTypingTarget = (target) => {
+      const tagName = target?.tagName?.toLowerCase();
+      return tagName === 'input' || tagName === 'textarea' || tagName === 'select' || target?.isContentEditable;
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key !== 'Escape' || event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) {
+        return;
+      }
+
+      if (isTypingTarget(event.target)) {
+        return;
+      }
+
+      event.preventDefault();
+      navigate('/', { replace: true });
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [navigate]);
 
   const displayName = String(
     user?.name || user?.companyName || `${user?.firstName || ''} ${user?.lastName || ''}`
@@ -188,13 +208,6 @@ export default function Setting() {
     }));
   };
 
-  const handleFeatureToggle = (key) => {
-    setFeatureAccess((current) => ({
-      ...current,
-      [key]: !current[key]
-    }));
-  };
-
   const handleMaterialRateChange = (event) => {
     const { name, value } = event.target;
     setMaterialRates((current) => ({
@@ -207,7 +220,6 @@ export default function Setting() {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
     try {
       await updateUserSettings({
-        featureAccess,
         materialRates: {
           tenMmRate: Number(materialRates.tenMmRate || 0),
           twentyMmRate: Number(materialRates.twentyMmRate || 0),
@@ -227,14 +239,11 @@ export default function Setting() {
   };
 
   const handleReset = async () => {
-    const resetFeatureAccess = { saleReturn: false, stockAdjustment: false };
     setSettings(defaultSettings);
-    setFeatureAccess(resetFeatureAccess);
     setMaterialRates(defaultMaterialRates);
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultSettings));
     try {
       await updateUserSettings({
-        featureAccess: resetFeatureAccess,
         materialRates: {
           tenMmRate: 0,
           twentyMmRate: 0,
@@ -295,25 +304,16 @@ export default function Setting() {
                     <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">State</p>
                     <p className="mt-1 text-sm font-semibold text-slate-800">{user?.state || user?.address?.state || '-'}</p>
                   </div>
-                  <div className="rounded-xl bg-slate-50 px-3 py-3">
-                    <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">District</p>
-                    <p className="mt-1 text-sm font-semibold text-slate-800">{user?.district || '-'}</p>
-                  </div>
-                </div>
                 <div className="rounded-xl bg-slate-50 px-3 py-3">
-                  <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Sale Return Access</p>
-                  <p className="mt-1 font-semibold text-slate-800">{featureAccess.saleReturn ? 'Enabled' : 'Hidden'}</p>
+                  <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">District</p>
+                  <p className="mt-1 text-sm font-semibold text-slate-800">{user?.district || '-'}</p>
                 </div>
-                <div className="rounded-xl bg-slate-50 px-3 py-3">
-                  <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Stock Adjustment Access</p>
-                  <p className="mt-1 font-semibold text-slate-800">{featureAccess.stockAdjustment ? 'Enabled' : 'Hidden'}</p>
-                </div>
+              </div>
               </div>
             </SettingCard>
 
             <SettingCard
               title="Session"
-              description="End your current session on this device."
               icon={<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>}
             >
               <button
@@ -330,13 +330,12 @@ export default function Setting() {
           <div className="space-y-6">
             <SettingCard
               title="Crusher Material Rates"
-              description="Fixed sale rates in rupees per ton. These rates auto-fill in add sales."
               icon={<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-12V4m0 16v-2m8-6a8 8 0 11-16 0 8 8 0 0116 0z" /></svg>}
             >
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {materialRateFields.map((field) => (
                   <label key={field.key} className="block">
-                    <span className="mb-1.5 block text-sm font-medium text-slate-700">{field.label}</span>
+                    <span className="mb-1 block text-[13px] font-medium text-slate-700">{field.label}</span>
                     <div className="relative">
                       <input
                         type="number"
@@ -345,34 +344,13 @@ export default function Setting() {
                         name={field.key}
                         value={materialRates[field.key]}
                         onChange={handleMaterialRateChange}
-                        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 pr-20 text-sm font-semibold text-slate-800 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 pr-16 text-[13px] font-semibold text-slate-800 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
                         placeholder="0"
                       />
-                      <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-xs font-semibold uppercase tracking-wider text-slate-500">Rs / Ton</span>
+                      <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Rs / Ton</span>
                     </div>
                   </label>
                 ))}
-              </div>
-            </SettingCard>
-
-            <SettingCard
-              title="Access Control"
-              description="Choose which advanced screens stay visible in this account."
-              icon={<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11c0 .552-.448 1-1 1H9a1 1 0 010-2h2c.552 0 1 .448 1 1zm0 0V9a3 3 0 116 0v2m-6 0h6m-6 0v4a3 3 0 006 0v-4m-9 0a3 3 0 10-6 0v4a3 3 0 006 0v-4z" /></svg>}
-            >
-              <div className="space-y-3">
-                <ToggleSwitch
-                  checked={featureAccess.saleReturn}
-                  onChange={() => handleFeatureToggle('saleReturn')}
-                  label="Sale Return"
-                  description="Allow sale return entries and screens."
-                />
-                <ToggleSwitch
-                  checked={featureAccess.stockAdjustment}
-                  onChange={() => handleFeatureToggle('stockAdjustment')}
-                  label="Stock Adjustment"
-                  description="Allow manual stock adjustment screens."
-                />
               </div>
             </SettingCard>
 

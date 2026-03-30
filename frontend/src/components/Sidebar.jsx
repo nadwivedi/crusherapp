@@ -1,3 +1,5 @@
+import { useMemo, useState } from 'react';
+
 export const homeQuickShortcuts = [
   { label: 'Boulder Entry', hint: '', combo: '', stateKey: 'homeQuickBoulder', imageSrc: '/buttons/boulder.png', imageClassName: 'sm:scale-58' },
   { label: 'New Sale', hint: '', combo: '', stateKey: 'homeQuickSale', imageSrc: '/buttons/add sales.png', imageClassName: 'sm:scale-58' },
@@ -5,8 +7,9 @@ export const homeQuickShortcuts = [
   { label: 'New Receipt', hint: 'Money Received', combo: '', stateKey: 'homeQuickReceipt', imageSrc: '/buttons/money received.png' },
   { label: 'Material Used', hint: '', combo: '', stateKey: 'homeQuickMaterialUsed', imageSrc: '/buttons/material used.png' },
   { label: 'New Expense', hint: '', combo: 'Alt + 6', stateKey: 'homeQuickExpense', imageSrc: '/buttons/new expense.png', imageClassName: 'sm:scale-58' },
-  { label: 'Expense Type', hint: '', combo: '', path: '/expense-types', accent: 'from-teal-500 to-cyan-500' },
-  { label: 'Purchase Return', hint: '', combo: '', stateKey: 'homeQuickPurchaseReturn', accent: 'from-rose-500 to-pink-500' }
+  { label: 'Purchase Return', hint: '', combo: '', stateKey: 'homeQuickPurchaseReturn', accent: 'from-rose-500 to-pink-500', collapsible: true },
+  { label: 'Sale Return', hint: '', combo: '', path: '/sale-return', accent: 'from-amber-500 to-orange-500', collapsible: true },
+  { label: 'Stock Adjustment', hint: '', combo: '', path: '/stock-adjustment', accent: 'from-violet-500 to-fuchsia-500', collapsible: true }
 ];
 
 export const getHomeQuickShortcut = (target) => (
@@ -19,21 +22,30 @@ export default function Sidebar({
   onOpenShortcut,
   onHighlightShortcut
 }) {
+  const [showExtraShortcuts, setShowExtraShortcuts] = useState(false);
+
+  const visibleShortcuts = useMemo(() => (
+    showExtraShortcuts
+      ? shortcuts
+      : shortcuts.filter((shortcut) => !shortcut.collapsible)
+  ), [shortcuts, showExtraShortcuts]);
+
   return (
     <aside className="relative w-full overflow-hidden rounded-[20px] border border-slate-200/15 bg-[linear-gradient(165deg,rgba(30,41,59,0.92),rgba(51,65,85,0.9),rgba(71,85,105,0.88))] shadow-[0_24px_60px_rgba(15,23,42,0.34),0_0_42px_rgba(14,165,233,0.08)] sm:rounded-[30px] lg:sticky lg:top-4 lg:self-start xl:top-5">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.16),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(16,185,129,0.1),transparent_28%)]" />
       <div className="relative z-10 flex h-full flex-col">
         <div className="flex flex-1 flex-col gap-2 px-2 py-2 sm:gap-2.5 sm:px-3 sm:py-3 lg:gap-2 lg:px-2.5 lg:py-2.5 xl:px-3 xl:py-3">
-          {shortcuts.map((shortcut, index) => {
-            const isActive = index === activeShortcutIndex;
+          {visibleShortcuts.map((shortcut) => {
+            const originalIndex = shortcuts.findIndex((item) => (item.stateKey || item.path) === (shortcut.stateKey || shortcut.path));
+            const isActive = originalIndex === activeShortcutIndex;
 
             return (
               <button
                 key={shortcut.stateKey || shortcut.path}
                 type="button"
                 onClick={() => onOpenShortcut(shortcut.stateKey || shortcut.path)}
-                onMouseEnter={() => onHighlightShortcut(index)}
-                onFocus={() => onHighlightShortcut(index)}
+                onMouseEnter={() => onHighlightShortcut(originalIndex)}
+                onFocus={() => onHighlightShortcut(originalIndex)}
                 className={
                   shortcut.imageSrc
                     ? `cursor-pointer overflow-visible rounded-xl bg-transparent px-0 py-0.5 text-left shadow-none transition hover:-translate-y-0.5 hover:shadow-none ${isActive ? 'sm:-translate-y-0.5 sm:rounded-2xl sm:bg-amber-300/12 sm:ring-2 sm:ring-amber-300/80 sm:ring-offset-2 sm:ring-offset-slate-800' : ''}`
@@ -67,6 +79,23 @@ export default function Sidebar({
               </button>
             );
           })}
+
+          <button
+            type="button"
+            onClick={() => setShowExtraShortcuts((current) => !current)}
+            className="mt-1 flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/8 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-100 transition hover:bg-white/12 sm:rounded-2xl"
+          >
+            <span>{showExtraShortcuts ? 'Hide More' : 'Show More'}</span>
+            <svg
+              viewBox="0 0 20 20"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              className={`h-4 w-4 transition-transform ${showExtraShortcuts ? 'rotate-180' : ''}`}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="m5 7 5 5 5-5" />
+            </svg>
+          </button>
         </div>
       </div>
     </aside>

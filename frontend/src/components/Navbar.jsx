@@ -2,10 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 const navItems = [
-  { label: 'Manage Party', path: '/party' },
-  { label: 'Manage Vehicle', path: '/vehicle' },
-  { label: 'Stock Item', path: '/stock' },
-  { label: 'Bank', path: '/banks' },
+  { label: 'Masters', path: '/masters' },
   { label: 'Reports', path: '/reports' },
   { label: 'Setting', path: '/settings' }
 ];

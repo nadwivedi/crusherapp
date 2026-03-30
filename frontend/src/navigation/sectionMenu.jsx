@@ -187,7 +187,8 @@ export const SECTION_CONFIG = {
       { name: 'Manage Party', path: '/party', Icon: PartyIcon },
       { name: 'Stock Item', path: '/stock', Icon: StockItemIcon },
       { name: 'Manage Vehicle', path: '/vehicle', Icon: VehicleIcon },
-      { name: 'Bank', path: '/banks', Icon: BankIcon }
+      { name: 'Bank', path: '/banks', Icon: BankIcon },
+      { name: 'Expense Type', path: '/expense-types', Icon: ExpenseTypeIcon }
     ]
   },
   Vouchers: {
@@ -228,8 +229,7 @@ export const SECTION_CONFIG = {
       accent: 'bg-emerald-500'
     },
     items: [
-      { name: 'Manage Expense', path: '/expenses', Icon: ExpenseIcon },
-      { name: 'Expense Type', path: '/expense-types', Icon: ExpenseTypeIcon }
+      { name: 'Manage Expense', path: '/expenses', Icon: ExpenseIcon }
     ]
   },
   Reports: {

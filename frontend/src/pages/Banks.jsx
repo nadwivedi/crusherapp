@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Landmark, Pencil, Search, Trash2, Wallet } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import apiClient from '../utils/api';
 import { handlePopupFormKeyDown } from '../utils/popupFormKeyboard';
@@ -12,6 +13,7 @@ const currencyFormatter = new Intl.NumberFormat('en-IN', {
 
 export default function Banks() {
   const toastOptions = { autoClose: 1200 };
+  const navigate = useNavigate();
 
   const initialFormData = {
     name: '',
@@ -45,6 +47,29 @@ export default function Banks() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  useEffect(() => {
+    const isTypingTarget = (target) => {
+      const tagName = target?.tagName?.toLowerCase();
+      return tagName === 'input' || tagName === 'textarea' || tagName === 'select' || target?.isContentEditable;
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key !== 'Escape' || event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) {
+        return;
+      }
+
+      if (isTypingTarget(event.target)) {
+        return;
+      }
+
+      event.preventDefault();
+      navigate('/masters');
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [navigate]);
 
   useEffect(() => {
     if (!showForm) return;

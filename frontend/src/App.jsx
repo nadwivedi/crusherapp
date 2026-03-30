@@ -19,6 +19,7 @@ import PartyDetail from './pages/PartyDetail';
 import Expenses from './pages/Expenses/Expenses';
 import ExpenseTypes from './pages/ExpenseGroups';
 import BoulderEntry from './pages/BoulderEntry/BoulderEntry';
+import MastersHub from './pages/MastersHub';
 import StockAdjustment from './pages/StockAdjustment';
 import SaleReturn from './pages/SaleReturn/SaleReturn';
 import PurchaseReturn from './pages/PurchaseReturn/PurchaseReturn';
@@ -93,6 +94,15 @@ function App() {
           element={
             <ProtectedRoute>
               <Home />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/masters"
+          element={
+            <ProtectedRoute>
+              <MastersHub />
             </ProtectedRoute>
           }
         />
