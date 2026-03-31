@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Building2, CalendarDays, Package, Truck, Camera, Upload, Loader2 } from 'lucide-react';
+import { Building2, CalendarDays, Package, Truck, Camera, Upload, Loader2, Eye } from 'lucide-react';
 import apiClient from '../../../utils/api';
 import { handlePopupFormKeyDown } from '../../../utils/popupFormKeyboard';
 import { useFloatingDropdownPosition } from '../../../utils/useFloatingDropdownPosition';
@@ -87,11 +87,27 @@ export default function AddSalePopup({
   const [isItemEntryClosed, setIsItemEntryClosed] = useState(false);
   const [isOcrLoading, setIsOcrLoading] = useState(false);
   const [ocrMode, setOcrMode] = useState(''); // 'camera' | 'upload'
+  const isSlipPreviewImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(String(formData?.slipImg || ''));
+
+  const uploadSlipFile = useCallback(async (file) => {
+    const body = new FormData();
+    body.append('slip', file);
+
+    const response = await apiClient.post('/uploads/slip', body, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+
+    return response?.url || response?.relativePath || '';
+  }, []);
 
   const sendImageToOcr = useCallback(async (file) => {
     if (!file || !onOcrFill) return;
     setIsOcrLoading(true);
     try {
+      const slipImg = await uploadSlipFile(file);
+      onOcrFill({ slipImg });
       const fd = new FormData();
       fd.append('image', file);
       const baseURL = String(apiClient.defaults.baseURL || '/api').replace(/\/+$/, '');
@@ -105,7 +121,7 @@ export default function AddSalePopup({
         throw new Error(err.message || 'OCR failed');
       }
       const data = await response.json();
-      onOcrFill(data);
+      onOcrFill({ ...data, slipImg });
     } catch (err) {
       console.error('OCR error:', err);
       alert(`Scan failed: ${err.message}`);
@@ -113,7 +129,7 @@ export default function AddSalePopup({
       setIsOcrLoading(false);
       setOcrMode('');
     }
-  }, [onOcrFill]);
+  }, [onOcrFill, uploadSlipFile]);
 
   const handleOcrFileChange = useCallback(async (e) => {
     const file = e.target.files?.[0];
@@ -313,6 +329,43 @@ export default function AddSalePopup({
                         onKeyDown={handleSelectEnterMoveNext}
                         className={`${inputClass} focus:ring-indigo-500`}
                       />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className={labelClass}>Slip Image</label>
+                    <div className="rounded-xl border border-slate-200 bg-white p-2">
+                      {formData?.slipImg ? (
+                        <>
+                          {isSlipPreviewImage ? (
+                            <img
+                              src={formData.slipImg}
+                              alt="Slip preview"
+                              className="h-36 w-full rounded-lg object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-28 items-center justify-center rounded-lg bg-slate-100 text-sm font-medium text-slate-600">
+                              Slip ready to save
+                            </div>
+                          )}
+                          <div className="mt-2 flex items-center justify-between gap-2">
+                            <p className="truncate text-[12px] text-slate-500">{formData.slipImg}</p>
+                            <a
+                              href={formData.slipImg}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex shrink-0 items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-[12px] font-semibold text-indigo-700 transition hover:bg-indigo-100"
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                              Preview
+                            </a>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex h-24 items-center justify-center rounded-lg bg-slate-50 text-sm text-slate-400">
+                          Uploaded or scanned slip will appear here
+                        </div>
+                      )}
                     </div>
                   </div>
 

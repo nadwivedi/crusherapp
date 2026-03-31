@@ -53,6 +53,14 @@ const parseSlipDate = (raw = "") => {
   return "";
 };
 
+const parseSlipTime = (raw = "") => {
+  const s = String(raw || "").trim();
+  const match = s.match(/^(\d{1,2})[:.](\d{2})/);
+  if (!match) return "";
+  const [, h, m] = match;
+  return `${String(Number(h)).padStart(2, "0")}:${String(Number(m)).padStart(2, "0")}`;
+};
+
 const extractSaleFromImage = async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: "No image file provided" });
@@ -148,4 +156,99 @@ Return ONLY this JSON format:
   }
 };
 
-module.exports = { extractSaleFromImage, upload };
+const extractBoulderFromImage = async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ message: "No image file provided" });
+  }
+
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ message: "GROQ_API_KEY is not configured" });
+  }
+
+  try {
+    const base64 = req.file.buffer.toString("base64");
+    const mimeType = req.file.mimetype || "image/jpeg";
+    const dataUrl = `data:${mimeType};base64,${base64}`;
+
+    const prompt = `You are an OCR assistant for a stone crusher business.
+This is a BOULDER weighbridge slip similar to sample files named boulder.jpeg and boulder2.jpeg.
+Extract the following fields from this boulder slip image and return ONLY a valid JSON object with no extra text or markdown.
+
+Fields to extract:
+- vehicleNo: vehicle registration number (e.g. CG04AB1234)
+- materialType: always return "boulder"
+- grossWeight: GROSS Wt in kg (numeric, no units)
+- tareWeight: TARE Wt in kg (numeric, no units)
+- netWeight: NET Wt in kg (numeric, no units)
+- boulderDate: date from the slip in DD/MM/YYYY format
+- boulderTime: time from the slip in HH:MM format if visible, otherwise ""
+
+Return ONLY this JSON format:
+{"vehicleNo":"","materialType":"boulder","grossWeight":0,"tareWeight":0,"netWeight":0,"boulderDate":"","boulderTime":""}`;
+
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "meta-llama/llama-4-scout-17b-16e-instruct",
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "image_url",
+                image_url: { url: dataUrl },
+              },
+              {
+                type: "text",
+                text: prompt,
+              },
+            ],
+          },
+        ],
+        max_tokens: 256,
+        temperature: 0,
+      }),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error("Groq API error:", errText);
+      return res.status(502).json({ message: "Groq API request failed", detail: errText });
+    }
+
+    const groqData = await response.json();
+    const rawContent = groqData?.choices?.[0]?.message?.content || "";
+    const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
+
+    if (!jsonMatch) {
+      return res.status(422).json({
+        message: "Could not parse OCR response as JSON",
+        raw: rawContent,
+      });
+    }
+
+    const parsed = JSON.parse(jsonMatch[0]);
+
+    const result = {
+      vehicleNo: String(parsed.vehicleNo || "").trim().toUpperCase(),
+      materialType: "boulder",
+      grossWeight: Number(parsed.grossWeight) || 0,
+      tareWeight: Number(parsed.tareWeight) || 0,
+      netWeight: Number(parsed.netWeight) || 0,
+      boulderDate: parseSlipDate(parsed.boulderDate || parsed.saleDate),
+      boulderTime: parseSlipTime(parsed.boulderTime || parsed.saleTime),
+    };
+
+    return res.json(result);
+  } catch (err) {
+    console.error("Boulder OCR extraction error:", err);
+    return res.status(500).json({ message: "Boulder OCR extraction failed", error: err.message });
+  }
+};
+
+module.exports = { extractSaleFromImage, extractBoulderFromImage, upload };

@@ -103,6 +103,7 @@ const getInitialFormData = () => ({
   rate: '',
   totalAmount: 0,
   paidAmount: '',
+  slipImg: '',
   notes: '',
   items: []
 });
@@ -1576,6 +1577,10 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
       setFormData((prev) => ({ ...prev, saleDate }));
     }
 
+    if (data?.slipImg) {
+      setFormData((prev) => ({ ...prev, slipImg: data.slipImg }));
+    }
+
     toast.success('Slip data extracted!', { autoClose: 1500 });
   };
   const handleSubmit = async (e) => {
@@ -1619,6 +1624,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         rate: Number(formData.rate || 0),
         totalAmount: Number(formData.totalAmount || 0),
         paidAmount: Number(formData.paidAmount || 0),
+        slipImg: String(formData.slipImg || '').trim(),
         saleDate: saleDateTime.toISOString(),
         saleTime: formData.saleTime || ''
       };
@@ -1679,7 +1685,8 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         netWeight: sale.netWeight || sale.materialWeight || '',
         rate: sale.rate || '',
         totalAmount: sale.totalAmount || 0,
-        paidAmount: sale.paidAmount ?? ''
+        paidAmount: sale.paidAmount ?? '',
+        slipImg: sale.slipImg || ''
       });
       setLeadgerQuery(resolvedLeadgerName);
       setLeadgerListIndex(resolvedLeadgerName ? 0 : -1);
