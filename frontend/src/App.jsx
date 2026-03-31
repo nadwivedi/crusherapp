@@ -31,6 +31,7 @@ import BoulderLedger from './pages/BoulderLedger';
 import MaterialUsedLedger from './pages/MaterialUsedLedger';
 import ReportsPlaceholder from './pages/ReportsPlaceholder';
 import DayBook from './pages/DayBook';
+import Analytics from './pages/Analytics';
 import Setting from './pages/Setting';
 import ProtectedRoute from './components/ProtectedRoute';
 import { hasFeatureAccess } from './utils/featureAccess';
@@ -188,6 +189,15 @@ function App() {
           element={
             <ProtectedRoute>
               <DayBook />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/analytics"
+          element={
+            <ProtectedRoute>
+              <Analytics />
             </ProtectedRoute>
           }
         />

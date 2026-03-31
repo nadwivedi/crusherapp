@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BookText, Banknote, Package, Search, ArrowDownCircle, ArrowUpCircle, TrendingUp } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { BookText, Banknote, Package, Search, ArrowDownCircle, ArrowUpCircle, TrendingUp, BarChart2 } from 'lucide-react';
 import apiClient from '../utils/api';
 
 const DEFAULT_SUMMARY = {
@@ -102,6 +103,7 @@ const StatCard = ({ title, value, subtitle, icon: Icon, color, trend }) => (
 );
 
 export default function DayBook() {
+  const navigate = useNavigate();
   const today = useMemo(() => getTodayInput(), []);
   const [fromDate, setFromDate] = useState(today);
   const [toDate, setToDate] = useState(today);
@@ -210,11 +212,20 @@ export default function DayBook() {
               <h2 className="text-lg font-black text-slate-800">Quick Filters</h2>
               <p className="text-sm text-slate-500">Filter transactions by type and date</p>
             </div>
-            <div className="flex rounded-xl border-2 border-slate-200 bg-white overflow-hidden">
-              <button type="button" onClick={handleToday} className="px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition">Today</button>
-              <button type="button" onClick={handleLast7Days} className="px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition border-l border-slate-200">7 Days</button>
-              <button type="button" onClick={handleThisMonth} className="px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition border-l border-slate-200">This Month</button>
-              <button type="button" onClick={handleLastMonth} className="px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition border-l border-slate-200">Last Month</button>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+              <div className="flex rounded-xl border-2 border-slate-200 bg-white overflow-hidden">
+                <button type="button" onClick={handleToday} className="px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition">Today</button>
+                <button type="button" onClick={handleLast7Days} className="px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition border-l border-slate-200">7 Days</button>
+                <button type="button" onClick={handleThisMonth} className="px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition border-l border-slate-200">This Month</button>
+                <button type="button" onClick={handleLastMonth} className="px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition border-l border-slate-200">Last Month</button>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate('/analytics')}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-800 bg-slate-800 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-slate-700 shadow-sm"
+              >
+                <BarChart2 className="w-4 h-4" /> View Analytics
+              </button>
             </div>
           </div>
           <div className="px-6 py-5">

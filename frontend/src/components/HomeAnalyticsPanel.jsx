@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, LineChart, Line, ComposedChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { CalendarDays, Package, PieChart, Target, Calendar } from 'lucide-react';
 import apiClient from '../utils/api';
 
@@ -81,6 +81,33 @@ export default function HomeAnalyticsPanel() {
     return null;
   };
 
+  const ProfitMarginTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      const revenue = payload.find(p => p.dataKey === 'revenue')?.value || 0;
+      const expense = payload.find(p => p.dataKey === 'expense')?.value || 0;
+      const profit = revenue - expense;
+      
+      return (
+        <div className="bg-white p-3 border border-slate-200 rounded-xl shadow-lg">
+          <p className="font-bold text-slate-800 uppercase tracking-widest text-[10px]">{label}</p>
+          <div className="mt-2 space-y-1">
+            <p className="text-xs font-bold text-emerald-600 flex justify-between gap-4">
+              <span>Revenue:</span> <span>{formatCurrency(revenue)}</span>
+            </p>
+            <p className="text-xs font-bold text-rose-500 flex justify-between gap-4">
+              <span>Expense:</span> <span>{formatCurrency(expense)}</span>
+            </p>
+            <div className="h-px w-full bg-slate-200 my-1"></div>
+            <p className={`text-sm font-black flex justify-between gap-4 ${profit >= 0 ? 'text-teal-600' : 'text-rose-600'}`}>
+              <span>Profit:</span> <span>{formatCurrency(profit)}</span>
+            </p>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
+
   const DailyTrendTooltip = ({ active, payload, label, isTons }) => {
     if (active && payload && payload.length) {
       return (
@@ -112,6 +139,24 @@ export default function HomeAnalyticsPanel() {
     return null;
   };
 
+  const { boulders, expenses, sales, outstanding } = data;
+
+  const profitMarginData = useMemo(() => {
+    const revTrend = sales?.revenue?.trends?.[salesTimeframe] || [];
+    const expTrend = expenses?.trends?.[salesTimeframe] || [];
+    
+    const dateMap = new Map();
+    expTrend.forEach(item => {
+      dateMap.set(item.date, item.amount);
+    });
+    
+    return revTrend.map(item => ({
+      date: item.date,
+      revenue: item.amount,
+      expense: dateMap.get(item.date) || 0,
+    }));
+  }, [sales, expenses, salesTimeframe]);
+
   if (loading) {
     return <div className="p-10 text-center text-sm font-semibold text-slate-500">Loading Analytics Dashboard...</div>;
   }
@@ -120,17 +165,15 @@ export default function HomeAnalyticsPanel() {
     return <div className="p-10 text-center text-sm font-semibold text-rose-500">{error}</div>;
   }
 
-  const { boulders, expenses, sales, outstanding } = data;
-
   return (
-    <div className="space-y-6 lg:space-y-4 xl:space-y-6">
+    <div className="space-y-6 lg:space-y-8">
 
       {/* Outstanding Financials Section */}
-      <div className="px-5 pt-5 sm:px-6 lg:px-4 xl:px-6">
-        <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 flex items-center gap-2 mb-4 lg:mb-3 xl:mb-4">
+      <div className="bg-white rounded-[24px] shadow-xl border border-slate-200 p-6 sm:p-8">
+        <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 flex items-center gap-2 mb-6">
           <Target className="w-4 h-4 text-emerald-600" /> Outstanding Balances (Cash Flow)
         </h3>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:gap-5">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:gap-6">
            <StatCard title="Total Receivables" value={formatCurrency(outstanding?.totalReceivables)} subtitle="Credit you need to collect" icon={Package} tone="from-emerald-500 to-teal-500" />
            <StatCard title="Total Payables" value={formatCurrency(outstanding?.totalPayables)} subtitle="Debt you need to pay" icon={Package} tone="from-rose-500 to-pink-500" />
         </div>
@@ -168,11 +211,11 @@ export default function HomeAnalyticsPanel() {
       </div>
       
       {/* Boulder Section */}
-      <div className="px-5 sm:px-6 lg:px-4 xl:px-6">
-        <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 flex items-center gap-2 mb-4 lg:mb-3 xl:mb-4">
+      <div className="bg-white rounded-[24px] shadow-xl border border-slate-200 p-6 sm:p-8">
+        <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 flex items-center gap-2 mb-6">
           <Target className="w-4 h-4 text-sky-500" /> Boulder Crushed (Net Weight TONS)
         </h3>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5 lg:gap-2.5 xl:gap-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5 lg:gap-4 xl:gap-5">
           <StatCard title="Today" value={formatNumber((boulders?.today || 0) / 1000)} subtitle="tons crushed today" icon={CalendarDays} tone="from-sky-500 to-cyan-500" />
           <StatCard title="Last 7 Days" value={formatNumber((boulders?.last7Days || 0) / 1000)} subtitle="tons crushed in 7 days" icon={Calendar} tone="from-indigo-500 to-blue-500" />
           <StatCard title="Last 30 Days" value={formatNumber((boulders?.last30Days || 0) / 1000)} subtitle="tons crushed in 30 days" icon={Calendar} tone="from-indigo-400 to-blue-400" />
@@ -199,9 +242,9 @@ export default function HomeAnalyticsPanel() {
               </div>
             </div>
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={boulders?.trends?.[boulderTimeframe] || []} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
+              <LineChart data={boulders?.trends?.[boulderTimeframe] || []} margin={{ top: 10, right: 10, left: 0, bottom: 30 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11, fontWeight: 600 }} dy={10} />
+                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11, fontWeight: 600 }} tickMargin={10} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11, fontWeight: 600 }} tickFormatter={(value) => `${(value / 1000).toFixed(0)}T`} dx={-10} width={40} />
                 <Tooltip content={<DailyTrendTooltip isTons />} cursor={{ fill: '#f1f5f9' }} />
                 <Line type="monotone" dataKey="amount" stroke="#0ea5e9" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6 }} />
@@ -212,11 +255,11 @@ export default function HomeAnalyticsPanel() {
       </div>
 
       {/* Expenses Section */}
-      <div className="px-5 sm:px-6 lg:px-4 xl:px-6">
-        <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 flex items-center gap-2 mb-4 lg:mb-3 xl:mb-4">
+      <div className="bg-white rounded-[24px] shadow-xl border border-slate-200 p-6 sm:p-8">
+        <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 flex items-center gap-2 mb-6">
           <Target className="w-4 h-4 text-rose-500" /> Core Expenses
         </h3>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5 lg:gap-2.5 xl:gap-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5 lg:gap-4 xl:gap-5">
           <StatCard title="Today" value={formatCurrency(expenses?.today)} subtitle="expenses today" icon={CalendarDays} tone="from-rose-500 to-pink-500" />
           <StatCard title="Last 7 Days" value={formatCurrency(expenses?.last7Days)} subtitle="expenses in 7 days" icon={Calendar} tone="from-orange-500 to-amber-500" />
           <StatCard title="Last 30 Days" value={formatCurrency(expenses?.last30Days)} subtitle="expenses in 30 days" icon={Calendar} tone="from-orange-400 to-amber-400" />
@@ -243,9 +286,9 @@ export default function HomeAnalyticsPanel() {
               </div>
             </div>
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={expenses?.trends?.[expenseTimeframe] || []} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
+              <LineChart data={expenses?.trends?.[expenseTimeframe] || []} margin={{ top: 10, right: 10, left: 10, bottom: 30 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11, fontWeight: 600 }} dy={10} />
+                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11, fontWeight: 600 }} tickMargin={10} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11, fontWeight: 600 }} tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} dx={-10} width={40} />
                 <Tooltip content={<DailyTrendTooltip isTons={false} />} cursor={{ fill: '#f1f5f9' }} />
                 <Line type="monotone" dataKey="amount" stroke="#f43f5e" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6 }} />
@@ -260,11 +303,11 @@ export default function HomeAnalyticsPanel() {
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5">
           {/* Chart */}
-          <div className="bg-white/80 border border-slate-200 rounded-2xl p-4 shadow-sm h-[320px]">
+          <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm h-[320px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={expenses?.breakdown || []}
-                margin={{ top: 20, right: 20, left: 20, bottom: 20 }}
+                margin={{ top: 20, right: 20, left: 10, bottom: 40 }}
                 barSize={40}
               >
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
@@ -272,14 +315,16 @@ export default function HomeAnalyticsPanel() {
                   dataKey="name" 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{ fill: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }} 
-                  dy={10} 
-                  formatter={(value) => value.substring(0, 10) + (value.length > 10 ? '...' : '')}
+                  tick={{ fill: '#64748b', fontSize: 11, fontWeight: 600, textTransform: 'uppercase' }} 
+                  tickMargin={12}
+                  angle={-20}
+                  textAnchor="end"
+                  formatter={(value) => value.substring(0, 12)}
                 />
                 <YAxis 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{ fill: '#64748b', fontSize: 12, fontWeight: 600 }} 
+                  tick={{ fill: '#64748b', fontSize: 11, fontWeight: 600 }} 
                   tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} 
                   dx={-10}
                 />
@@ -317,13 +362,13 @@ export default function HomeAnalyticsPanel() {
       </div>
 
       {/* Sales Section */}
-      <div className="px-5 pb-5 sm:px-6 lg:px-4 xl:px-6">
-        <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 flex items-center gap-2 mb-4 lg:mb-3 xl:mb-4">
+      <div className="bg-white rounded-[24px] shadow-xl border border-slate-200 p-6 sm:p-8">
+        <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 flex items-center gap-2 mb-6">
           <PieChart className="w-4 h-4 text-emerald-500" /> Sales & Revenue
         </h3>
 
         {/* Sales Stats */}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5 lg:gap-2.5 xl:gap-3 mb-5">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5 lg:gap-4 xl:gap-5 mb-6">
           <StatCard title="Today Revenue" value={formatCurrency(sales?.revenue?.today)} subtitle="generated today" icon={CalendarDays} tone="from-emerald-500 to-teal-500" />
           <StatCard title="Last 7 Days" value={formatCurrency(sales?.revenue?.last7Days)} subtitle="revenue in 7 days" icon={Calendar} tone="from-emerald-400 to-teal-400" />
           <StatCard title="Last 30 Days" value={formatCurrency(sales?.revenue?.last30Days)} subtitle="revenue in 30 days" icon={Calendar} tone="from-emerald-300 to-teal-300" />
@@ -331,11 +376,11 @@ export default function HomeAnalyticsPanel() {
           <StatCard title="Lifetime" value={formatCurrency(sales?.revenue?.lifetime)} subtitle="total revenue" icon={Package} tone="from-emerald-600 to-teal-600" />
         </div>
 
-        {/* Revenue Trend Chart */}
+        {/* Profit Margin Chart */}
         <div className="bg-white/80 border border-slate-200 rounded-2xl p-4 shadow-sm h-[320px] mb-5">
            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Revenue Trend (Line Chart) <span className="text-[10px] ml-1">Amount Rs</span>
+              Profit Margin Overlay <span className="text-[10px] ml-1">(Revenue vs Expense)</span>
             </h4>
              <div className="flex bg-slate-100 p-1 rounded-lg">
               {['7d', '30d', '90d', 'thisYear', 'lifetime'].map(tf => (
@@ -350,23 +395,30 @@ export default function HomeAnalyticsPanel() {
             </div>
           </div>
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={sales?.revenue?.trends?.[salesTimeframe] || []} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
+            <ComposedChart data={profitMarginData} margin={{ top: 10, right: 10, left: 10, bottom: 30 }}>
+              <defs>
+                <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-              <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11, fontWeight: 600 }} dy={10} />
+              <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11, fontWeight: 600 }} tickMargin={10} />
               <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11, fontWeight: 600 }} tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} dx={-10} width={40} />
-              <Tooltip content={<DailyTrendTooltip isTons={false} />} cursor={{ fill: '#f1f5f9' }} />
-              <Line type="monotone" dataKey="amount" stroke="#10b981" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6 }} />
-            </LineChart>
+              <Tooltip content={<ProfitMarginTooltip />} cursor={{ fill: '#f1f5f9' }} />
+              <Area type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6 }} />
+              <Line type="monotone" dataKey="expense" stroke="#f43f5e" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6 }} />
+            </ComposedChart>
           </ResponsiveContainer>
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_250px] xl:grid-cols-[1fr_300px] gap-5 mt-8">
           {/* Chart */}
-          <div className="bg-white/80 border border-slate-200 rounded-2xl p-4 shadow-sm h-[320px]">
+          <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm h-[320px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={sales?.breakdown || []}
-                margin={{ top: 20, right: 20, left: 20, bottom: 20 }}
+                margin={{ top: 20, right: 20, left: 10, bottom: 30 }}
                 barSize={40}
               >
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
@@ -374,15 +426,15 @@ export default function HomeAnalyticsPanel() {
                   dataKey="size" 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{ fill: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }} 
-                  dy={10} 
+                  tick={{ fill: '#64748b', fontSize: 11, fontWeight: 600, textTransform: 'uppercase' }} 
+                  tickMargin={10} 
                   formatter={(value) => value.toUpperCase()}
                 />
                 <YAxis 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{ fill: '#64748b', fontSize: 12, fontWeight: 600 }} 
-                  tickFormatter={(value) => `${(value / 1000).toFixed(0)} TONS`} 
+                  tick={{ fill: '#64748b', fontSize: 11, fontWeight: 600 }} 
+                  tickFormatter={(value) => `${(value / 1000).toFixed(0)} T`} 
                   dx={-10}
                 />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f1f5f9', radius: 8 }} />
