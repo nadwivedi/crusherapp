@@ -1,9 +1,20 @@
+import { useEffect } from 'react';
 import HomeAnalyticsPanel from '../components/HomeAnalyticsPanel';
 import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function Analytics() {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        navigate(-1);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [navigate]);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -12,6 +23,7 @@ export default function Analytics() {
           <button 
             onClick={() => navigate(-1)} 
             className="p-2.5 bg-white hover:bg-slate-100 rounded-xl shadow-sm border border-slate-200 transition-colors"
+            title="Go back (Esc)"
           >
             <ArrowLeft className="w-5 h-5 text-slate-700" />
           </button>

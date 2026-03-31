@@ -8,6 +8,7 @@ export default function Home() {
   const location = useLocation();
   const navigate = useNavigate();
   const [activeShortcutIndex, setActiveShortcutIndex] = useState(0);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const handleQuickShortcutOpen = (target) => {
     const shortcut = getHomeQuickShortcut(target);
@@ -31,6 +32,7 @@ export default function Home() {
         homeQuickExpense: target === 'homeQuickExpense'
       }
     });
+    setMobileSidebarOpen(false);
   };
 
   useEffect(() => {
@@ -97,22 +99,46 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-[#0f172a] to-[#020617]">
       <div className="flex flex-col">
-        <Navbar />
+        <Navbar onToggleMobileSidebar={() => setMobileSidebarOpen((current) => !current)} />
 
         <div className="px-4 py-4 sm:px-6 sm:py-5 lg:px-5 xl:px-6">
           <div className="mx-auto grid min-h-[calc(100vh-7rem)] max-w-[96rem] grid-cols-1 gap-5 lg:grid-cols-[15rem_minmax(0,1fr)] lg:items-start lg:gap-4 xl:grid-cols-[18rem_minmax(0,1.35fr)] xl:gap-5">
-            <Sidebar
-              shortcuts={homeQuickShortcuts}
-              activeShortcutIndex={activeShortcutIndex}
-              onOpenShortcut={handleQuickShortcutOpen}
-              onHighlightShortcut={setActiveShortcutIndex}
-            />
+            <div className="hidden lg:block">
+              <Sidebar
+                shortcuts={homeQuickShortcuts}
+                activeShortcutIndex={activeShortcutIndex}
+                onOpenShortcut={handleQuickShortcutOpen}
+                onHighlightShortcut={setActiveShortcutIndex}
+              />
+            </div>
 
             <div className="min-w-0 lg:pl-0.5 xl:pl-1">
               <HomeDayBookPanel />
             </div>
           </div>
         </div>
+
+        {mobileSidebarOpen && (
+          <div className="fixed inset-0 z-50 lg:hidden">
+            <button
+              type="button"
+              aria-label="Close mobile sidebar"
+              onClick={() => setMobileSidebarOpen(false)}
+              className="absolute inset-0 bg-slate-950/55 backdrop-blur-[2px]"
+            />
+            <div className="absolute inset-y-0 left-0 w-[min(82vw,20rem)] p-3">
+              <Sidebar
+                shortcuts={homeQuickShortcuts}
+                activeShortcutIndex={activeShortcutIndex}
+                onOpenShortcut={handleQuickShortcutOpen}
+                onHighlightShortcut={setActiveShortcutIndex}
+                onClose={() => setMobileSidebarOpen(false)}
+                showCloseButton
+                className="h-full"
+              />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

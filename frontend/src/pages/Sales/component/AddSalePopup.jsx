@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Building2, CalendarDays, Package, Truck, Camera, Loader2 } from 'lucide-react';
+import { Building2, CalendarDays, Package, Truck, Camera, Upload, Loader2 } from 'lucide-react';
 import apiClient from '../../../utils/api';
 import { handlePopupFormKeyDown } from '../../../utils/popupFormKeyboard';
 import { useFloatingDropdownPosition } from '../../../utils/useFloatingDropdownPosition';
@@ -83,24 +83,21 @@ export default function AddSalePopup({
   const localProductInputRef = useRef(null);
   const paidAmountInputRef = useRef(null);
   const ocrFileInputRef = useRef(null);
+  const ocrCameraInputRef = useRef(null);
   const [isItemEntryClosed, setIsItemEntryClosed] = useState(false);
   const [isOcrLoading, setIsOcrLoading] = useState(false);
+  const [ocrMode, setOcrMode] = useState(''); // 'camera' | 'upload'
 
-  const handleOcrFileChange = useCallback(async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    // Reset so same file can be picked again
-    e.target.value = '';
-    if (!onOcrFill) return;
-
+  const sendImageToOcr = useCallback(async (file) => {
+    if (!file || !onOcrFill) return;
     setIsOcrLoading(true);
     try {
-      const formData = new FormData();
-      formData.append('image', file);
+      const fd = new FormData();
+      fd.append('image', file);
       const baseURL = String(apiClient.defaults.baseURL || '/api').replace(/\/+$/, '');
       const response = await fetch(`${baseURL}/ocr/extract-sale`, {
         method: 'POST',
-        body: formData,
+        body: fd,
         credentials: 'include',
       });
       if (!response.ok) {
@@ -111,13 +108,24 @@ export default function AddSalePopup({
       onOcrFill(data);
     } catch (err) {
       console.error('OCR error:', err);
-      // Show a simple alert so user knows something went wrong
-      // (toast is handled in Sales.jsx via onOcrFill)
       alert(`Scan failed: ${err.message}`);
     } finally {
       setIsOcrLoading(false);
+      setOcrMode('');
     }
   }, [onOcrFill]);
+
+  const handleOcrFileChange = useCallback(async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    await sendImageToOcr(file);
+  }, [sendImageToOcr]);
+
+  const handleOcrCameraChange = useCallback(async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    await sendImageToOcr(file);
+  }, [sendImageToOcr]);
   const inputClass = "w-full rounded-lg border border-slate-400 bg-white px-2.5 py-1.5 text-[13px] text-gray-800 transition placeholder:text-slate-400 focus:border-transparent focus:outline-none focus:ring-2";
   const labelClass = "mb-1 block text-[11px] font-semibold text-gray-700 md:text-xs";
   const currentItemTotal = Math.max(0, Number(currentItem.quantity || 0) * Number(currentItem.unitPrice || 0));
@@ -187,8 +195,8 @@ export default function AddSalePopup({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-3 backdrop-blur-[2px] md:p-6" onClick={handleCancel}>
-      <div className="relative flex max-h-[88vh] w-full max-w-[30rem] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_30px_80px_rgba(15,23,42,0.28)]" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/55 p-0 backdrop-blur-[2px] md:items-center md:p-6" onClick={handleCancel}>
+      <div className="relative flex h-[100dvh] max-h-[100dvh] w-full max-w-[30rem] flex-col overflow-hidden rounded-none border border-slate-200 bg-white shadow-[0_30px_80px_rgba(15,23,42,0.28)] md:h-auto md:max-h-[88vh] md:rounded-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="bg-[linear-gradient(135deg,#2563eb_0%,#4338ca_55%,#7c3aed_100%)] px-4 py-3 text-white">
           <div className="flex justify-between items-center">
             <h2 className="text-base font-bold md:text-lg">
@@ -197,6 +205,17 @@ export default function AddSalePopup({
             <div className="flex items-center gap-2">
               {onOcrFill && (
                 <>
+                  {/* Camera capture input — opens device camera directly */}
+                  <input
+                    ref={ocrCameraInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={handleOcrCameraChange}
+                    tabIndex={-1}
+                  />
+                  {/* File/gallery upload input */}
                   <input
                     ref={ocrFileInputRef}
                     type="file"
@@ -205,17 +224,33 @@ export default function AddSalePopup({
                     onChange={handleOcrFileChange}
                     tabIndex={-1}
                   />
+
+                  {/* Scan Slip — camera */}
                   <button
                     type="button"
-                    onClick={() => ocrFileInputRef.current?.click()}
+                    onClick={() => { setOcrMode('camera'); ocrCameraInputRef.current?.click(); }}
                     disabled={isOcrLoading}
-                    title="Scan weighbridge slip to auto-fill"
+                    title="Open camera and capture slip photo"
                     className="flex items-center gap-1.5 rounded-lg border border-white/30 bg-white/15 px-2.5 py-1.5 text-xs font-semibold text-white transition hover:bg-white/25 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {isOcrLoading
+                    {isOcrLoading && ocrMode === 'camera'
                       ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       : <Camera className="h-3.5 w-3.5" />}
-                    {isOcrLoading ? `Scanning...` : `Scan Slip`}
+                    {isOcrLoading && ocrMode === 'camera' ? 'Scanning...' : 'Scan Slip'}
+                  </button>
+
+                  {/* Upload Slip — file picker */}
+                  <button
+                    type="button"
+                    onClick={() => { setOcrMode('upload'); ocrFileInputRef.current?.click(); }}
+                    disabled={isOcrLoading}
+                    title="Upload slip image from your device"
+                    className="flex items-center gap-1.5 rounded-lg border border-emerald-400/50 bg-emerald-500/20 px-2.5 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-500/35 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isOcrLoading && ocrMode === 'upload'
+                      ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      : <Upload className="h-3.5 w-3.5" />}
+                    {isOcrLoading && ocrMode === 'upload' ? 'Uploading...' : 'Upload Slip'}
                   </button>
                 </>
               )}
@@ -236,7 +271,9 @@ export default function AddSalePopup({
         {isOcrLoading && (
           <div className="absolute inset-0 z-[100] flex flex-col items-center justify-center gap-3 rounded-2xl bg-white/80 backdrop-blur-sm">
             <Loader2 className="h-10 w-10 animate-spin text-indigo-600" />
-            <p className="text-sm font-semibold text-indigo-700">Reading slip...</p>
+            <p className="text-sm font-semibold text-indigo-700">
+              {ocrMode === 'camera' ? 'Reading captured photo...' : 'Reading uploaded slip...'}
+            </p>
             <p className="text-xs text-slate-500">Extracting data with AI</p>
           </div>
         )}
@@ -249,7 +286,7 @@ export default function AddSalePopup({
                     Sale Details
                   </h3>
                   <div className="grid grid-cols-1 gap-3">
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
                       <label className={labelClass}>Invoice Date</label>
                       <div className="relative">
