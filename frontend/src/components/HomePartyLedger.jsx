@@ -157,7 +157,67 @@ export default function HomePartyLedger() {
         {loading ? (
           <div className="px-4 py-12 text-center text-sm font-medium text-slate-500">Loading party ledger...</div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+            <div className="space-y-3 p-3 lg:hidden">
+              {filteredParties.length > 0 ? (
+                filteredParties.map((party) => (
+                  <button
+                    key={party._id}
+                    type="button"
+                    onClick={() => handlePartyClick(party)}
+                    className="w-full overflow-hidden rounded-xl border border-slate-200 bg-white text-left shadow-[0_12px_30px_rgba(15,23,42,0.08)]"
+                  >
+                    <div className="flex items-start justify-between gap-3 bg-gradient-to-r from-sky-50 via-cyan-50 to-blue-50 p-3">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-cyan-500 text-sm font-bold text-white">
+                          {(party.name || 'P').charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-bold text-slate-900">{party.name || 'Unknown'}</p>
+                          <p className="truncate text-xs text-slate-500">{party.email || '-'}</p>
+                        </div>
+                      </div>
+                      <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold ${
+                        party.type === 'customer'
+                          ? 'bg-amber-100 text-amber-700'
+                          : party.type === 'supplier'
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : 'bg-cyan-100 text-cyan-700'
+                      }`}>
+                        {party.type === 'customer' ? 'Customer' : party.type === 'supplier' ? 'Supplier' : 'Cash'}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 p-3">
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Mobile</p>
+                        <p className="mt-1 text-sm font-semibold text-slate-800">{party.mobile || '-'}</p>
+                        <p className="text-xs text-slate-500">{party.state || '-'}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Net Balance</p>
+                        <p className={`mt-1 text-sm font-bold ${(party.netBalance || 0) >= 0 ? 'text-sky-600' : 'text-rose-600'}`}>{formatCurrency(party.netBalance || 0)}</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 border-t border-slate-100 p-3">
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Receivable</p>
+                        <p className="mt-1 text-sm font-bold text-emerald-600">{party.receivable > 0 ? formatCurrency(party.receivable) : '-'}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Payable</p>
+                        <p className="mt-1 text-sm font-bold text-rose-600">{party.payable > 0 ? formatCurrency(party.payable) : '-'}</p>
+                      </div>
+                    </div>
+                  </button>
+                ))
+              ) : (
+                <div className="px-3 py-10 text-center text-sm text-slate-500">No parties found</div>
+              )}
+            </div>
+
+            <div className="hidden overflow-x-auto lg:block">
             <table className="w-full min-w-[860px]">
               <thead>
                 <tr className="bg-[linear-gradient(135deg,#0f766e_0%,#0d9488_38%,#0891b2_72%,#0284c7_100%)] text-white">
@@ -229,7 +289,8 @@ export default function HomePartyLedger() {
                 )}
               </tbody>
             </table>
-          </div>
+            </div>
+          </>
         )}
       </div>
     </div>

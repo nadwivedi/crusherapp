@@ -81,14 +81,14 @@ const getEntryTypeLabel = (entry) => String(entry?.displayType || entry?.type ||
 
 function StatCard({ title, value, icon: Icon, tone }) {
   return (
-    <div className="rounded-2xl border border-white/70 bg-white/90 px-4 py-3 shadow-[0_16px_30px_rgba(15,23,42,0.08)] lg:px-3 lg:py-2.5 xl:px-4 xl:py-3">
+    <div className="rounded-2xl border border-white/70 bg-white/90 px-3 py-2.5 shadow-[0_16px_30px_rgba(15,23,42,0.08)] lg:px-3 lg:py-2.5 xl:px-4 xl:py-3">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500 lg:text-[8px] xl:text-[10px]">{title}</p>
-          <p className="mt-1 text-lg font-black text-slate-800 lg:text-[14px] xl:text-lg">{value}</p>
+          <p className="text-[8px] font-bold uppercase tracking-[0.12em] text-slate-500 lg:text-[8px] xl:text-[10px]">{title}</p>
+          <p className="mt-1 text-[13px] font-black text-slate-800 lg:text-[14px] xl:text-lg">{value}</p>
         </div>
-        <div className={`rounded-xl bg-gradient-to-br p-2 text-white lg:p-1.5 xl:p-2 ${tone}`}>
-          <Icon className="h-4 w-4 lg:h-3 lg:w-3 xl:h-4 xl:w-4" />
+        <div className={`rounded-xl bg-gradient-to-br p-1.5 text-white lg:p-1.5 xl:p-2 ${tone}`}>
+          <Icon className="h-3.5 w-3.5 lg:h-3 lg:w-3 xl:h-4 xl:w-4" />
         </div>
       </div>
     </div>
@@ -140,10 +140,10 @@ export default function HomeDayBookPanel() {
     <section className="w-full rounded-[28px] border border-slate-200/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(241,245,249,0.96))] shadow-[0_28px_70px_rgba(15,23,42,0.18)] lg:rounded-[24px] xl:rounded-[28px]">
       <div className="border-b border-slate-200/80 px-5 py-5 sm:px-6 lg:px-4 lg:py-4 xl:px-6 xl:py-5">
         <div className="flex flex-wrap items-center justify-start gap-2">
-          <button
-            type="button"
-            onClick={() => setActiveView('party-ledger')}
-            className={`inline-flex items-center justify-center rounded-lg border px-3 py-2 text-xs font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
+            <button
+              type="button"
+              onClick={() => setActiveView('party-ledger')}
+            className={`inline-flex items-center justify-center rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
               activeView === 'party-ledger'
                 ? 'border-emerald-300 bg-emerald-100 text-emerald-800'
                 : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
@@ -151,10 +151,10 @@ export default function HomeDayBookPanel() {
           >
             Party Ledger
           </button>
-          <button
-            type="button"
-            onClick={() => setActiveView('daybook')}
-            className={`inline-flex items-center justify-center rounded-lg border px-3 py-2 text-xs font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
+            <button
+              type="button"
+              onClick={() => setActiveView('daybook')}
+            className={`inline-flex items-center justify-center rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
               activeView === 'daybook'
                 ? 'border-sky-300 bg-sky-100 text-sky-800'
                 : 'border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100'
@@ -162,10 +162,10 @@ export default function HomeDayBookPanel() {
           >
             Day Book
           </button>
-          <button
-            type="button"
-            onClick={() => setActiveView('boulder-ledger')}
-            className={`inline-flex items-center justify-center rounded-lg border px-3 py-2 text-xs font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
+            <button
+              type="button"
+              onClick={() => setActiveView('boulder-ledger')}
+            className={`inline-flex items-center justify-center rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
               activeView === 'boulder-ledger'
                 ? 'border-amber-300 bg-amber-100 text-amber-800'
                 : 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100'
@@ -173,10 +173,10 @@ export default function HomeDayBookPanel() {
           >
             Boulder Ledger
           </button>
-          <button
-            type="button"
-            onClick={() => setActiveView('sales-ledger')}
-            className={`inline-flex items-center justify-center rounded-lg border px-3 py-2 text-xs font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
+            <button
+              type="button"
+              onClick={() => setActiveView('sales-ledger')}
+            className={`inline-flex items-center justify-center rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
               activeView === 'sales-ledger'
                 ? 'border-violet-300 bg-violet-100 text-violet-800'
                 : 'border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100'
@@ -184,10 +184,10 @@ export default function HomeDayBookPanel() {
           >
             Sales Ledger
           </button>
-          <button
-            type="button"
-            onClick={() => setActiveView('expense-ledger')}
-            className={`inline-flex items-center justify-center rounded-lg border px-3 py-2 text-xs font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
+            <button
+              type="button"
+              onClick={() => setActiveView('expense-ledger')}
+            className={`inline-flex items-center justify-center rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
               activeView === 'expense-ledger'
                 ? 'border-rose-300 bg-rose-100 text-rose-800'
                 : 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100'
@@ -195,10 +195,10 @@ export default function HomeDayBookPanel() {
           >
             Expense Ledger
           </button>
-          <button
-            type="button"
-            onClick={() => setActiveView('material-used-ledger')}
-            className={`inline-flex items-center justify-center rounded-lg border px-3 py-2 text-xs font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
+            <button
+              type="button"
+              onClick={() => setActiveView('material-used-ledger')}
+            className={`inline-flex items-center justify-center rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
               activeView === 'material-used-ledger'
                 ? 'border-cyan-300 bg-cyan-100 text-cyan-800'
                 : 'border-cyan-200 bg-cyan-50 text-cyan-700 hover:bg-cyan-100'
@@ -206,10 +206,10 @@ export default function HomeDayBookPanel() {
           >
             Material Used Ledger
           </button>
-          <button
-            type="button"
-            onClick={() => setActiveView('stock-ledger')}
-            className={`inline-flex items-center justify-center rounded-lg border px-3 py-2 text-xs font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
+            <button
+              type="button"
+              onClick={() => setActiveView('stock-ledger')}
+            className={`inline-flex items-center justify-center rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
               activeView === 'stock-ledger'
                 ? 'border-indigo-300 bg-indigo-100 text-indigo-800'
                 : 'border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
@@ -223,7 +223,7 @@ export default function HomeDayBookPanel() {
           <button
             type="button"
             onClick={() => navigate('/analytics')}
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-800 bg-slate-800 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-700 shadow-sm"
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-800 bg-slate-800 px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-slate-700 shadow-sm"
           >
             <BarChart2 className="w-3.5 h-3.5" /> View Analytics
           </button>
@@ -250,7 +250,7 @@ export default function HomeDayBookPanel() {
           </div>
         ) : null}
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5 lg:gap-2.5 xl:gap-3">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5 lg:gap-2.5 xl:gap-3">
           <StatCard title="Sales" value={formatCurrency(summary.sales)} icon={TrendingUp} tone="from-emerald-500 to-teal-500" />
           <StatCard title="Purchases" value={formatCurrency(summary.purchases)} icon={Package} tone="from-rose-500 to-pink-500" />
           <StatCard title="Receipts" value={formatCurrency(summary.receipts)} icon={ArrowDownCircle} tone="from-sky-500 to-cyan-500" />
@@ -262,7 +262,67 @@ export default function HomeDayBookPanel() {
           {loading ? (
             <div className="px-4 py-12 text-center text-sm font-medium text-slate-500">Loading day book...</div>
           ) : recentEntries.length > 0 ? (
-            <div className="overflow-x-auto">
+            <>
+              <div className="p-3 space-y-3 lg:hidden">
+                {recentEntries.map((entry, index) => {
+                  const typeBadgeClass = TYPE_BADGE_STYLES[entry.type] || 'bg-slate-100 text-slate-700';
+                  const materialPrimary = entry.type === 'boulder'
+                    ? 'Boulder'
+                    : (String(entry.materialSummary || '').split('/')[0]?.trim() || '-');
+                  const materialSecondary = entry.type === 'boulder'
+                    ? (parseWeightFromMethod(entry.method, 'Net') > 0 ? `${parseWeightFromMethod(entry.method, 'Net')} kg` : '-')
+                    : (String(entry.materialSummary || '').split('/')[1]?.trim() || '-');
+
+                  return (
+                    <div
+                      key={`${entry.refId || entry.voucherNumber || entry.type}-${index}`}
+                      className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_12px_30px_rgba(15,23,42,0.08)]"
+                    >
+                      <div className="flex items-start justify-between gap-3 bg-gradient-to-r from-sky-50 via-cyan-50 to-blue-50 p-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold text-slate-900">{entry.partyName || 'No Party'}</p>
+                          <p className="mt-0.5 text-xs font-medium text-slate-500">{entry.voucherNumber || '-'}</p>
+                        </div>
+                        <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] ${typeBadgeClass}`}>
+                          {getEntryTypeLabel(entry)}
+                        </span>
+                      </div>
+
+                      <div className="space-y-3 p-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Date</p>
+                            <p className="mt-1 text-sm font-semibold text-slate-800">{formatDate(entry.entryCreatedAt || entry.date)}</p>
+                            <p className="text-xs text-slate-500">{formatTime(entry.entryCreatedAt || entry.date)}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Material</p>
+                            <p className="mt-1 text-sm font-semibold text-slate-800">{materialPrimary}</p>
+                            <p className="text-xs text-slate-500">{materialSecondary}</p>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 border-t border-slate-100 pt-3">
+                          <div>
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">In Amount</p>
+                            <p className="mt-1 text-sm font-bold text-emerald-600">
+                              {Number(entry.inAmount || 0) > 0 ? formatCurrency(entry.inAmount) : '-'}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Out Amount</p>
+                            <p className="mt-1 text-sm font-bold text-rose-600">
+                              {Number(entry.outAmount || 0) > 0 ? formatCurrency(entry.outAmount) : '-'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="hidden overflow-x-auto lg:block">
               <table className="w-full min-w-[840px] xl:min-w-[940px]">
                 <thead>
                   <tr className="bg-[linear-gradient(135deg,#0f766e_0%,#0d9488_38%,#0891b2_72%,#0284c7_100%)] text-white">
@@ -322,7 +382,8 @@ export default function HomeDayBookPanel() {
                   })}
                 </tbody>
               </table>
-            </div>
+              </div>
+            </>
           ) : (
             <div className="flex flex-col items-center px-4 py-14 text-center">
               <div className="rounded-full bg-slate-100 p-4">

@@ -126,7 +126,29 @@ export default function HomeBoulderLedger() {
         {loading ? (
           <div className="px-4 py-12 text-center text-sm font-medium text-slate-500">Loading boulder ledger...</div>
         ) : recentEntries.length > 0 ? (
-          <div className="overflow-x-auto">
+          <>
+            <div className="space-y-3 p-3 lg:hidden">
+              {recentEntries.map((entry) => (
+                <div key={entry._id} className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_12px_30px_rgba(15,23,42,0.08)]">
+                  <div className="flex items-center gap-3 bg-gradient-to-r from-sky-50 via-cyan-50 to-blue-50 p-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-cyan-500 text-white">
+                      <Truck className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-bold text-slate-900">{entry.vehicleNo || '-'}</p>
+                      <p className="text-xs text-slate-500">{formatDate(entry.boulderDate || entry.createdAt)}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3 p-3">
+                    <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Gross</p><p className="mt-1 text-sm font-semibold text-slate-800">{formatNumber(entry.grossWeight)}</p></div>
+                    <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Tare</p><p className="mt-1 text-sm font-semibold text-slate-800">{formatNumber(entry.tareWeight)}</p></div>
+                    <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Net</p><p className="mt-1 text-sm font-bold text-emerald-600">{formatNumber(entry.netWeight)}</p></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="hidden overflow-x-auto lg:block">
             <table className="w-full min-w-[700px] table-fixed xl:min-w-[860px]">
               <colgroup>
                 <col className="w-[16%] lg:w-[17%]" />
@@ -181,7 +203,8 @@ export default function HomeBoulderLedger() {
                 ))}
               </tbody>
             </table>
-          </div>
+            </div>
+          </>
         ) : (
           <div className="flex flex-col items-center px-4 py-14 text-center">
             <div className="rounded-full bg-slate-100 p-4">

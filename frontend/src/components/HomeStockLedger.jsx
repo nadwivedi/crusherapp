@@ -182,8 +182,28 @@ export default function HomeStockLedger() {
           {loading ? (
             <div className="px-4 py-12 text-center text-sm font-medium text-slate-500 lg:px-3 lg:py-10 lg:text-[13px] xl:px-4 xl:py-12 xl:text-sm">Loading stock history...</div>
           ) : recentRows.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px] xl:min-w-[860px]">
+            <>
+              <div className="space-y-3 p-3 lg:hidden">
+                {recentRows.map((row) => (
+                  <div key={row.refId} className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_12px_30px_rgba(15,23,42,0.08)]">
+                    <div className="bg-gradient-to-r from-sky-50 via-cyan-50 to-blue-50 p-3">
+                      <p className="text-sm font-bold text-slate-900">{row.productName || '-'}</p>
+                      <p className="text-xs text-slate-500">{formatDate(row.date)} • {row.displayType || row.type || '-'}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 p-3">
+                      <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Party / Vehicle</p><p className="mt-1 text-sm text-slate-800">{row.partyName || '-'}</p></div>
+                      <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Rate</p><p className="mt-1 text-sm font-semibold text-slate-800">{Number(row.rate || 0) > 0 ? formatCurrency(row.rate) : '-'}</p></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 border-t border-slate-100 p-3">
+                      <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">In Qty</p><p className="mt-1 text-sm font-bold text-emerald-600">{Number(row.inQty || 0) > 0 ? formatNumber(row.inQty) : '-'}</p></div>
+                      <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Out Qty</p><p className="mt-1 text-sm font-bold text-rose-600">{Number(row.outQty || 0) > 0 ? formatNumber(row.outQty) : '-'}</p></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="hidden overflow-x-auto lg:block">
+            <table className="w-full min-w-[760px] xl:min-w-[860px]">
                 <thead>
                   <tr className="bg-[linear-gradient(135deg,#0f766e_0%,#0d9488_38%,#0891b2_72%,#0284c7_100%)] text-white">
                     <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] lg:px-1.5 lg:py-1.5 lg:text-[9px] xl:px-4 xl:py-3 xl:text-xs">Date</th>
@@ -208,8 +228,9 @@ export default function HomeStockLedger() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
-            </div>
+            </table>
+              </div>
+            </>
           ) : (
             <div className="px-4 py-12 text-center text-sm font-medium text-slate-500 lg:px-3 lg:py-10 lg:text-[13px] xl:px-4 xl:py-12 xl:text-sm">No stock history found</div>
           )}

@@ -128,7 +128,35 @@ export default function HomeExpenseLedger() {
         {loading ? (
           <div className="px-4 py-12 text-center text-sm font-medium text-slate-500">Loading expense ledger...</div>
         ) : recentExpenses.length > 0 ? (
-          <div className="overflow-x-auto">
+          <>
+            <div className="space-y-3 p-3 lg:hidden">
+              {recentExpenses.map((expense) => {
+                const kind = getExpenseKind(expense);
+                return (
+                  <div key={expense._id} className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_12px_30px_rgba(15,23,42,0.08)]">
+                    <div className="flex items-start justify-between gap-3 bg-gradient-to-r from-sky-50 via-cyan-50 to-blue-50 p-3">
+                      <div>
+                        <p className="text-sm font-bold text-slate-900">{expense.expenseNumber || '-'}</p>
+                        <p className="text-xs text-slate-500">{formatDate(expense.expenseDate || expense.createdAt)}</p>
+                      </div>
+                      <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold ${
+                        kind === 'purchase' ? 'border border-amber-200 bg-amber-50 text-amber-700' : 'border border-violet-200 bg-violet-50 text-violet-700'
+                      }`}>{kind === 'purchase' ? 'Purchase' : 'Normal'}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 p-3">
+                      <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Items</p><p className="mt-1 text-sm font-semibold text-slate-800">{getExpenseItemSummary(expense)}</p></div>
+                      <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Party</p><p className="mt-1 text-sm font-semibold text-slate-800">{expense.party?.name || '-'}</p></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 border-t border-slate-100 p-3">
+                      <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Method</p><p className="mt-1 text-sm text-slate-800 capitalize">{expense.method || '-'}</p></div>
+                      <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Amount</p><p className="mt-1 text-sm font-bold text-rose-600">{formatCurrency(expense.amount)}</p></div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="hidden overflow-x-auto lg:block">
             <table className="w-full min-w-[860px] table-fixed xl:min-w-[920px]">
               <colgroup>
                 <col className="w-[13%]" />
@@ -183,7 +211,8 @@ export default function HomeExpenseLedger() {
                 })}
               </tbody>
             </table>
-          </div>
+            </div>
+          </>
         ) : (
           <div className="flex flex-col items-center px-4 py-14 text-center">
             <div className="rounded-full bg-slate-100 p-4">

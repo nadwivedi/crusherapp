@@ -123,7 +123,42 @@ export default function HomeSalesLedger() {
         {loading ? (
           <div className="px-4 py-12 text-center text-sm font-medium text-slate-500">Loading sales ledger...</div>
         ) : recentSales.length > 0 ? (
-          <div className="overflow-x-auto">
+          <>
+            <div className="space-y-3 p-3 lg:hidden">
+              {recentSales.map((sale) => {
+                const partyName = partyMap.get(String(sale.partyId || sale.party)) || sale.customerName || '-';
+                const materialName = sale.materialType || sale.stoneSize || '-';
+                const grossWeight = Number(sale.grossWeight || sale.netWeight || 0);
+                const tareWeight = Number(sale.tareWeight || sale.vehicleWeight || 0);
+                const netWeight = Number(sale.netWeight || sale.materialWeight || 0);
+                return (
+                  <div key={sale._id} className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_12px_30px_rgba(15,23,42,0.08)]">
+                    <div className="flex items-start justify-between gap-3 bg-gradient-to-r from-sky-50 via-cyan-50 to-blue-50 p-3">
+                      <div>
+                        <p className="text-sm font-bold text-slate-900">{partyName}</p>
+                        <p className="text-xs text-slate-500">{sale.invoiceNumber || '-'} • {formatDate(sale.saleDate || sale.createdAt)}</p>
+                      </div>
+                      <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold ${getMaterialBadgeClass(materialName)}`}>{String(materialName).toUpperCase()}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 p-3">
+                      <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Vehicle</p><p className="mt-1 text-sm font-semibold text-slate-800">{sale.vehicleNo || '-'}</p></div>
+                      <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Sale Type</p><p className="mt-1 text-sm font-semibold text-slate-800">{formatSaleTypeLabel(sale.saleType)}</p></div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3 border-t border-slate-100 p-3">
+                      <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Gross</p><p className="mt-1 text-sm text-slate-800">{formatNumber(grossWeight)}</p></div>
+                      <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Tare</p><p className="mt-1 text-sm text-slate-800">{formatNumber(tareWeight)}</p></div>
+                      <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Net</p><p className="mt-1 text-sm font-bold text-sky-700">{formatNumber(netWeight)}</p></div>
+                    </div>
+                    <div className="border-t border-slate-100 p-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Total</p>
+                      <p className="mt-1 text-sm font-bold text-emerald-600">{formatCurrency(sale.totalAmount)}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="hidden overflow-x-auto lg:block">
             <table className="w-full min-w-[900px] xl:min-w-[980px]">
               <thead>
                 <tr className="bg-[linear-gradient(135deg,#0f766e_0%,#0d9488_38%,#0891b2_72%,#0284c7_100%)] text-white">
@@ -170,7 +205,8 @@ export default function HomeSalesLedger() {
                 })}
               </tbody>
             </table>
-          </div>
+            </div>
+          </>
         ) : (
           <div className="flex flex-col items-center px-4 py-14 text-center">
             <div className="rounded-full bg-slate-100 p-4">
