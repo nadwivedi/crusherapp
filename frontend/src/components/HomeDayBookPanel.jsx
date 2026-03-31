@@ -7,6 +7,7 @@ import HomeSalesLedger from './HomeSalesLedger';
 import HomeExpenseLedger from './HomeExpenseLedger';
 import HomeMaterialUsedLedger from './HomeMaterialUsedLedger';
 import HomeStockLedger from './HomeStockLedger';
+import HomeAnalyticsPanel from './HomeAnalyticsPanel';
 
 const DEFAULT_SUMMARY = {
   entryCount: 0,
@@ -151,6 +152,17 @@ export default function HomeDayBookPanel() {
           </button>
           <button
             type="button"
+            onClick={() => setActiveView('analytics')}
+            className={`inline-flex items-center justify-center rounded-lg border px-3 py-2 text-xs font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
+              activeView === 'analytics'
+                ? 'border-indigo-300 bg-indigo-100 text-indigo-800'
+                : 'border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+            }`}
+          >
+            Analytics
+          </button>
+          <button
+            type="button"
             onClick={() => setActiveView('daybook')}
             className={`inline-flex items-center justify-center rounded-lg border px-3 py-2 text-xs font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
               activeView === 'daybook'
@@ -220,6 +232,8 @@ export default function HomeDayBookPanel() {
 
       {activeView === 'party-ledger' ? (
         <HomePartyLedger />
+      ) : activeView === 'analytics' ? (
+        <HomeAnalyticsPanel />
       ) : activeView === 'boulder-ledger' ? (
         <HomeBoulderLedger />
       ) : activeView === 'sales-ledger' ? (

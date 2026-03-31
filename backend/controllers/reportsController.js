@@ -812,10 +812,222 @@ const getDayBook = async (req, res) => {
   }
 };
 
+const getDashboardAnalytics = async (req, res) => {
+  try {
+    const now = new Date();
+    
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    const startOf7DaysAgo = new Date(startOfToday);
+    startOf7DaysAgo.setDate(startOf7DaysAgo.getDate() - 6); // 7 days inclusive 
+    
+    const startOf30DaysAgo = new Date(startOfToday);
+    startOf30DaysAgo.setDate(startOf30DaysAgo.getDate() - 29); // 30 days inclusive
+    
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    
+    const [boulders, expenses, sales, parties, purchases, receipts, payments] = await Promise.all([
+      Boulder.find().select("netWeight boulderDate createdAt").lean(),
+      Expense.find().select("amount expenseDate createdAt expenseGroup").populate("expenseGroup", "name").lean(),
+      Sales.find().select("stoneSize netWeight materialWeight totalAmount saleDate createdAt partyId type").lean(),
+      Party.find().select("name openingBalance").lean(),
+      Purchase.find().select("totalAmount purchaseDate createdAt party type").lean(),
+      Receipt.find().select("amount receiptDate createdAt party").lean(),
+      Payment.find().select("amount paymentDate createdAt party").lean()
+    ]);
+    
+    const getDaysMap = (daysCount) => {
+      const map = new Map();
+      const order = [];
+      for (let i = daysCount - 1; i >= 0; i--) {
+        const d = new Date(startOfToday);
+        d.setDate(d.getDate() - i);
+        map.set(d.getTime(), 0);
+        order.push(d.getTime());
+      }
+      return { map, order };
+    };
+    
+    const d7 = getDaysMap(7);
+    const d30 = getDaysMap(30);
+    const d90 = getDaysMap(90);
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+    const computeTrendAndStats = (items, dateField, valueField, fallbackValueField) => {
+      const stats = { today: 0, last7Days: 0, last30Days: 0, thisYear: 0, lifetime: 0 };
+      
+      const map7d = new Map(d7.map);
+      const map30d = new Map(d30.map);
+      const map90d = new Map(d90.map);
+      const mapYear = new Map(months.map(m => [m, 0]));
+      const mapLifetime = new Map();
+
+      for (const item of items) {
+        const itemDate = new Date(item[dateField] || item.createdAt);
+        const value = toNumber(item[valueField], fallbackValueField ? toNumber(item[fallbackValueField]) : 0);
+        
+        stats.lifetime += value;
+        if (itemDate >= startOfToday) stats.today += value;
+        if (itemDate >= startOf7DaysAgo) stats.last7Days += value;
+        if (itemDate >= startOf30DaysAgo) stats.last30Days += value;
+        if (itemDate >= startOfYear) stats.thisYear += value;
+
+        const dayTimestamp = new Date(itemDate.getFullYear(), itemDate.getMonth(), itemDate.getDate()).getTime();
+        
+        if (map7d.has(dayTimestamp)) map7d.set(dayTimestamp, map7d.get(dayTimestamp) + value);
+        if (map30d.has(dayTimestamp)) map30d.set(dayTimestamp, map30d.get(dayTimestamp) + value);
+        if (map90d.has(dayTimestamp)) map90d.set(dayTimestamp, map90d.get(dayTimestamp) + value);
+
+        if (itemDate.getFullYear() === now.getFullYear()) {
+           const mn = months[itemDate.getMonth()];
+           mapYear.set(mn, mapYear.get(mn) + value);
+        }
+
+        const monthKey = `${itemDate.getFullYear()} ${months[itemDate.getMonth()]}`;
+        mapLifetime.set(monthKey, (mapLifetime.get(monthKey) || 0) + value);
+      }
+      
+      const toTrend = (map, orderKeys) => orderKeys.map(ts => ({
+          date: new Date(ts).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }),
+          amount: map.get(ts)
+      }));
+      
+      const trendLifetime = Array.from(mapLifetime.entries())
+         .map(([date, amount]) => ({ date, amount }))
+         .sort((a,b) => {
+             const [yA, mA] = a.date.split(" ");
+             const [yB, mB] = b.date.split(" ");
+             if (yA !== yB) return Number(yA) - Number(yB);
+             return months.indexOf(mA) - months.indexOf(mB);
+         });
+
+      return {
+         stats,
+         trends: {
+           '7d': toTrend(map7d, d7.order),
+           '30d': toTrend(map30d, d30.order),
+           '90d': toTrend(map90d, d90.order),
+           'thisYear': Array.from(mapYear.entries()).map(([date, amount]) => ({ date, amount })),
+           'lifetime': trendLifetime
+         }
+      };
+    };
+    
+    const boulderData = computeTrendAndStats(boulders, "boulderDate", "netWeight");
+    const expenseData = computeTrendAndStats(expenses, "expenseDate", "amount");
+    const salesTotalStats = computeTrendAndStats(sales, "saleDate", "netWeight", "materialWeight").stats;
+    const salesRevenueData = computeTrendAndStats(sales, "saleDate", "totalAmount");
+
+    const expenseCategoryMap = new Map();
+    for (const exp of expenses) {
+        const category = exp.expenseGroup?.name || "Uncategorized";
+        const val = toNumber(exp.amount);
+        expenseCategoryMap.set(category, (expenseCategoryMap.get(category) || 0) + val);
+    }
+    const expensesBreakdown = Array.from(expenseCategoryMap.entries())
+      .map(([name, amount]) => ({ name, amount }))
+      .sort((a,b) => b.amount - a.amount);
+
+    const salesByMaterialMap = new Map();
+    for (const sale of sales) {
+      const material = String(sale.stoneSize || "").trim().toLowerCase();
+      if (!material || material === "-") continue;
+      
+      const quantity = toNumber(sale.netWeight, toNumber(sale.materialWeight));
+      const amount = toNumber(sale.totalAmount);
+
+      const existing = salesByMaterialMap.get(material) || { size: material, quantity: 0, amount: 0 };
+      existing.quantity += quantity;
+      existing.amount += amount;
+      salesByMaterialMap.set(material, existing);
+    }
+    
+    const salesBreakdown = Array.from(salesByMaterialMap.values())
+      .filter(s => s.quantity > 0 || s.amount > 0)
+      .sort((a, b) => b.quantity - a.quantity);
+      
+    // Outstanding Calculation
+    const partyBalanceMap = new Map();
+    parties.forEach(p => {
+       partyBalanceMap.set(p._id.toString(), {
+          id: p._id,
+          name: p.name || "-",
+          balance: getPartyOpeningImpact(p)
+       });
+    });
+
+    const addImpact = (item, partyRefField, impact) => {
+       const p = item[partyRefField]?._id || item[partyRefField];
+       if (!p) return;
+       const pIdStr = p.toString();
+       if (partyBalanceMap.has(pIdStr)) {
+          partyBalanceMap.get(pIdStr).balance += impact;
+       }
+    };
+
+    for (const sale of sales) {
+       addImpact(sale, "partyId", sale.type === "cash sale" ? 0 : toNumber(sale.totalAmount));
+    }
+    for (const purchase of purchases) {
+       addImpact(purchase, "party", purchase.type === "cash purchase" ? 0 : -toNumber(purchase.totalAmount));
+    }
+    for (const receipt of receipts) {
+       addImpact(receipt, "party", -toNumber(receipt.amount));
+    }
+    for (const payment of payments) {
+       addImpact(payment, "party", toNumber(payment.amount));
+    }
+
+    let totalReceivables = 0;
+    let totalPayables = 0;
+    const allBalances = Array.from(partyBalanceMap.values());
+    allBalances.forEach(b => {
+       if (b.balance > 0) totalReceivables += b.balance;
+       if (b.balance < 0) totalPayables += Math.abs(b.balance);
+    });
+    
+    const topDebtors = allBalances.filter(b => b.balance > 0).sort((a,b) => b.balance - a.balance).slice(0, 5);
+    const topCreditors = allBalances.filter(b => b.balance < 0).sort((a,b) => a.balance - b.balance).slice(0, 5).map(b => ({...b, balance: Math.abs(b.balance)}));
+
+    return res.json({
+      boulders: {
+        ...boulderData.stats,
+        trends: boulderData.trends
+      },
+      expenses: {
+        ...expenseData.stats,
+        trends: expenseData.trends,
+        breakdown: expensesBreakdown
+      },
+      sales: {
+        totals: salesTotalStats,
+        revenue: {
+           ...salesRevenueData.stats,
+           trends: salesRevenueData.trends
+        },
+        breakdown: salesBreakdown
+      },
+      outstanding: {
+         totalReceivables,
+         totalPayables,
+         topDebtors,
+         topCreditors
+      }
+    });
+  } catch (error) {
+    console.error("Dashboard Analytics Error:", error);
+    return res.status(500).json({
+      message: "Failed to load dashboard analytics",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   getDayBook,
   getOutstanding,
   getPartyLedger,
   getPartyLedgerEntryDetail,
   getStockLedger,
+  getDashboardAnalytics,
 };
