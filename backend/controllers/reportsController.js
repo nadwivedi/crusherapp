@@ -818,11 +818,17 @@ const getDashboardAnalytics = async (req, res) => {
     
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     
+    const startOf3DaysAgo = new Date(startOfToday);
+    startOf3DaysAgo.setDate(startOf3DaysAgo.getDate() - 2); // 3 days inclusive
+
     const startOf7DaysAgo = new Date(startOfToday);
     startOf7DaysAgo.setDate(startOf7DaysAgo.getDate() - 6); // 7 days inclusive 
     
     const startOf30DaysAgo = new Date(startOfToday);
     startOf30DaysAgo.setDate(startOf30DaysAgo.getDate() - 29); // 30 days inclusive
+
+    const startOf90DaysAgo = new Date(startOfToday);
+    startOf90DaysAgo.setDate(startOf90DaysAgo.getDate() - 89); // 90 days inclusive
     
     const startOfYear = new Date(now.getFullYear(), 0, 1);
     
@@ -854,7 +860,7 @@ const getDashboardAnalytics = async (req, res) => {
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
     const computeTrendAndStats = (items, dateField, valueField, fallbackValueField) => {
-      const stats = { today: 0, last7Days: 0, last30Days: 0, thisYear: 0, lifetime: 0 };
+      const stats = { today: 0, last3Days: 0, last7Days: 0, last30Days: 0, last90Days: 0, thisYear: 0, lifetime: 0 };
       
       const map7d = new Map(d7.map);
       const map30d = new Map(d30.map);
@@ -868,8 +874,10 @@ const getDashboardAnalytics = async (req, res) => {
         
         stats.lifetime += value;
         if (itemDate >= startOfToday) stats.today += value;
+        if (itemDate >= startOf3DaysAgo) stats.last3Days += value;
         if (itemDate >= startOf7DaysAgo) stats.last7Days += value;
         if (itemDate >= startOf30DaysAgo) stats.last30Days += value;
+        if (itemDate >= startOf90DaysAgo) stats.last90Days += value;
         if (itemDate >= startOfYear) stats.thisYear += value;
 
         const dayTimestamp = new Date(itemDate.getFullYear(), itemDate.getMonth(), itemDate.getDate()).getTime();
@@ -918,34 +926,95 @@ const getDashboardAnalytics = async (req, res) => {
     const salesTotalStats = computeTrendAndStats(sales, "saleDate", "netWeight", "materialWeight").stats;
     const salesRevenueData = computeTrendAndStats(sales, "saleDate", "totalAmount");
 
-    const expenseCategoryMap = new Map();
-    for (const exp of expenses) {
-        const category = exp.expenseGroup?.name || "Uncategorized";
-        const val = toNumber(exp.amount);
-        expenseCategoryMap.set(category, (expenseCategoryMap.get(category) || 0) + val);
-    }
-    const expensesBreakdown = Array.from(expenseCategoryMap.entries())
-      .map(([name, amount]) => ({ name, amount }))
-      .sort((a,b) => b.amount - a.amount);
+    const generateBreakdowns = (items, dateField, categoryField, valField1, valField2) => {
+      const res = { '3d': new Map(), '7d': new Map(), '30d': new Map(), '90d': new Map(), 'thisYear': new Map(), 'lifetime': new Map() };
+      
+      for (const item of items) {
+         let category = item[categoryField];
+         if (category && typeof category === "object") category = category._id ? category.name : String(category);
+         category = String(category || "Uncategorized").trim();
+         if (category.toLowerCase() === "-") continue;
+         
+         const date = new Date(item[dateField] || item.createdAt);
+         const val1 = toNumber(item[valField1]);
+         const val2 = valField2 ? toNumber(item[valField2]) : 0;
+         
+         const add = (tf) => {
+            const map = res[tf];
+            const existing = map.get(category) || { size: category, name: category, quantity: 0, amount: 0 };
+            existing.quantity += val1;     // usually netWeight for sales, but for expenses we use amount here (which we override later)
+            if (valField2) {
+               existing.amount += val2;    // if sale, val2 is totalAmount
+            } else {
+               existing.amount += val1;    // if expense, amount is val1
+            }
+            map.set(category, existing);
+         };
 
-    const salesByMaterialMap = new Map();
+         add('lifetime');
+         if (date >= startOf3DaysAgo) add('3d');
+         if (date >= startOf7DaysAgo) add('7d');
+         if (date >= startOf30DaysAgo) add('30d');
+         if (date >= startOf90DaysAgo) add('90d');
+         if (date >= startOfYear) add('thisYear');
+      }
+
+      const format = (tfMap, sortField) => Array.from(tfMap.values())
+          .filter(s => s.quantity > 0 || Math.abs(s.amount) > 0)
+          .sort((a,b) => b[sortField] - a[sortField]);
+
+      return {
+         '3d': format(res['3d'], valField2 ? 'quantity' : 'amount'),
+         '7d': format(res['7d'], valField2 ? 'quantity' : 'amount'),
+         '30d': format(res['30d'], valField2 ? 'quantity' : 'amount'),
+         '90d': format(res['90d'], valField2 ? 'quantity' : 'amount'),
+         'thisYear': format(res['thisYear'], valField2 ? 'quantity' : 'amount'),
+         'lifetime': format(res['lifetime'], valField2 ? 'quantity' : 'amount')
+      };
+    };
+
+    const expensesBreakdowns = generateBreakdowns(expenses, "expenseDate", "expenseGroup", "amount", null);
+    
+    // For sales, val1=netWeight (or materialWeight fallback internally, let's just use netWeight. Wait, computeTrend uses fallback. Let's build a custom map for sales to be perfect)
+    
+    const salesRes = { '3d': new Map(), '7d': new Map(), '30d': new Map(), '90d': new Map(), 'thisYear': new Map(), 'lifetime': new Map() };
     for (const sale of sales) {
       const material = String(sale.stoneSize || "").trim().toLowerCase();
       if (!material || material === "-") continue;
       
       const quantity = toNumber(sale.netWeight, toNumber(sale.materialWeight));
       const amount = toNumber(sale.totalAmount);
+      const date = new Date(sale.saleDate || sale.createdAt);
 
-      const existing = salesByMaterialMap.get(material) || { size: material, quantity: 0, amount: 0 };
-      existing.quantity += quantity;
-      existing.amount += amount;
-      salesByMaterialMap.set(material, existing);
+      const addSale = (tf) => {
+         const map = salesRes[tf];
+         const existing = map.get(material) || { size: material, quantity: 0, amount: 0 };
+         existing.quantity += quantity;
+         existing.amount += amount;
+         map.set(material, existing);
+      };
+
+      addSale('lifetime');
+      if (date >= startOf3DaysAgo) addSale('3d');
+      if (date >= startOf7DaysAgo) addSale('7d');
+      if (date >= startOf30DaysAgo) addSale('30d');
+      if (date >= startOf90DaysAgo) addSale('90d');
+      if (date >= startOfYear) addSale('thisYear');
     }
     
-    const salesBreakdown = Array.from(salesByMaterialMap.values())
+    const formatSales = (tfMap) => Array.from(tfMap.values())
       .filter(s => s.quantity > 0 || s.amount > 0)
       .sort((a, b) => b.quantity - a.quantity);
       
+    const salesBreakdowns = {
+       '3d': formatSales(salesRes['3d']),
+       '7d': formatSales(salesRes['7d']),
+       '30d': formatSales(salesRes['30d']),
+       '90d': formatSales(salesRes['90d']),
+       'thisYear': formatSales(salesRes['thisYear']),
+       'lifetime': formatSales(salesRes['lifetime']),
+    };
+
     // Outstanding Calculation
     const partyBalanceMap = new Map();
     parties.forEach(p => {
@@ -997,7 +1066,8 @@ const getDashboardAnalytics = async (req, res) => {
       expenses: {
         ...expenseData.stats,
         trends: expenseData.trends,
-        breakdown: expensesBreakdown
+        breakdowns: expensesBreakdowns,
+        breakdown: expensesBreakdowns['lifetime'] // fallback for backward compatibility
       },
       sales: {
         totals: salesTotalStats,
@@ -1005,7 +1075,8 @@ const getDashboardAnalytics = async (req, res) => {
            ...salesRevenueData.stats,
            trends: salesRevenueData.trends
         },
-        breakdown: salesBreakdown
+        breakdowns: salesBreakdowns,
+        breakdown: salesBreakdowns['lifetime']
       },
       outstanding: {
          totalReceivables,
