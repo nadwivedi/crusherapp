@@ -13,6 +13,7 @@ const DEFAULT_SUMMARY = {
   entryCount: 0,
   totalInward: 0,
   totalOutward: 0,
+  boulderQty: 0,
   sales: 0,
   purchases: 0,
   receipts: 0,
@@ -33,6 +34,13 @@ const formatCurrency = (value) => (
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   })}`
+);
+
+const formatNumber = (value) => (
+  Number(value || 0).toLocaleString('en-IN', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
+  })
 );
 
 const formatDate = (value) => {
@@ -61,6 +69,9 @@ const buildSummary = (entries) => entries.reduce((acc, entry) => {
   acc.totalInward += inward;
   acc.totalOutward += outward;
 
+  if (entry.type === 'boulder') {
+    acc.boulderQty += parseWeightFromMethod(entry.method, 'Net');
+  }
   if (entry.type === 'sale') acc.sales += amount;
   if (entry.type === 'purchase') acc.purchases += amount;
   if (entry.type === 'receipt') acc.receipts += amount;
@@ -139,11 +150,11 @@ export default function HomeDayBookPanel() {
   return (
     <section className="w-full rounded-[28px] border border-slate-200/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(241,245,249,0.96))] shadow-[0_28px_70px_rgba(15,23,42,0.18)] lg:rounded-[24px] xl:rounded-[28px]">
       <div className="border-b border-slate-200/80 px-5 py-5 sm:px-6 lg:px-4 lg:py-4 xl:px-6 xl:py-5">
-        <div className="flex flex-wrap items-center justify-start gap-2">
-            <button
-              type="button"
-              onClick={() => setActiveView('party-ledger')}
-            className={`inline-flex items-center justify-center rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
+        <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          <button
+            type="button"
+            onClick={() => setActiveView('party-ledger')}
+            className={`inline-flex shrink-0 items-center justify-center rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
               activeView === 'party-ledger'
                 ? 'border-emerald-300 bg-emerald-100 text-emerald-800'
                 : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
@@ -154,7 +165,7 @@ export default function HomeDayBookPanel() {
             <button
               type="button"
               onClick={() => setActiveView('daybook')}
-            className={`inline-flex items-center justify-center rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
+            className={`inline-flex shrink-0 items-center justify-center rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
               activeView === 'daybook'
                 ? 'border-sky-300 bg-sky-100 text-sky-800'
                 : 'border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100'
@@ -165,7 +176,7 @@ export default function HomeDayBookPanel() {
             <button
               type="button"
               onClick={() => setActiveView('boulder-ledger')}
-            className={`inline-flex items-center justify-center rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
+            className={`inline-flex shrink-0 items-center justify-center rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
               activeView === 'boulder-ledger'
                 ? 'border-amber-300 bg-amber-100 text-amber-800'
                 : 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100'
@@ -176,7 +187,7 @@ export default function HomeDayBookPanel() {
             <button
               type="button"
               onClick={() => setActiveView('sales-ledger')}
-            className={`inline-flex items-center justify-center rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
+            className={`inline-flex shrink-0 items-center justify-center rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
               activeView === 'sales-ledger'
                 ? 'border-violet-300 bg-violet-100 text-violet-800'
                 : 'border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100'
@@ -187,7 +198,7 @@ export default function HomeDayBookPanel() {
             <button
               type="button"
               onClick={() => setActiveView('expense-ledger')}
-            className={`inline-flex items-center justify-center rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
+            className={`inline-flex shrink-0 items-center justify-center rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
               activeView === 'expense-ledger'
                 ? 'border-rose-300 bg-rose-100 text-rose-800'
                 : 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100'
@@ -198,7 +209,7 @@ export default function HomeDayBookPanel() {
             <button
               type="button"
               onClick={() => setActiveView('material-used-ledger')}
-            className={`inline-flex items-center justify-center rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
+            className={`inline-flex shrink-0 items-center justify-center rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
               activeView === 'material-used-ledger'
                 ? 'border-cyan-300 bg-cyan-100 text-cyan-800'
                 : 'border-cyan-200 bg-cyan-50 text-cyan-700 hover:bg-cyan-100'
@@ -209,7 +220,7 @@ export default function HomeDayBookPanel() {
             <button
               type="button"
               onClick={() => setActiveView('stock-ledger')}
-            className={`inline-flex items-center justify-center rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
+            className={`inline-flex shrink-0 items-center justify-center rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
               activeView === 'stock-ledger'
                 ? 'border-indigo-300 bg-indigo-100 text-indigo-800'
                 : 'border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
@@ -218,12 +229,12 @@ export default function HomeDayBookPanel() {
             Stock Ledger
           </button>
           
-          <div className="flex-1 min-w-[20px]"></div>
+          <div className="hidden flex-1 min-w-[20px] lg:block"></div>
           
           <button
             type="button"
             onClick={() => navigate('/analytics')}
-            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-800 bg-slate-800 px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-slate-700 shadow-sm"
+            className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-slate-800 bg-slate-800 px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-slate-700 shadow-sm"
           >
             <BarChart2 className="w-3.5 h-3.5" /> View Analytics
           </button>
@@ -252,7 +263,7 @@ export default function HomeDayBookPanel() {
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-5 lg:gap-2.5 xl:gap-3">
           <StatCard title="Sales" value={formatCurrency(summary.sales)} icon={TrendingUp} tone="from-emerald-500 to-teal-500" />
-          <StatCard title="Purchases" value={formatCurrency(summary.purchases)} icon={Package} tone="from-rose-500 to-pink-500" />
+          <StatCard title="Boulder" value={`${formatNumber((summary.boulderQty || 0) / 1000)} TONS`} icon={Package} tone="from-rose-500 to-pink-500" />
           <StatCard title="Receipts" value={formatCurrency(summary.receipts)} icon={ArrowDownCircle} tone="from-sky-500 to-cyan-500" />
           <StatCard title="Payments" value={formatCurrency(summary.payments)} icon={ArrowUpCircle} tone="from-amber-500 to-orange-500" />
           <StatCard title="Expenses" value={formatCurrency(summary.expenses)} icon={Banknote} tone="from-fuchsia-500 to-violet-500" />
