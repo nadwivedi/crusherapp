@@ -2232,56 +2232,79 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
       {loading && !showForm ? (
         <div className="px-6 py-10 text-center text-slate-500">Loading...</div>
       ) : visibleSales.length === 0 ? (
-        <div className="rounded-[20px] border border-dashed border-slate-300 bg-white/80 px-6 py-10 text-center text-slate-500">
+        <div className="px-6 py-16 text-center text-slate-500">
           No sales found. Create your first sale!
         </div>
       ) : (
-        <div className="rounded-[20px] border border-slate-200 bg-[radial-gradient(circle_at_top_right,rgba(148,163,184,0.16),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(241,245,249,0.96)_100%)] p-3 shadow-[0_18px_36px_rgba(15,23,42,0.08)] sm:p-5">
+        <div className="p-3 sm:p-5">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[880px] border-separate border-spacing-0 text-left text-sm whitespace-nowrap">
-              <thead className="bg-[linear-gradient(135deg,#0f766e_0%,#0d9488_38%,#0891b2_72%,#0284c7_100%)] text-white">
+            <table className="w-full min-w-[1180px] text-left">
+              <thead>
                 <tr>
-                  <th className="border-y-2 border-l-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold">Date</th>
-                  <th className="w-[96px] border-y-2 border-r border-black px-2 py-3 text-center text-xs font-semibold">Invoice</th>
-                  <th className="border-y-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold">Party Name</th>
-                  <th className="border-y-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold">Vehicle No</th>
-                  <th className="border-y-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold">Material</th>
-                  <th className="border-y-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold">Gross Wt</th>
-                  <th className="border-y-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold">Tare Wt</th>
-                  <th className="border-y-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold">Net Wt</th>
-                  <th className="border-y-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold">Sale Type</th>
-                  <th className="border-y-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold">Total</th>
-                  <th className="border-y-2 border-r-2 border-black px-4 py-3.5 text-center text-sm font-semibold">Actions</th>
+                  <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white">Date</th>
+                  <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white">Invoice</th>
+                  <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white">Party Name</th>
+                  <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white">Vehicle No</th>
+                  <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white">Material</th>
+                  <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white">Entry/Exit</th>
+                  <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white">Gross/Tare/Net</th>
+                  <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-center text-xs font-bold uppercase tracking-wider text-white">Sale Type</th>
+                  <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-right text-xs font-bold uppercase tracking-wider text-white">Total</th>
+                  <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-center text-xs font-bold uppercase tracking-wider text-white">Slip</th>
+                  <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-center text-xs font-bold uppercase tracking-wider text-white">Actions</th>
                 </tr>
               </thead>
-              <tbody className="bg-[linear-gradient(180deg,rgba(255,255,255,0.94)_0%,rgba(248,250,252,0.98)_100%)] text-slate-600">
+              <tbody className="divide-y divide-slate-100">
                 {visibleSales.map((sale) => {
                   return (
-                  <tr key={sale._id} className="transition-colors duration-150 hover:bg-slate-200/45">
-                    <td className="border border-slate-400 px-4 py-3 text-center text-slate-600">{new Date(sale.saleDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-                    <td className="w-[96px] border border-slate-400 px-2 py-2.5 text-center font-semibold text-slate-800">
+                  <tr key={sale._id} className="transition-colors hover:bg-sky-50/50">
+                    <td className="px-6 py-4 text-xs font-medium text-slate-700">{new Date(sale.saleDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                    <td className="px-6 py-4 text-xs font-semibold text-slate-800">
                       <button
                         type="button"
                         onClick={() => handleOpenInvoicePdf(sale._id)}
-                        className="text-[11px] leading-tight text-blue-700 underline underline-offset-2 transition hover:text-blue-900"
+                        className="text-[10px] leading-tight text-blue-700 underline underline-offset-2 transition hover:text-blue-900"
                       >
                         {sale.invoiceNumber}
                       </button>
                     </td>
-                    <td className="border border-slate-400 px-4 py-3 text-center font-medium text-slate-700">{resolveLeadgerNameById(sale.partyId || sale.party) || sale.customerName || '-'}</td>
-                    <td className="border border-slate-400 px-4 py-3 text-center font-medium text-slate-700">{sale.vehicleNo || '-'}</td>
-                    <td className="border border-slate-400 px-4 py-3 text-center">
+                    <td className="px-6 py-4 text-xs font-medium text-slate-700">{resolveLeadgerNameById(sale.partyId || sale.party) || sale.customerName || '-'}</td>
+                    <td className="px-6 py-4 text-xs font-medium text-slate-700">{sale.vehicleNo || '-'}</td>
+                    <td className="px-6 py-4">
                       {sale.materialType ? (
                         <span className="bg-amber-50 text-amber-700 px-2 py-1 rounded-full text-xs font-medium border border-amber-200">
                           {sale.materialType.toUpperCase()}
                         </span>
                       ) : '-'}
                     </td>
-                    <td className="border border-slate-400 px-4 py-3 text-center text-slate-600">{sale.grossWeight ? `${sale.grossWeight} kg` : '-'}</td>
-                    <td className="border border-slate-400 px-4 py-3 text-center text-slate-600">{sale.tareWeight ? `${sale.tareWeight} kg` : '-'}</td>
-                    <td className="border border-slate-400 px-4 py-3 text-center font-semibold text-emerald-600">{sale.netWeight ? `${sale.netWeight} kg` : '-'}</td>
-                    <td className="border border-slate-400 px-4 py-3 text-center">
-                      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                    <td className="px-6 py-4">
+                      <div className="space-y-1 text-xs font-semibold text-slate-700">
+                        <p>{sale.entryTime || ''}</p>
+                        <p>{sale.exitTime || ''}</p>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="space-y-2 text-xs">
+                        <div>
+                          <p className="font-semibold text-slate-700">{sale.grossWeight ? `Gross : ${sale.grossWeight} kg` : '-'}</p>
+                        </div>
+                        <div>
+                          <p className="font-semibold text-slate-700">{sale.tareWeight ? `Tare : ${sale.tareWeight} kg` : '-'}</p>
+                        </div>
+                        <div>
+                          {sale.netWeight ? (
+                            <p className="font-semibold">
+                              <span className="text-slate-900">Net : </span>
+                              <span className="text-emerald-600">{sale.netWeight} kg</span>
+                            </p>
+                          ) : (
+                            <p className="font-semibold text-slate-700">-</p>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${
                         sale.type === 'cash sale'
                           ? 'border border-emerald-200 bg-emerald-50 text-emerald-700'
                           : sale.type === 'sale'
@@ -2291,14 +2314,28 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
                         {formatSaleTypeLabel(sale.type)}
                       </span>
                     </td>
-                    <td className="border border-slate-400 px-4 py-3 text-center font-semibold text-emerald-600">
+                    <td className="px-6 py-4 text-right text-xs font-black text-emerald-600">
                       Rs {Number(sale.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </td>
-                    <td className="border border-slate-400 px-4 py-3">
+                    <td className="px-6 py-4 text-center">
+                      {sale.slipImg ? (
+                        <a
+                          href={sale.slipImg}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-[11px] font-semibold text-blue-700 transition hover:bg-blue-100"
+                        >
+                          View Slip
+                        </a>
+                      ) : (
+                        <span className="text-xs text-slate-400">-</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
                       <div className="flex items-center justify-center gap-2">
                       <button
                         onClick={() => handleEdit(sale)}
-                        className="inline-flex items-center justify-center rounded-md border border-blue-200 bg-white px-3 py-1.5 text-xs font-medium text-blue-700 shadow-sm transition hover:border-blue-300 hover:bg-blue-50"
+                        className="inline-flex items-center justify-center rounded-md border border-blue-200 bg-white px-3 py-1.5 text-[11px] font-medium text-blue-700 shadow-sm transition hover:border-blue-300 hover:bg-blue-50"
                       >
                         Edit
                       </button>
