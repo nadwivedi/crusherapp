@@ -51,28 +51,25 @@ export default function AddPaymentPopup({
         className="flex max-h-[78vh] w-full max-w-[32rem] flex-col overflow-hidden rounded-xl bg-white shadow-2xl ring-1 ring-slate-200/80 md:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-3 py-2.5 text-white md:px-4 md:py-3">
+        <div className="flex-shrink-0 border-b border-white/15 bg-gradient-to-r from-cyan-700 via-blue-700 to-indigo-700 px-3 py-1.5 text-white md:px-4 md:py-2">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-base font-bold md:text-xl">
                 New Payment
                 <span className="ml-2 text-sm font-medium text-slate-200 md:text-base">Money Paid</span>
               </h2>
-              <p className="mt-1 text-xs text-cyan-100 md:text-sm">
-                Capture supplier payment and choose the payment account in one flow.
-              </p>
             </div>
-          
-          <button
-            type="button"
-            onClick={handleCloseForm}
-            className="rounded-lg p-1.5 text-white transition hover:bg-white/20"
-            aria-label="Close popup"
-          >
-            <svg className="h-5 w-5 md:h-6 md:w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+
+            <button
+              type="button"
+              onClick={handleCloseForm}
+              className="rounded-lg p-1.5 text-white transition hover:bg-white/25 md:p-2"
+              aria-label="Close popup"
+            >
+              <svg className="h-5 w-5 md:h-6 md:w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
         </div>
 

@@ -240,6 +240,8 @@ export default function BoulderLedger() {
                 <tr className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 text-white">
                   <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Date</th>
                   <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Vehicle No</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Entry Time</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Exit Time</th>
                   <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider">Gross Wt</th>
                   <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider">Tare Wt</th>
                   <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider">Net Wt</th>
@@ -259,6 +261,8 @@ export default function BoulderLedger() {
                           <span className="text-sm font-bold text-slate-800">{entry.vehicleNo || '-'}</span>
                         </div>
                       </td>
+                      <td className="px-6 py-4 text-sm font-semibold text-slate-700">{entry.entryTime || ''}</td>
+                      <td className="px-6 py-4 text-sm font-semibold text-slate-700">{entry.exitTime || ''}</td>
                       <td className="px-6 py-4 text-right text-sm font-semibold text-slate-700">{formatNumber(entry.grossWeight)}</td>
                       <td className="px-6 py-4 text-right text-sm font-semibold text-slate-700">{formatNumber(entry.tareWeight)}</td>
                       <td className="px-6 py-4 text-right text-sm font-black text-emerald-600">{formatNumber(entry.netWeight)}</td>
@@ -280,7 +284,7 @@ export default function BoulderLedger() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="px-6 py-16 text-center">
+                    <td colSpan={8} className="px-6 py-16 text-center">
                       <div className="flex flex-col items-center">
                         <div className="mb-4 rounded-full bg-slate-100 p-4">
                           <Truck className="h-8 w-8 text-slate-400" />

@@ -2235,17 +2235,15 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
             <table className="w-full min-w-[880px] border-separate border-spacing-0 text-left text-sm whitespace-nowrap">
               <thead className="bg-[linear-gradient(135deg,#0f766e_0%,#0d9488_38%,#0891b2_72%,#0284c7_100%)] text-white">
                 <tr>
-                  <th className="border-y-2 border-l-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold">Invoice</th>
+                  <th className="border-y-2 border-l-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold">Date</th>
+                  <th className="w-[96px] border-y-2 border-r border-black px-2 py-3 text-center text-xs font-semibold">Invoice</th>
                   <th className="border-y-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold">Party Name</th>
                   <th className="border-y-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold">Vehicle No</th>
                   <th className="border-y-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold">Material</th>
                   <th className="border-y-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold">Gross Wt</th>
                   <th className="border-y-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold">Tare Wt</th>
                   <th className="border-y-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold">Net Wt</th>
-                  <th className="border-y-2 border-r border-black px-4 py-3.5 text-sm font-semibold">Products</th>
-                  <th className="border-y-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold">Date</th>
                   <th className="border-y-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold">Sale Type</th>
-                  <th className="border-y-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold">Paid</th>
                   <th className="border-y-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold">Total</th>
                   <th className="border-y-2 border-r-2 border-black px-4 py-3.5 text-center text-sm font-semibold">Actions</th>
                 </tr>
@@ -2254,11 +2252,12 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
                 {visibleSales.map((sale) => {
                   return (
                   <tr key={sale._id} className="transition-colors duration-150 hover:bg-slate-200/45">
-                    <td className="border border-slate-400 px-4 py-3 text-center font-semibold text-slate-800">
+                    <td className="border border-slate-400 px-4 py-3 text-center text-slate-600">{new Date(sale.saleDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                    <td className="w-[96px] border border-slate-400 px-2 py-2.5 text-center font-semibold text-slate-800">
                       <button
                         type="button"
                         onClick={() => handleOpenInvoicePdf(sale._id)}
-                        className="text-blue-700 underline underline-offset-2 transition hover:text-blue-900"
+                        className="text-[11px] leading-tight text-blue-700 underline underline-offset-2 transition hover:text-blue-900"
                       >
                         {sale.invoiceNumber}
                       </button>
@@ -2275,25 +2274,6 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
                     <td className="border border-slate-400 px-4 py-3 text-center text-slate-600">{sale.grossWeight ? `${sale.grossWeight} kg` : '-'}</td>
                     <td className="border border-slate-400 px-4 py-3 text-center text-slate-600">{sale.tareWeight ? `${sale.tareWeight} kg` : '-'}</td>
                     <td className="border border-slate-400 px-4 py-3 text-center font-semibold text-emerald-600">{sale.netWeight ? `${sale.netWeight} kg` : '-'}</td>
-                    <td className="border border-slate-400 px-4 py-3 text-slate-600">
-                      {sale.items?.length
-                        ? (
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            {sale.items.slice(0, 2).map((item, idx) => (
-                              <span key={idx} className="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full text-xs font-medium border border-blue-100">
-                                {item.productName}
-                              </span>
-                            ))}
-                            {sale.items.length > 2 && (
-                              <span className="text-xs font-medium text-slate-500 ml-1">
-                                +{sale.items.length - 2} more
-                              </span>
-                            )}
-                          </div>
-                        )
-                        : '-'}
-                    </td>
-                    <td className="border border-slate-400 px-4 py-3 text-center text-slate-600">{new Date(sale.saleDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                     <td className="border border-slate-400 px-4 py-3 text-center">
                       <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
                         sale.type === 'cash sale'
@@ -2305,9 +2285,6 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
                         {formatSaleTypeLabel(sale.type)}
                       </span>
                     </td>
-                    <td className="border border-slate-400 px-4 py-3 text-center font-semibold text-sky-700">
-                      Rs {Number(sale.paidAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                    </td>
                     <td className="border border-slate-400 px-4 py-3 text-center font-semibold text-emerald-600">
                       Rs {Number(sale.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </td>
@@ -2318,12 +2295,6 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
                         className="inline-flex items-center justify-center rounded-md border border-blue-200 bg-white px-3 py-1.5 text-xs font-medium text-blue-700 shadow-sm transition hover:border-blue-300 hover:bg-blue-50"
                       >
                         Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(sale._id)}
-                        className="inline-flex items-center justify-center rounded-md border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-700 shadow-sm transition hover:border-red-300 hover:bg-red-50"
-                      >
-                        Delete
                       </button>
                       </div>
                     </td>
