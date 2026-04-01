@@ -3,6 +3,7 @@ import { Building2, CalendarDays, Package, Truck, Camera, Upload, Loader2, Eye }
 import apiClient from '../../../utils/api';
 import { handlePopupFormKeyDown } from '../../../utils/popupFormKeyboard';
 import { useFloatingDropdownPosition } from '../../../utils/useFloatingDropdownPosition';
+import DocumentScannerPreview from '../../../components/DocumentScannerPreview';
 
 export default function AddSalePopup({
   showForm,
@@ -87,6 +88,7 @@ export default function AddSalePopup({
   const [isItemEntryClosed, setIsItemEntryClosed] = useState(false);
   const [isOcrLoading, setIsOcrLoading] = useState(false);
   const [ocrMode, setOcrMode] = useState(''); // 'camera' | 'upload'
+  const [scannerFile, setScannerFile] = useState(null);
   const isSlipPreviewImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(String(formData?.slipImg || ''));
 
   const uploadSlipFile = useCallback(async (file) => {
@@ -131,17 +133,17 @@ export default function AddSalePopup({
     }
   }, [onOcrFill, uploadSlipFile]);
 
-  const handleOcrFileChange = useCallback(async (e) => {
+  const handleOcrFileChange = useCallback((e) => {
     const file = e.target.files?.[0];
     e.target.value = '';
-    await sendImageToOcr(file);
-  }, [sendImageToOcr]);
+    if (file) setScannerFile(file);
+  }, []);
 
-  const handleOcrCameraChange = useCallback(async (e) => {
+  const handleOcrCameraChange = useCallback((e) => {
     const file = e.target.files?.[0];
     e.target.value = '';
-    await sendImageToOcr(file);
-  }, [sendImageToOcr]);
+    if (file) setScannerFile(file);
+  }, []);
   const inputClass = "w-full rounded-lg border border-slate-400 bg-white px-2.5 py-1.5 text-[13px] text-gray-800 transition placeholder:text-slate-400 focus:border-transparent focus:outline-none focus:ring-2";
   const labelClass = "mb-1 block text-[11px] font-semibold text-gray-700 md:text-xs";
   const currentItemTotal = Math.max(0, Number(currentItem.quantity || 0) * Number(currentItem.unitPrice || 0));
@@ -292,6 +294,17 @@ export default function AddSalePopup({
             </p>
             <p className="text-xs text-slate-500">Extracting data with AI</p>
           </div>
+        )}
+
+        {scannerFile && (
+          <DocumentScannerPreview
+            file={scannerFile}
+            onCancel={() => setScannerFile(null)}
+            onConfirm={async (processedFile) => {
+              setScannerFile(null);
+              await sendImageToOcr(processedFile);
+            }}
+          />
         )}
 
         <form id="sales-form" onSubmit={handleSubmit} onKeyDown={(e) => handlePopupFormKeyDown(e, handleCancel)} className="flex flex-1 flex-col overflow-hidden bg-white">
