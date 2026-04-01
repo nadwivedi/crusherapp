@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarDays, ChevronDown, Package, Plus, ReceiptIndianRupee, Search } from 'lucide-react';
+import { CalendarDays, ChevronDown, Plus, Search } from 'lucide-react';
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { toast } from 'react-toastify';
 import apiClient from '../../utils/api';
 import { useFloatingDropdownPosition } from '../../utils/useFloatingDropdownPosition';
@@ -45,6 +46,63 @@ const formatDate = (value) => (
     : '-'
 );
 
+const formatDateForInput = (value = new Date()) => {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const EXPENSE_RANGE_OPTIONS = [
+  { value: '3d', label: 'Last 3 Days' },
+  { value: '7d', label: 'Last 7 Days' },
+  { value: '30d', label: 'Last 30 Days' },
+  { value: '90d', label: 'Last 90 Days' },
+  { value: 'currentYear', label: 'Current Year' },
+  { value: 'lifetime', label: 'Lifetime' }
+];
+
+const isWithinRange = (value, range) => {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return false;
+
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
+
+  const start = new Date(today);
+  start.setHours(0, 0, 0, 0);
+
+  if (range === '3d') {
+    start.setDate(today.getDate() - 2);
+    return date >= start && date <= today;
+  }
+
+  if (range === '7d') {
+    start.setDate(today.getDate() - 6);
+    return date >= start && date <= today;
+  }
+
+  if (range === '30d') {
+    start.setDate(today.getDate() - 29);
+    return date >= start && date <= today;
+  }
+
+  if (range === '90d') {
+    start.setDate(today.getDate() - 89);
+    return date >= start && date <= today;
+  }
+
+  if (range === 'currentYear') {
+    const yearStart = new Date(today.getFullYear(), 0, 1);
+    yearStart.setHours(0, 0, 0, 0);
+    return date >= yearStart && date <= today;
+  }
+
+  return true;
+};
+
 const getMethodBadgeClass = (method) => {
   const normalized = String(method || '').toLowerCase();
   if (normalized === 'cash') return 'border border-emerald-200 bg-emerald-50 text-emerald-700';
@@ -63,7 +121,8 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
-  const [dateFilter, setDateFilter] = useState('');
+  const [chartRange, setChartRange] = useState('30d');
+  const [tableRange, setTableRange] = useState('lifetime');
   const [showForm, setShowForm] = useState(false);
   const [showExpenseTypePicker, setShowExpenseTypePicker] = useState(false);
   const [showPurchaseExpenseModal, setShowPurchaseExpenseModal] = useState(false);
@@ -90,7 +149,7 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
 
   useEffect(() => {
     fetchExpenses();
-  }, [search, dateFilter]);
+  }, []);
 
   useEffect(() => {
     fetchExpenseGroups();
@@ -112,41 +171,10 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
     handleOpenForm();
   }, [modalOnly, showForm]);
 
-  const getFromDateByFilter = () => {
-    const now = new Date();
-    if (dateFilter === '7d') {
-      now.setDate(now.getDate() - 7);
-      return now.toISOString().split('T')[0];
-    }
-    if (dateFilter === '30d') {
-      now.setDate(now.getDate() - 30);
-      return now.toISOString().split('T')[0];
-    }
-    if (dateFilter === '3m') {
-      now.setMonth(now.getMonth() - 3);
-      return now.toISOString().split('T')[0];
-    }
-    if (dateFilter === '6m') {
-      now.setMonth(now.getMonth() - 6);
-      return now.toISOString().split('T')[0];
-    }
-    if (dateFilter === '1y') {
-      now.setFullYear(now.getFullYear() - 1);
-      return now.toISOString().split('T')[0];
-    }
-    return '';
-  };
-
   const fetchExpenses = async () => {
     try {
       setLoading(true);
-      const fromDate = getFromDateByFilter();
-      const response = await apiClient.get('/expenses', {
-        params: {
-          search,
-          fromDate: fromDate || undefined
-        }
-      });
+      const response = await apiClient.get('/expenses');
       setExpenses(response.data || []);
       setError('');
     } catch (err) {
@@ -1004,126 +1032,192 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
     }
   };
 
-  const totalExpenses = expenses.length;
-  const totalAmount = expenses.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-  const usedGroups = new Set(expenses.map((item) => item.expenseGroup?._id).filter(Boolean)).size;
-  const currentMonthTotal = expenses.reduce((sum, item) => {
-    const expenseDate = new Date(item.expenseDate);
-    const now = new Date();
-    if (
-      expenseDate.getMonth() === now.getMonth()
-      && expenseDate.getFullYear() === now.getFullYear()
-    ) {
-      return sum + Number(item.amount || 0);
-    }
-    return sum;
-  }, 0);
+  const chartExpenses = useMemo(
+    () => expenses.filter((item) => isWithinRange(item.expenseDate, chartRange)),
+    [expenses, chartRange]
+  );
 
+  const visibleExpenses = useMemo(() => {
+    const normalizedSearch = String(search || '').trim().toLowerCase();
+
+    return expenses.filter((item) => {
+      if (!isWithinRange(item.expenseDate, tableRange)) return false;
+
+      if (!normalizedSearch) return true;
+
+      const haystack = [
+        item.expenseNumber,
+        item.expenseGroup?.name,
+        item.party?.name,
+        item.method,
+        item.notes,
+        formatDate(item.expenseDate)
+      ].join(' ').toLowerCase();
+
+      return haystack.includes(normalizedSearch);
+    });
+  }, [expenses, search, tableRange]);
+
+  const expenseTrendData = useMemo(() => {
+    const grouped = chartExpenses.reduce((acc, item) => {
+      const key = formatDateForInput(item.expenseDate);
+      if (!key) return acc;
+      acc[key] = (acc[key] || 0) + Number(item.amount || 0);
+      return acc;
+    }, {});
+
+    return Object.entries(grouped)
+      .sort(([a], [b]) => new Date(a) - new Date(b))
+      .map(([date, amount]) => ({
+        date: new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+        amount: Number(amount.toFixed(2))
+      }));
+  }, [chartExpenses]);
+
+  const expenseGroupChartData = useMemo(() => {
+    const grouped = chartExpenses.reduce((acc, item) => {
+      const label = item.expenseGroup?.name || 'Other';
+      acc[label] = (acc[label] || 0) + Number(item.amount || 0);
+      return acc;
+    }, {});
+
+    return Object.entries(grouped)
+      .map(([name, amount]) => ({ name, amount: Number(amount.toFixed(2)) }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 6);
+  }, [chartExpenses]);
+
+  const visibleTotalAmount = chartExpenses.reduce((sum, item) => sum + Number(item.amount || 0), 0);
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50">
-      <div className="w-full px-3 pb-8 pt-4 md:px-4 lg:px-6 lg:pt-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-stone-100">
+      <div className="mx-auto max-w-[95%] px-4 py-6">
         {error && (
-          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
+          <div className="mb-6 rounded-2xl border border-rose-200 bg-rose-50 px-6 py-4 text-sm font-semibold text-rose-700 shadow-lg">
             {error}
           </div>
         )}
 
-        <div className="mb-5 mt-1 grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
-          <div className="group relative overflow-hidden rounded-xl bg-white p-2.5 shadow-sm ring-1 ring-slate-200/50 transition-all hover:shadow-md sm:rounded-2xl sm:p-5">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-[10px] font-medium leading-tight text-slate-500 sm:text-xs">Expense Count</p>
-                <p className="mt-1 text-base font-bold leading-tight text-slate-800 sm:mt-2 sm:text-2xl">{totalExpenses}</p>
-              </div>
-              <div className="hidden h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600 transition-transform group-hover:scale-110 sm:flex">
-                <ReceiptIndianRupee className="h-6 w-6" />
-              </div>
-            </div>
-            <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-blue-500 to-cyan-400 opacity-80 sm:h-1"></div>
-          </div>
-
-          <div className="group relative overflow-hidden rounded-xl bg-white p-2.5 shadow-sm ring-1 ring-slate-200/50 transition-all hover:shadow-md sm:rounded-2xl sm:p-5">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-[10px] font-medium leading-tight text-slate-500 sm:text-xs">Total Amount</p>
-                <p className="mt-1 text-[11px] font-bold leading-tight text-slate-800 sm:mt-2 sm:text-2xl">{formatCurrency(totalAmount)}</p>
-              </div>
-              <div className="hidden h-12 w-12 items-center justify-center rounded-xl bg-cyan-50 text-cyan-700 transition-transform group-hover:scale-110 sm:flex">
-                <ReceiptIndianRupee className="h-6 w-6" />
-              </div>
-            </div>
-            <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-cyan-500 to-sky-400 opacity-80 sm:h-1"></div>
-          </div>
-
-          <div className="group relative overflow-hidden rounded-xl bg-white p-2.5 shadow-sm ring-1 ring-slate-200/50 transition-all hover:shadow-md sm:rounded-2xl sm:p-5">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-[10px] font-medium leading-tight text-slate-500 sm:text-xs">Groups Used</p>
-                <p className="mt-1 text-base font-bold leading-tight text-slate-800 sm:mt-2 sm:text-2xl">{usedGroups}</p>
-              </div>
-              <div className="hidden h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 transition-transform group-hover:scale-110 sm:flex">
-                <ReceiptIndianRupee className="h-6 w-6" />
-              </div>
-            </div>
-            <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-emerald-500 to-teal-400 opacity-80 sm:h-1"></div>
-          </div>
-
-          <div className="group relative overflow-hidden rounded-xl bg-white p-2.5 shadow-sm ring-1 ring-slate-200/50 transition-all hover:shadow-md sm:rounded-2xl sm:p-5">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-[10px] font-medium leading-tight text-slate-500 sm:text-xs">This Month</p>
-                <p className="mt-1 text-[11px] font-bold leading-tight text-slate-800 sm:mt-2 sm:text-2xl">{formatCurrency(currentMonthTotal)}</p>
-              </div>
-              <div className="hidden h-12 w-12 items-center justify-center rounded-xl bg-amber-50 text-amber-700 transition-transform group-hover:scale-110 sm:flex">
-                <ReceiptIndianRupee className="h-6 w-6" />
-              </div>
-            </div>
-            <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-amber-500 to-orange-400 opacity-80 sm:h-1"></div>
-          </div>
-        </div>
-
-        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
-          <div className="border-b border-gray-200 bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 px-6 py-5">
+        <div className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-xl">
+          <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-6 py-5">
             {expenseGroups.length === 0 && (
-              <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+              <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
                 Create an expense type first, then add expenses under that head.
               </div>
             )}
 
-            <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
-              <div className="relative w-full lg:w-[22%] lg:min-w-[260px]">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Search expenses..."
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  className="w-full rounded-lg border border-gray-300 bg-white py-2.5 pl-9 pr-4 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-                />
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-lg font-black text-slate-800">Expense Charts</h2>
+                <p className="text-sm text-slate-500">Review how expense moves across time</p>
               </div>
 
-              <select
-                value={dateFilter}
-                onChange={(event) => setDateFilter(event.target.value)}
-                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 lg:w-56"
-              >
-                <option value="">Expense History - All Time</option>
-                <option value="7d">Expense History - 7 Days</option>
-                <option value="30d">Expense History - 30 Days</option>
-                <option value="3m">Expense History - 3 Months</option>
-                <option value="6m">Expense History - 6 Months</option>
-                <option value="1y">Expense History - 1 Year</option>
-              </select>
+              <div className="relative">
+                <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <select
+                  value={chartRange}
+                  onChange={(event) => setChartRange(event.target.value)}
+                  className="w-full rounded-xl border-2 border-slate-300 bg-white py-2.5 pl-10 pr-4 text-sm font-medium text-slate-700 transition-all focus:border-sky-500 focus:outline-none focus:ring-4 focus:ring-sky-100 sm:w-52"
+                >
+                  {EXPENSE_RANGE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
 
-              <button
-                type="button"
-                onClick={handleOpenForm}
-                disabled={expenseGroups.length === 0}
-                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-slate-800 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <Plus className="h-4 w-4" />
-                Add Expense
-              </button>
+          <div className="grid grid-cols-1 gap-4 border-b border-slate-100 bg-slate-50/70 px-6 py-5 xl:grid-cols-[1.6fr_1fr]">
+            <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-black uppercase tracking-[0.16em] text-slate-700">Expense Flow</h3>
+                  <p className="text-xs text-slate-500">How expense amount moves across the selected dates</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Total</p>
+                  <p className="text-lg font-black text-emerald-600">{formatCurrency(visibleTotalAmount)}</p>
+                </div>
+              </div>
+              <div className="h-72">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={expenseTrendData} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="expenseTrendFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.35} />
+                        <stop offset="100%" stopColor="#0ea5e9" stopOpacity={0.04} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis dataKey="date" tick={{ fontSize: 12, fill: '#475569' }} />
+                    <YAxis tick={{ fontSize: 12, fill: '#475569' }} width={80} />
+                    <Tooltip formatter={(value) => formatCurrency(value)} />
+                    <Area type="monotone" dataKey="amount" stroke="#0284c7" strokeWidth={3} fill="url(#expenseTrendFill)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+              <div className="mb-4">
+                <h3 className="text-sm font-black uppercase tracking-[0.16em] text-slate-700">Top Expense Heads</h3>
+                <p className="text-xs text-slate-500">Highest spending groups in the selected range</p>
+              </div>
+              <div className="h-72">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={expenseGroupChartData} layout="vertical" margin={{ top: 4, right: 8, left: 12, bottom: 4 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
+                    <XAxis type="number" tick={{ fontSize: 12, fill: '#475569' }} />
+                    <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: '#475569' }} width={110} />
+                    <Tooltip formatter={(value) => formatCurrency(value)} />
+                    <Bar dataKey="amount" fill="#0f766e" radius={[0, 8, 8, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-b border-slate-100 bg-white px-6 py-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-lg font-black text-slate-800">Expense Table</h2>
+                <p className="text-sm text-slate-500">Search and review expense entries</p>
+              </div>
+
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search expenses..."
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    className="w-full rounded-xl border-2 border-slate-400 bg-white py-2.5 pl-10 pr-4 text-sm font-medium text-slate-700 transition-all focus:border-sky-500 focus:outline-none focus:ring-4 focus:ring-sky-100 sm:w-64"
+                  />
+                </div>
+
+                <div className="relative">
+                  <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <select
+                    value={tableRange}
+                    onChange={(event) => setTableRange(event.target.value)}
+                    className="w-full rounded-xl border-2 border-slate-300 bg-white py-2.5 pl-10 pr-4 text-sm font-medium text-slate-700 transition-all focus:border-sky-500 focus:outline-none focus:ring-4 focus:ring-sky-100 sm:w-52"
+                  >
+                    {EXPENSE_RANGE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleOpenForm}
+                  disabled={expenseGroups.length === 0}
+                  className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-slate-800 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Expense
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1368,33 +1462,33 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
           {loading ? (
             <div className="px-6 py-10 text-center text-slate-500">Loading...</div>
           ) : (
-            <div className="rounded-[20px] border border-slate-200 bg-[radial-gradient(circle_at_top_right,rgba(148,163,184,0.16),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(241,245,249,0.96)_100%)] p-3 shadow-[0_18px_36px_rgba(15,23,42,0.08)] sm:p-5">
+            <div className="p-3 sm:p-5">
               <div className="space-y-3 md:hidden">
-                {expenses.map((expense) => (
+                {visibleExpenses.map((expense) => (
                   <article
                     key={expense._id}
-                    className="overflow-hidden rounded-2xl border border-cyan-200 bg-white shadow-[0_16px_32px_rgba(8,47,73,0.10)]"
+                    className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-lg"
                   >
-                    <div className="flex items-start justify-between gap-3 border-b border-cyan-900/20 bg-[linear-gradient(135deg,#0f766e_0%,#0d9488_38%,#0891b2_72%,#0284c7_100%)] px-4 py-3 text-white">
+                    <div className="flex items-start justify-between gap-3 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-4 py-3">
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-bold text-white">{expense.expenseGroup?.name || 'Expense Type'}</p>
-                        <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-100">{expense.expenseNumber || '-'}</p>
-                        <p className="mt-1 text-xs text-cyan-100">{formatDate(expense.expenseDate)}</p>
+                        <p className="truncate text-sm font-bold text-slate-800">{expense.expenseGroup?.name || 'Expense Type'}</p>
+                        <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">{expense.expenseNumber || '-'}</p>
+                        <p className="mt-1 text-xs text-slate-500">{formatDate(expense.expenseDate)}</p>
                       </div>
-                      <div className="rounded-xl bg-white/15 px-3 py-1.5 text-right">
-                        <p className="text-[10px] uppercase tracking-[0.18em] text-cyan-100">Amount</p>
-                        <p className="mt-1 text-sm font-bold text-white">{formatCurrency(expense.amount)}</p>
+                      <div className="rounded-xl bg-emerald-50 px-3 py-1.5 text-right">
+                        <p className="text-[10px] uppercase tracking-[0.18em] text-emerald-600">Amount</p>
+                        <p className="mt-1 text-sm font-bold text-emerald-700">{formatCurrency(expense.amount)}</p>
                       </div>
                     </div>
 
                     <div className="space-y-3 px-4 py-4 text-sm">
-                      <div className="flex items-center justify-between gap-3 rounded-xl bg-cyan-50 px-3 py-2.5">
-                        <span className="text-xs font-medium uppercase tracking-[0.18em] text-cyan-700">Party</span>
+                      <div className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2.5">
+                        <span className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Party</span>
                         <span className="text-right font-semibold text-slate-800">{expense.party?.name || '-'}</span>
                       </div>
 
-                      <div className="flex items-center justify-between gap-3 rounded-xl bg-sky-50 px-3 py-2.5">
-                        <span className="text-xs font-medium uppercase tracking-[0.18em] text-sky-700">Method</span>
+                      <div className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2.5">
+                        <span className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Method</span>
                         <span className={`inline-flex rounded-md px-2.5 py-1 text-xs font-semibold capitalize ${getMethodBadgeClass(expense.method)}`}>
                           {expense.method}
                         </span>
@@ -1408,7 +1502,7 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
                   </article>
                 ))}
 
-                {expenses.length === 0 && (
+                {visibleExpenses.length === 0 && (
                   <div className="rounded-2xl border border-dashed border-slate-300 bg-white/80 px-6 py-10 text-center text-slate-500">
                     No expenses found
                   </div>
@@ -1416,47 +1510,47 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
               </div>
 
               <div className="hidden overflow-x-auto md:block">
-                <table className="w-full min-w-[920px] border-separate border-spacing-0 text-left text-sm whitespace-nowrap overflow-hidden">
-                  <thead className="bg-[linear-gradient(135deg,#0f766e_0%,#0d9488_38%,#0891b2_72%,#0284c7_100%)] text-white">
+                <table className="w-full min-w-[920px] text-left">
+                  <thead>
                     <tr>
-                      <th className="border-y-2 border-l-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold shadow-[inset_0_-1px_0_rgba(148,163,184,0.2)]">Date</th>
-                      <th className="border-y-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold shadow-[inset_0_-1px_0_rgba(148,163,184,0.2)]">Ref</th>
-                      <th className="border-y-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold shadow-[inset_0_-1px_0_rgba(148,163,184,0.2)]">Expense Type</th>
-                      <th className="border-y-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold shadow-[inset_0_-1px_0_rgba(148,163,184,0.2)]">Party</th>
-                      <th className="border-y-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold shadow-[inset_0_-1px_0_rgba(148,163,184,0.2)]">Amount</th>
-                      <th className="border-y-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold shadow-[inset_0_-1px_0_rgba(148,163,184,0.2)]">Method</th>
-                      <th className="border-y-2 border-r-2 border-black px-4 py-3.5 text-sm font-semibold shadow-[inset_0_-1px_0_rgba(148,163,184,0.2)]">Notes</th>
+                      <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white">Date</th>
+                      <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white">Ref</th>
+                      <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white">Expense Type</th>
+                      <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white">Party</th>
+                      <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-right text-xs font-bold uppercase tracking-wider text-white">Amount</th>
+                      <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-center text-xs font-bold uppercase tracking-wider text-white">Method</th>
+                      <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white">Notes</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-[linear-gradient(180deg,rgba(255,255,255,0.94)_0%,rgba(248,250,252,0.98)_100%)] text-slate-600">
-                    {expenses.map((expense) => (
-                      <tr key={expense._id} className="transition-colors duration-150 hover:bg-slate-200/45">
-                        <td className="border border-slate-400 px-4 py-3 text-center font-medium text-slate-700">
+                  <tbody className="divide-y divide-slate-100">
+                    {visibleExpenses.map((expense) => (
+                      <tr key={expense._id} className="transition-colors hover:bg-sky-50/50">
+                        <td className="px-6 py-4 text-sm font-medium text-slate-700">
                           {formatDate(expense.expenseDate)}
                         </td>
-                        <td className="border border-slate-400 px-4 py-3 text-center font-semibold text-slate-800">
+                        <td className="px-6 py-4 text-sm font-semibold text-slate-800">
                           {expense.expenseNumber || '-'}
                         </td>
-                        <td className="border border-slate-400 px-4 py-3 text-center font-semibold text-slate-800">
+                        <td className="px-6 py-4 text-sm font-semibold text-slate-800">
                           {expense.expenseGroup?.name || '-'}
                         </td>
-                        <td className="border border-slate-400 px-4 py-3 text-center">{expense.party?.name || '-'}</td>
-                        <td className="border border-slate-400 px-4 py-3 text-center font-semibold text-slate-800">
+                        <td className="px-6 py-4 text-sm text-slate-700">{expense.party?.name || '-'}</td>
+                        <td className="px-6 py-4 text-right text-sm font-black text-emerald-600">
                           {formatCurrency(expense.amount)}
                         </td>
-                        <td className="border border-slate-400 px-4 py-3 text-center">
+                        <td className="px-6 py-4 text-center">
                           <span className={`inline-flex rounded-md px-2.5 py-1 text-xs font-semibold capitalize ${getMethodBadgeClass(expense.method)}`}>
                             {expense.method}
                           </span>
                         </td>
-                        <td className="border border-slate-400 px-4 py-3">
+                        <td className="px-6 py-4 text-sm text-slate-700">
                           <div className="max-w-[24rem] truncate">{expense.notes || '-'}</div>
                         </td>
                       </tr>
                     ))}
-                    {expenses.length === 0 && (
+                    {visibleExpenses.length === 0 && (
                       <tr>
-                        <td colSpan="7" className="border border-slate-400 px-6 py-10 text-center text-slate-500">
+                        <td colSpan="7" className="px-6 py-16 text-center text-slate-500">
                           No expenses found
                         </td>
                       </tr>
