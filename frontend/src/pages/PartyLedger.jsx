@@ -175,13 +175,13 @@ export default function PartyLedger() {
                 <table className="w-full min-w-[800px]">
                   <thead>
                     <tr className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 text-white">
-                      <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Party Name</th>
-                      <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Type</th>
-                      <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Contact</th>
-                      <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider">Receivable</th>
-                      <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider">Payable</th>
-                      <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider">Net Balance</th>
-                      <th className="px-6 py-4 text-center text-xs font-bold uppercase tracking-wider">Action</th>
+                      <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Party Name</th>
+                      <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Type</th>
+                      <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Contact</th>
+                      <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Receivable</th>
+                      <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Payable</th>
+                      <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Net Balance</th>
+                      <th className="px-6 py-4 text-center text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -192,19 +192,19 @@ export default function PartyLedger() {
                           onClick={() => handlePartyClick(party)}
                           className="hover:bg-sky-50/50 cursor-pointer transition-colors"
                         >
-                          <td className="px-6 py-4">
+                          <td className="px-6 py-4 lg:px-4 lg:py-3 xl:px-6 xl:py-4">
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-400 to-cyan-500 flex items-center justify-center text-white font-bold">
                                 {(party.name || 'P').charAt(0).toUpperCase()}
                               </div>
                               <div>
-                                <p className="text-sm font-bold text-slate-800">{party.name || 'Unknown'}</p>
-                                <p className="text-xs text-slate-500">{party.email || '-'}</p>
+                                <p className="text-sm font-bold text-slate-800 lg:text-[12px] xl:text-sm">{party.name || 'Unknown'}</p>
+                                <p className="text-xs text-slate-500 lg:text-[10px] xl:text-xs">{party.email || '-'}</p>
                               </div>
                             </div>
                           </td>
-                          <td className="px-6 py-4">
-                            <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${
+                          <td className="px-6 py-4 lg:px-4 lg:py-3 xl:px-6 xl:py-4">
+                            <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold lg:px-2 lg:py-0.5 lg:text-[10px] xl:px-2.5 xl:py-1 xl:text-xs ${
                               party.type === 'customer' ? 'bg-amber-100 text-amber-700' :
                               party.type === 'supplier' ? 'bg-emerald-100 text-emerald-700' :
                               'bg-cyan-100 text-cyan-700'
@@ -212,29 +212,29 @@ export default function PartyLedger() {
                               {party.type === 'customer' ? 'Customer' : party.type === 'supplier' ? 'Supplier' : 'Cash'}
                             </span>
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-6 py-4 lg:px-4 lg:py-3 xl:px-6 xl:py-4">
                             <div>
-                              <p className="text-sm text-slate-600">{party.mobile || '-'}</p>
-                              <p className="text-xs text-slate-400">{party.state || '-'}</p>
+                              <p className="text-sm text-slate-600 lg:text-[12px] xl:text-sm">{party.mobile || '-'}</p>
+                              <p className="text-xs text-slate-400 lg:text-[10px] xl:text-xs">{party.state || '-'}</p>
                             </div>
                           </td>
-                          <td className="px-6 py-4 text-right">
-                            <p className="text-sm font-bold text-emerald-600">
+                          <td className="px-6 py-4 text-right lg:px-4 lg:py-3 xl:px-6 xl:py-4">
+                            <p className="text-sm font-bold text-emerald-600 lg:text-[12px] xl:text-sm">
                               {party.receivable > 0 ? formatCurrency(party.receivable) : '-'}
                             </p>
                           </td>
-                          <td className="px-6 py-4 text-right">
-                            <p className="text-sm font-bold text-rose-600">
+                          <td className="px-6 py-4 text-right lg:px-4 lg:py-3 xl:px-6 xl:py-4">
+                            <p className="text-sm font-bold text-rose-600 lg:text-[12px] xl:text-sm">
                               {party.payable > 0 ? formatCurrency(party.payable) : '-'}
                             </p>
                           </td>
-                          <td className="px-6 py-4 text-right">
-                            <p className={`text-sm font-black ${(party.netBalance || 0) >= 0 ? 'text-sky-600' : 'text-rose-600'}`}>
+                          <td className="px-6 py-4 text-right lg:px-4 lg:py-3 xl:px-6 xl:py-4">
+                            <p className={`text-sm font-black lg:text-[12px] xl:text-sm ${(party.netBalance || 0) >= 0 ? 'text-sky-600' : 'text-rose-600'}`}>
                               {(party.netBalance || 0) >= 0 ? formatCurrency(party.netBalance) : formatCurrency(party.netBalance)}
                             </p>
                           </td>
-                          <td className="px-6 py-4 text-center">
-                            <ChevronRight className="w-5 h-5 text-slate-400 mx-auto" />
+                          <td className="px-6 py-4 text-center lg:px-4 lg:py-3 xl:px-6 xl:py-4">
+                            <ChevronRight className="w-5 h-5 text-slate-400 mx-auto lg:h-4 lg:w-4 xl:h-5 xl:w-5" />
                           </td>
                         </tr>
                       ))

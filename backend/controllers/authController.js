@@ -1,6 +1,7 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const Employee = require("../models/Employee");
 
 const saltRounds = 10;
 const AUTH_COOKIE_NAME = process.env.AUTH_COOKIE_NAME || "auth_token";
@@ -154,11 +155,84 @@ const loginUser = async (req, res) => {
   }
 };
 
+const employeeLogin = async (req, res) => {
+  try {
+    const { mobile, password } = req.body;
+
+    if (!mobile || !password) {
+      return res.status(400).json({ message: "Mobile number and password are required" });
+    }
+
+    const emp = await Employee.findOne({ mobile: mobile.trim() }).select("+password");
+    if (!emp || !(await verifyPassword(password, emp.password))) {
+      return res.status(401).json({ message: "Invalid mobile number or password" });
+    }
+
+    if (!emp.isActive) {
+      return res.status(403).json({ message: "Your access has been revoked by the owner" });
+    }
+
+    const token = jwt.sign(
+      { id: emp.ownerId, employeeId: emp._id, role: 'employee' },
+      process.env.JWT_SECRET || "your_jwt_secret",
+      { expiresIn: "7d" }
+    );
+    
+    setAuthCookie(res, token);
+
+    return res.json({
+      success: true,
+      message: "Staff login successful",
+      user: {
+         id: emp.ownerId, 
+         employeeId: emp._id,
+         name: emp.name,
+         mobile: emp.mobile,
+         role: 'employee',
+         permissions: emp.permissions,
+         historyLimitDays: emp.historyLimitDays
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Failed to login staff" });
+  }
+};
+
 module.exports = {
   signupUser,
   loginUser,
+  employeeLogin,
   getCurrentUser: async (req, res) => {
     try {
+      if (req.employee) {
+        // Staff user session
+        const owner = await User.findById(req.userId);
+        if (!owner) return res.status(404).json({ success: false, message: "Owner account not found" });
+
+        return res.json({
+          success: true,
+          data: {
+             id: owner._id,
+             employeeId: req.employee._id,
+             name: req.employee.name,
+             mobile: req.employee.mobile,
+             role: 'employee',
+             ownerName: owner.name,
+             state: owner.state,
+             district: owner.district,
+             featureAccess: {
+               saleReturn: Boolean(owner.featureAccess?.saleReturn),
+               stockAdjustment: Boolean(owner.featureAccess?.stockAdjustment),
+             },
+             materialRates: sanitizeUser(owner).materialRates,
+             permissions: req.employee.permissions,
+             historyLimitDays: req.employee.historyLimitDays
+          }
+        });
+      }
+
+      // Standard owner session
       const user = await User.findById(req.userId);
       if (!user) {
         return res.status(404).json({
@@ -167,11 +241,15 @@ module.exports = {
         });
       }
 
+      const sanitized = sanitizeUser(user);
+      sanitized.role = 'owner';
+
       return res.json({
         success: true,
-        data: sanitizeUser(user),
+        data: sanitized,
       });
     } catch (error) {
+      console.error(error);
       return res.status(500).json({ message: "Failed to get current user" });
     }
   },

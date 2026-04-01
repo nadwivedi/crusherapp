@@ -7,13 +7,14 @@ export default function Login() {
   const [emailOrPhone, setEmailOrPhone] = useState('');
   const [password, setPassword] = useState('');
   const [isLogin, setIsLogin] = useState(true);
+  const [loginType, setLoginType] = useState('owner'); // 'owner' or 'staff'
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     companyName: '',
     phone: '',
   });
 
-  const { login, register, loading } = useAuth();
+  const { login, employeeLogin, register, loading } = useAuth();
   const navigate = useNavigate();
 
   const handleLoginSubmit = async (e) => {
@@ -24,9 +25,15 @@ export default function Login() {
       return;
     }
 
-    const result = await login(emailOrPhone, password);
+    let result;
+    if (loginType === 'staff') {
+      result = await employeeLogin(emailOrPhone, password);
+    } else {
+      result = await login(emailOrPhone, password);
+    }
+
     if (result.success) {
-      toast.success('Login successful!');
+      toast.success(loginType === 'staff' ? 'Staff Login successful!' : 'Login successful!');
       navigate('/stock');
     } else {
       toast.error(result.message);
@@ -150,57 +157,78 @@ export default function Login() {
             </div>
 
             {isLogin ? (
-              <form onSubmit={handleLoginSubmit} className="space-y-4">
-                <div>
-                  <label className={labelClasses}>Email / Mobile</label>
-                  <input
-                    type="text"
-                    value={emailOrPhone}
-                    onChange={(e) => setEmailOrPhone(e.target.value)}
-                    className={inputClasses}
-                    placeholder="Enter email or mobile"
-                    required
-                  />
+              <>
+                <div className="flex border-b border-orange-200 mb-6">
+                  <button
+                    onClick={() => setLoginType('owner')}
+                    className={`flex-1 py-2 font-semibold text-sm transition border-b-2 ${
+                      loginType === 'owner' ? 'border-orange-500 text-orange-600' : 'border-transparent text-gray-400 hover:text-gray-600'
+                    }`}
+                  >
+                    Owner Login
+                  </button>
+                  <button
+                    onClick={() => setLoginType('staff')}
+                    className={`flex-1 py-2 font-semibold text-sm transition border-b-2 ${
+                      loginType === 'staff' ? 'border-orange-500 text-orange-600' : 'border-transparent text-gray-400 hover:text-gray-600'
+                    }`}
+                  >
+                    Staff Login
+                  </button>
                 </div>
 
-                <div>
-                  <label className={labelClasses}>Password</label>
-                  <div className="relative">
+                <form onSubmit={handleLoginSubmit} className="space-y-4">
+                  <div>
+                    <label className={labelClasses}>{loginType === 'owner' ? 'Email / Mobile' : 'Staff Mobile Number'}</label>
                     <input
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      type="text"
+                      value={emailOrPhone}
+                      onChange={(e) => setEmailOrPhone(e.target.value)}
                       className={inputClasses}
-                      placeholder="Enter password"
+                      placeholder={loginType === 'owner' ? "Enter email or mobile" : "Enter staff mobile"}
                       required
                     />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-orange-500 p-1 transition-colors"
-                    >
-                      {showPassword ? (
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                        </svg>
-                      ) : (
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                      )}
-                    </button>
                   </div>
-                </div>
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-gradient-to-r from-orange-500 to-amber-500 text-white py-4 px-6 rounded-xl font-semibold text-base hover:from-orange-600 hover:to-amber-600 transition-all duration-300 shadow-lg shadow-orange-500/30 hover:shadow-orange-500/40 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loading ? 'Signing in...' : 'Sign In'}
-                </button>
-              </form>
+                  <div>
+                    <label className={labelClasses}>Password</label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className={inputClasses}
+                        placeholder="Enter password"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-orange-500 p-1 transition-colors"
+                      >
+                        {showPassword ? (
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                          </svg>
+                        ) : (
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-gradient-to-r from-orange-500 to-amber-500 text-white py-4 px-6 rounded-xl font-semibold text-base hover:from-orange-600 hover:to-amber-600 transition-all duration-300 shadow-lg shadow-orange-500/30 hover:shadow-orange-500/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loading ? 'Signing in...' : (loginType === 'staff' ? 'Staff Login' : 'Owner Login')}
+                  </button>
+                </form>
+              </>
             ) : (
               <form onSubmit={handleRegisterSubmit} className="space-y-4">
                 <div>

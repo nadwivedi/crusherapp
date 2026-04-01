@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CalendarDays, RefreshCw, Search, Truck } from 'lucide-react';
 import apiClient from '../utils/api';
+import BoulderEntry from './BoulderEntry/BoulderEntry';
 
 const formatNumber = (value) => Number(value || 0).toLocaleString('en-IN', {
   minimumFractionDigits: 0,
@@ -80,6 +81,7 @@ export default function BoulderLedger() {
   const [searchTerm, setSearchTerm] = useState('');
   const [datePreset, setDatePreset] = useState('');
   const [{ fromDate, toDate }, setDateRange] = useState({ fromDate: '', toDate: '' });
+  const [editingEntry, setEditingEntry] = useState(null);
 
   useEffect(() => {
     loadBoulders();
@@ -159,6 +161,15 @@ export default function BoulderLedger() {
     setDateRange(resolvedRange);
   };
 
+  const handleEdit = (entry) => {
+    setEditingEntry(entry);
+  };
+
+  const handleCloseEdit = () => {
+    setEditingEntry(null);
+    loadBoulders();
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-100 via-slate-50 to-stone-100">
@@ -173,6 +184,13 @@ export default function BoulderLedger() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-stone-100">
       <div className="mx-auto max-w-[95%] px-4 py-6">
+        {editingEntry ? (
+          <BoulderEntry
+            editingEntry={editingEntry}
+            onModalFinish={handleCloseEdit}
+          />
+        ) : null}
+
         {error && (
           <div className="mb-6 rounded-2xl border border-rose-200 bg-rose-50 px-6 py-4 text-sm font-semibold text-rose-700 shadow-lg">
             {error}
@@ -238,53 +256,65 @@ export default function BoulderLedger() {
             <table className="w-full min-w-[820px]">
               <thead>
                 <tr className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 text-white">
-                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Date</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Vehicle No</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Entry Time</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Exit Time</th>
-                  <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider">Gross Wt</th>
-                  <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider">Tare Wt</th>
-                  <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider">Net Wt</th>
-                  <th className="px-6 py-4 text-center text-xs font-bold uppercase tracking-wider">Slip</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Date</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Vehicle No</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Entry Time</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Exit Time</th>
+                  <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Gross Wt</th>
+                  <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Tare Wt</th>
+                  <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Net Wt</th>
+                  <th className="px-6 py-4 text-center text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Slip</th>
+                  <th className="px-6 py-4 text-center text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredBoulders.length > 0 ? (
                   filteredBoulders.map((entry) => (
                     <tr key={entry._id} className="transition-colors hover:bg-sky-50/50">
-                      <td className="px-6 py-4 text-sm font-medium text-slate-700">{formatDate(entry.boulderDate || entry.createdAt)}</td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 text-sm font-medium text-slate-700 lg:px-4 lg:py-3 lg:text-[12px] xl:px-6 xl:py-4 xl:text-sm">{formatDate(entry.boulderDate || entry.createdAt)}</td>
+                      <td className="px-6 py-4 lg:px-4 lg:py-3 xl:px-6 xl:py-4">
                         <div className="flex items-center gap-3">
                           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-cyan-500 text-white">
                             <Truck className="h-4 w-4" />
                           </div>
-                          <span className="text-sm font-bold text-slate-800">{entry.vehicleNo || '-'}</span>
+                          <span className="text-sm font-bold text-slate-800 lg:text-[12px] xl:text-sm">{entry.vehicleNo || '-'}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm font-semibold text-slate-700">{entry.entryTime || ''}</td>
-                      <td className="px-6 py-4 text-sm font-semibold text-slate-700">{entry.exitTime || ''}</td>
-                      <td className="px-6 py-4 text-right text-sm font-semibold text-slate-700">{formatNumber(entry.grossWeight)}</td>
-                      <td className="px-6 py-4 text-right text-sm font-semibold text-slate-700">{formatNumber(entry.tareWeight)}</td>
-                      <td className="px-6 py-4 text-right text-sm font-black text-emerald-600">{formatNumber(entry.netWeight)}</td>
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-6 py-4 text-sm font-semibold text-slate-700 lg:px-4 lg:py-3 lg:text-[12px] xl:px-6 xl:py-4 xl:text-sm">{entry.entryTime || ''}</td>
+                      <td className="px-6 py-4 text-sm font-semibold text-slate-700 lg:px-4 lg:py-3 lg:text-[12px] xl:px-6 xl:py-4 xl:text-sm">{entry.exitTime || ''}</td>
+                      <td className="px-6 py-4 text-right text-sm font-semibold text-slate-700 lg:px-4 lg:py-3 lg:text-[12px] xl:px-6 xl:py-4 xl:text-sm">{formatNumber(entry.grossWeight)}</td>
+                      <td className="px-6 py-4 text-right text-sm font-semibold text-slate-700 lg:px-4 lg:py-3 lg:text-[12px] xl:px-6 xl:py-4 xl:text-sm">{formatNumber(entry.tareWeight)}</td>
+                      <td className="px-6 py-4 text-right text-sm font-black text-emerald-600 lg:px-4 lg:py-3 lg:text-[12px] xl:px-6 xl:py-4 xl:text-sm">{formatNumber(entry.netWeight)}</td>
+                      <td className="px-6 py-4 text-center lg:px-4 lg:py-3 xl:px-6 xl:py-4">
                         {entry.slipImg ? (
                           <a
                             href={entry.slipImg}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100"
+                            className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 lg:px-2.5 lg:py-1 lg:text-[11px] xl:px-3 xl:py-1.5 xl:text-xs"
                           >
                             View Slip
                           </a>
                         ) : (
-                          <span className="text-xs text-slate-400">-</span>
+                          <span className="text-xs text-slate-400 lg:text-[11px] xl:text-xs">-</span>
                         )}
+                      </td>
+                      <td className="px-6 py-4 lg:px-4 lg:py-3 xl:px-6 xl:py-4">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleEdit(entry)}
+                            className="inline-flex items-center justify-center rounded-md border border-blue-200 bg-white px-3 py-1.5 text-[11px] font-medium text-blue-700 shadow-sm transition hover:border-blue-300 hover:bg-blue-50 lg:px-2.5 lg:py-1 lg:text-[10px] xl:px-3 xl:py-1.5 xl:text-[11px]"
+                          >
+                            Edit
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={8} className="px-6 py-16 text-center">
+                    <td colSpan={9} className="px-6 py-16 text-center">
                       <div className="flex flex-col items-center">
                         <div className="mb-4 rounded-full bg-slate-100 p-4">
                           <Truck className="h-8 w-8 text-slate-400" />

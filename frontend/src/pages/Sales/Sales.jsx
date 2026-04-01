@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { CalendarDays, Plus, Search } from 'lucide-react';
+import { CalendarDays, Plus, Search, Truck } from 'lucide-react';
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { toast } from 'react-toastify';
 import apiClient from '../../utils/api';
@@ -168,6 +168,22 @@ const formatSaleTypeLabel = (value) => {
   if (value === 'sale') return 'Sale';
   if (value === 'cash sale') return 'Cash Sale';
   return 'Credit Sale';
+};
+
+const getMaterialBadgeClass = (value) => {
+  const normalized = String(value || '').trim().toLowerCase();
+
+  if (normalized === '60mm') return 'border border-rose-200 bg-rose-50 text-rose-700';
+  if (normalized === '40mm') return 'border border-violet-200 bg-violet-50 text-violet-700';
+  if (normalized === '20mm') return 'border border-emerald-200 bg-emerald-50 text-emerald-700';
+  if (normalized === '10mm') return 'border border-sky-200 bg-sky-50 text-sky-700';
+  if (normalized === '6mm') return 'border border-cyan-200 bg-cyan-50 text-cyan-700';
+  if (normalized === '4mm') return 'border border-fuchsia-200 bg-fuchsia-50 text-fuchsia-700';
+  if (normalized === 'wmm') return 'border border-amber-200 bg-amber-50 text-amber-700';
+  if (normalized === 'gsb') return 'border border-lime-200 bg-lime-50 text-lime-700';
+  if (normalized === 'dust') return 'border border-slate-200 bg-slate-100 text-slate-700';
+
+  return 'border border-orange-200 bg-orange-50 text-orange-700';
 };
 
 const SALES_RANGE_OPTIONS = [
@@ -2244,9 +2260,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
               <thead>
                 <tr>
                   <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Date</th>
-                  <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Invoice</th>
-                  <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Party Name</th>
-                  <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Vehicle No</th>
+                  <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Vehicle/Party</th>
                   <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Material</th>
                   <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Entry/Exit</th>
                   <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Gross/Tare/Net</th>
@@ -2260,29 +2274,44 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
                 {visibleSales.map((sale) => {
                   return (
                   <tr key={sale._id} className="transition-colors hover:bg-sky-50/50">
-                    <td className="px-6 py-4 text-xs font-medium text-slate-700">{new Date(sale.saleDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-                    <td className="px-6 py-4 text-xs font-semibold text-slate-800">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenInvoicePdf(sale._id)}
-                        className="text-[10px] leading-tight text-blue-700 underline underline-offset-2 transition hover:text-blue-900"
-                      >
-                        {sale.invoiceNumber}
-                      </button>
-                    </td>
-                    <td className="px-6 py-4 text-xs font-medium text-slate-700">{resolveLeadgerNameById(sale.partyId || sale.party) || sale.customerName || '-'}</td>
-                    <td className="px-6 py-4 text-xs font-medium text-slate-700">{sale.vehicleNo || '-'}</td>
                     <td className="px-6 py-4">
-                      {sale.materialType ? (
-                        <span className="bg-amber-50 text-amber-700 px-2 py-1 rounded-full text-xs font-medium border border-amber-200">
-                          {sale.materialType.toUpperCase()}
+                      <div className="space-y-1">
+                        <p className="text-xs font-medium text-slate-700">
+                          {new Date(sale.saleDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenInvoicePdf(sale._id)}
+                          className="text-[10px] font-semibold leading-tight text-blue-700 underline underline-offset-2 transition hover:text-blue-900"
+                        >
+                          {sale.invoiceNumber}
+                        </button>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-cyan-500 text-white">
+                          <Truck className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold text-slate-800 lg:text-[12px] xl:text-sm">{sale.vehicleNo || '-'}</p>
+                          <p className="mt-0.5 truncate text-xs font-medium text-slate-500">
+                            {resolveLeadgerNameById(sale.partyId || sale.party) || sale.customerName || '-'}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      {(sale.materialType || sale.stoneSize) ? (
+                        <span className={`rounded-full px-2 py-1 text-xs font-medium ${getMaterialBadgeClass(sale.materialType || sale.stoneSize)}`}>
+                          {String(sale.materialType || sale.stoneSize).toUpperCase()}
                         </span>
                       ) : '-'}
                     </td>
                     <td className="px-6 py-4">
                       <div className="space-y-1 text-xs font-semibold text-slate-700">
-                        <p>{sale.entryTime || ''}</p>
-                        <p>{sale.exitTime || ''}</p>
+                        <p className="text-emerald-600">{sale.entryTime || ''}</p>
+                        <p className="text-rose-600">{sale.exitTime || ''}</p>
                       </div>
                     </td>
                     <td className="px-6 py-4">

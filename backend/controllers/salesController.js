@@ -215,9 +215,13 @@ const createSales = async (req, res) => {
   }
 };
 
-const getAllSales = async (_req, res) => {
+const getAllSales = async (req, res) => {
   try {
-    const sales = await Sales.find().sort({ createdAt: -1 });
+    const query = {};
+    if (req.visibilityBoundary) {
+       query.saleDate = { $gte: req.visibilityBoundary };
+    }
+    const sales = await Sales.find(query).sort({ createdAt: -1 });
     return res.json(sales.map(serializeSale));
   } catch (error) {
     return res.status(500).json({

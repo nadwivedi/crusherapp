@@ -35,7 +35,7 @@ const initialFormData = {
   slipImg: ''
 };
 
-export default function BoulderEntry({ onModalFinish = null }) {
+export default function BoulderEntry({ onModalFinish = null, editingEntry = null }) {
   const [formData, setFormData] = useState(initialFormData);
   const [vehicleQuery, setVehicleQuery] = useState('');
   const [vehicles, setVehicles] = useState([]);
@@ -54,6 +54,7 @@ export default function BoulderEntry({ onModalFinish = null }) {
   const inputClass = 'w-full rounded-lg border border-slate-400 bg-white px-2.5 py-1.5 text-[13px] text-gray-800 transition placeholder:text-slate-400 focus:border-transparent focus:outline-none focus:ring-2';
   const labelClass = 'mb-1 block text-[11px] font-semibold text-gray-700 md:text-xs';
   const getVehicleDisplayName = (vehicle) => String(vehicle?.vehicleNumber || vehicle?.vehicleNo || '').trim();
+  const isEditing = Boolean(editingEntry?._id);
 
   useEffect(() => {
     fetchVehicles();
@@ -64,6 +65,32 @@ export default function BoulderEntry({ onModalFinish = null }) {
       dateInputRef.current?.focus();
     });
   }, []);
+
+  useEffect(() => {
+    if (!editingEntry?._id) {
+      setFormData(initialFormData);
+      setVehicleQuery('');
+      return;
+    }
+
+    const vehicleId = typeof editingEntry.vehicleId === 'object'
+      ? editingEntry.vehicleId?._id || ''
+      : editingEntry.vehicleId || '';
+    const vehicleNo = getVehicleDisplayName(editingEntry.vehicleId) || editingEntry.vehicleNo || '';
+
+    setFormData({
+      vehicleId,
+      vehicleNo,
+      boulderDate: formatDateForInput(editingEntry.boulderDate || editingEntry.createdAt),
+      entryTime: editingEntry.entryTime || formatTimeForInput(editingEntry.boulderDate || editingEntry.createdAt),
+      exitTime: editingEntry.exitTime || '',
+      tareWeight: editingEntry.tareWeight === 0 ? '0' : String(editingEntry.tareWeight || ''),
+      grossWeight: editingEntry.grossWeight === 0 ? '0' : String(editingEntry.grossWeight || ''),
+      netWeight: editingEntry.netWeight === 0 ? '0' : String(editingEntry.netWeight || ''),
+      slipImg: editingEntry.slipImg || ''
+    });
+    setVehicleQuery(vehicleNo);
+  }, [editingEntry]);
 
   const filteredVehicles = useMemo(() => {
     const search = vehicleQuery.trim().toLowerCase();
@@ -213,8 +240,13 @@ export default function BoulderEntry({ onModalFinish = null }) {
         slipImg: formData.slipImg
       };
 
-      await apiClient.post('/boulders', payload);
-      toast.success('Boulder entry created successfully');
+      if (isEditing) {
+        await apiClient.put(`/boulders/${editingEntry._id}`, payload);
+        toast.success('Boulder entry updated successfully');
+      } else {
+        await apiClient.post('/boulders', payload);
+        toast.success('Boulder entry created successfully');
+      }
       setFormData(initialFormData);
       setVehicleQuery('');
       if (onModalFinish) {
@@ -403,8 +435,8 @@ export default function BoulderEntry({ onModalFinish = null }) {
         <div className="bg-[linear-gradient(135deg,#2563eb_0%,#4338ca_55%,#7c3aed_100%)] px-4 py-3 text-white">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-base font-bold md:text-lg">Add Boulder Entry</h2>
-              <p className="text-[11px] text-white/80 md:text-xs">Register incoming boulder weight</p>
+              <h2 className="text-base font-bold md:text-lg">{isEditing ? 'Edit Boulder Entry' : 'Add Boulder Entry'}</h2>
+              <p className="text-[11px] text-white/80 md:text-xs">{isEditing ? 'Update boulder weight entry' : 'Register incoming boulder weight'}</p>
             </div>
             <div className="flex items-center gap-2">
               <input
@@ -719,7 +751,7 @@ export default function BoulderEntry({ onModalFinish = null }) {
                 disabled={loading}
                 className="flex-1 rounded-lg bg-[linear-gradient(135deg,#2563eb_0%,#4338ca_100%)] px-5 py-2 text-sm font-semibold text-white transition hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50 md:flex-none md:px-6"
               >
-                {loading ? 'Saving...' : 'Save Entry'}
+                {loading ? 'Saving...' : isEditing ? 'Update Entry' : 'Save Entry'}
               </button>
             </div>
           </div>

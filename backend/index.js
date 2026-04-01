@@ -7,6 +7,7 @@ const connectDB = require("./config/mongodb");
 const authRoutes = require("./routes/authRoutes");
 const bankRoutes = require("./routes/bankRoutes");
 const boulderRoutes = require("./routes/boulderRoutes");
+const employeeRoutes = require("./routes/employeeRoutes");
 const expenseTypeRoutes = require("./routes/expenseTypeRoutes");
 const expenseRoutes = require("./routes/expenseRoutes");
 const materialUsedRoutes = require("./routes/materialUsedRoutes");
@@ -44,6 +45,7 @@ app.get("/", (req, res) => {
 app.use("/api/users", authRoutes);
 app.use("/api/banks", bankRoutes);
 app.use("/api/boulders", boulderRoutes);
+app.use("/api/employees", employeeRoutes);
 app.use("/api/expense-types", expenseTypeRoutes);
 app.use("/api/expense-groups", expenseTypeRoutes);
 app.use("/api/expenses", expenseRoutes);

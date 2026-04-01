@@ -80,23 +80,23 @@ const buildSummary = (entries) => entries.reduce((acc, entry) => {
 }, { ...DEFAULT_SUMMARY });
 
 const StatCard = ({ title, value, subtitle, icon: Icon, color, trend }) => (
-  <div className="relative overflow-hidden rounded-2xl bg-white px-4 py-3 shadow-lg border border-slate-100 hover:shadow-xl transition-all duration-300">
+  <div className="relative overflow-hidden rounded-2xl bg-white px-4 py-3 shadow-lg border border-slate-100 hover:shadow-xl transition-all duration-300 lg:px-3 lg:py-2.5 xl:px-4 xl:py-3">
     <div className={`absolute top-0 right-0 w-24 h-24 rounded-full opacity-10 -translate-y-1/2 translate-x-1/2 bg-gradient-to-br ${color}`} />
     <div className="relative z-10">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{title}</span>
-        <div className={`p-1.5 rounded-lg bg-gradient-to-br ${color}`}>
-          <Icon className="w-3.5 h-3.5 text-white" />
+        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 lg:text-[8px] xl:text-[10px]">{title}</span>
+        <div className={`p-1.5 rounded-lg bg-gradient-to-br lg:p-1 xl:p-1.5 ${color}`}>
+          <Icon className="w-3.5 h-3.5 text-white lg:h-3 lg:w-3 xl:h-3.5 xl:w-3.5" />
         </div>
       </div>
-      <div className="text-xl font-black leading-tight text-slate-800 tracking-tight">{value}</div>
+      <div className="text-xl font-black leading-tight text-slate-800 tracking-tight lg:text-[15px] xl:text-xl">{value}</div>
       <div className="flex items-center gap-1.5 mt-1">
         {trend !== undefined && (
-          <span className={`text-[10px] font-semibold ${trend > 0 ? 'text-emerald-600' : trend < 0 ? 'text-rose-600' : 'text-slate-500'}`}>
+          <span className={`text-[10px] font-semibold lg:text-[8px] xl:text-[10px] ${trend > 0 ? 'text-emerald-600' : trend < 0 ? 'text-rose-600' : 'text-slate-500'}`}>
             {trend > 0 ? '+' : ''}{typeof trend === 'number' ? formatCurrency(trend) : trend}
           </span>
         )}
-        <span className="text-[10px] text-slate-500">{subtitle}</span>
+        <span className="text-[10px] text-slate-500 lg:text-[8px] xl:text-[10px]">{subtitle}</span>
       </div>
     </div>
   </div>
@@ -198,7 +198,7 @@ export default function DayBook() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4 mb-8">
+        <div className="grid grid-cols-1 gap-4 mb-8 md:grid-cols-2 lg:grid-cols-5 lg:gap-3 xl:grid-cols-5 xl:gap-4">
           <StatCard title="Total Sales" value={formatCurrency(visibleSummary.sales)} subtitle="from invoices" icon={TrendingUp} color="from-emerald-500 to-teal-500" />
           <StatCard title="Total Purchases" value={formatCurrency(visibleSummary.purchases)} subtitle="from bills" icon={Package} color="from-rose-500 to-pink-500" />
           <StatCard title="Receipts" value={formatCurrency(visibleSummary.receipts)} subtitle="money received" icon={ArrowDownCircle} color="from-sky-500 to-cyan-500" trend={visibleSummary.receipts} />
@@ -282,13 +282,13 @@ export default function DayBook() {
             <table className="w-full min-w-[900px]">
               <thead>
                 <tr className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 text-white">
-                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Date/Time</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Type</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Voucher No.</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Party Name</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Method</th>
-                  <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider">Money In</th>
-                  <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider">Money Out</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Date/Time</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Type</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Voucher No.</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Party Name</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Method</th>
+                  <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Money In</th>
+                  <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Money Out</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -312,34 +312,34 @@ export default function DayBook() {
                     
                     return (
                       <tr key={`${entry.refId || entry.voucherNumber || entry.type}-${index}`} className="hover:bg-violet-50/50 transition-colors">
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-4 lg:px-4 lg:py-3 xl:px-6 xl:py-4">
                           <div>
-                            <p className="text-sm font-semibold text-slate-800">{formatDate(entry.entryCreatedAt || entry.date)}</p>
-                            <p className="text-xs text-slate-400">{formatTime(entry.entryCreatedAt || entry.date)}</p>
+                            <p className="text-sm font-semibold text-slate-800 lg:text-[12px] xl:text-sm">{formatDate(entry.entryCreatedAt || entry.date)}</p>
+                            <p className="text-xs text-slate-400 lg:text-[10px] xl:text-xs">{formatTime(entry.entryCreatedAt || entry.date)}</p>
                           </div>
                         </td>
-                        <td className="px-6 py-4">
-                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${colors.bg} ${colors.text}`}>
+                        <td className="px-6 py-4 lg:px-4 lg:py-3 xl:px-6 xl:py-4">
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold lg:px-2 lg:py-0.5 lg:text-[10px] xl:px-2.5 xl:py-1 xl:text-xs ${colors.bg} ${colors.text}`}>
                             {getEntryTypeLabel(entry)}
                           </span>
                         </td>
-                        <td className="px-6 py-4">
-                          <p className="text-sm text-slate-600 font-mono">{entry.voucherNumber || '-'}</p>
+                        <td className="px-6 py-4 lg:px-4 lg:py-3 xl:px-6 xl:py-4">
+                          <p className="text-sm text-slate-600 font-mono lg:text-[12px] xl:text-sm">{entry.voucherNumber || '-'}</p>
                         </td>
-                        <td className="px-6 py-4">
-                          <p className="text-sm font-semibold text-slate-800 max-w-[180px] truncate">{entry.partyName || '-'}</p>
+                        <td className="px-6 py-4 lg:px-4 lg:py-3 xl:px-6 xl:py-4">
+                          <p className="text-sm font-semibold text-slate-800 max-w-[180px] truncate lg:text-[12px] xl:text-sm">{entry.partyName || '-'}</p>
                         </td>
-                        <td className="px-6 py-4">
-                          <p className="text-sm text-slate-500 capitalize">{entry.method || '-'}</p>
+                        <td className="px-6 py-4 lg:px-4 lg:py-3 xl:px-6 xl:py-4">
+                          <p className="text-sm text-slate-500 capitalize lg:text-[12px] xl:text-sm">{entry.method || '-'}</p>
                         </td>
-                        <td className="px-6 py-4 text-right">
+                        <td className="px-6 py-4 text-right lg:px-4 lg:py-3 xl:px-6 xl:py-4">
                           {inAmount > 0 ? (
-                            <p className="text-sm font-bold text-emerald-600">+{formatCurrency(inAmount)}</p>
+                            <p className="text-sm font-bold text-emerald-600 lg:text-[12px] xl:text-sm">+{formatCurrency(inAmount)}</p>
                           ) : <span className="text-slate-300">-</span>}
                         </td>
-                        <td className="px-6 py-4 text-right">
+                        <td className="px-6 py-4 text-right lg:px-4 lg:py-3 xl:px-6 xl:py-4">
                           {outAmount > 0 ? (
-                            <p className="text-sm font-bold text-rose-600">-{formatCurrency(outAmount)}</p>
+                            <p className="text-sm font-bold text-rose-600 lg:text-[12px] xl:text-sm">-{formatCurrency(outAmount)}</p>
                           ) : <span className="text-slate-300">-</span>}
                         </td>
                       </tr>

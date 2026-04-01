@@ -1524,37 +1524,37 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
                 <table className="w-full min-w-[920px] text-left">
                   <thead>
                     <tr>
-                      <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white">Date</th>
-                      <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white">Ref</th>
-                      <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white">Expense Type</th>
-                      <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white">Party</th>
-                      <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-right text-xs font-bold uppercase tracking-wider text-white">Amount</th>
-                      <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-center text-xs font-bold uppercase tracking-wider text-white">Method</th>
-                      <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white">Notes</th>
+                      <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Date</th>
+                      <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Ref</th>
+                      <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Expense Type</th>
+                      <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Party</th>
+                      <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-right text-xs font-bold uppercase tracking-wider text-white lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Amount</th>
+                      <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-center text-xs font-bold uppercase tracking-wider text-white lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Method</th>
+                      <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Notes</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {visibleExpenses.map((expense) => (
                       <tr key={expense._id} className="transition-colors hover:bg-sky-50/50">
-                        <td className="px-6 py-4 text-sm font-medium text-slate-700">
+                        <td className="px-6 py-4 text-sm font-medium text-slate-700 lg:px-4 lg:py-3 lg:text-[12px] xl:px-6 xl:py-4 xl:text-sm">
                           {formatDate(expense.expenseDate)}
                         </td>
-                        <td className="px-6 py-4 text-sm font-semibold text-slate-800">
+                        <td className="px-6 py-4 text-sm font-semibold text-slate-800 lg:px-4 lg:py-3 lg:text-[12px] xl:px-6 xl:py-4 xl:text-sm">
                           {expense.expenseNumber || '-'}
                         </td>
-                        <td className="px-6 py-4 text-sm font-semibold text-slate-800">
+                        <td className="px-6 py-4 text-sm font-semibold text-slate-800 lg:px-4 lg:py-3 lg:text-[12px] xl:px-6 xl:py-4 xl:text-sm">
                           {expense.expenseGroup?.name || '-'}
                         </td>
-                        <td className="px-6 py-4 text-sm text-slate-700">{expense.party?.name || '-'}</td>
-                        <td className="px-6 py-4 text-right text-sm font-black text-emerald-600">
+                        <td className="px-6 py-4 text-sm text-slate-700 lg:px-4 lg:py-3 lg:text-[12px] xl:px-6 xl:py-4 xl:text-sm">{expense.party?.name || '-'}</td>
+                        <td className="px-6 py-4 text-right text-sm font-black text-emerald-600 lg:px-4 lg:py-3 lg:text-[12px] xl:px-6 xl:py-4 xl:text-sm">
                           {formatCurrency(expense.amount)}
                         </td>
-                        <td className="px-6 py-4 text-center">
-                          <span className={`inline-flex rounded-md px-2.5 py-1 text-xs font-semibold capitalize ${getMethodBadgeClass(expense.method)}`}>
+                        <td className="px-6 py-4 text-center lg:px-4 lg:py-3 xl:px-6 xl:py-4">
+                          <span className={`inline-flex rounded-md px-2.5 py-1 text-xs font-semibold capitalize lg:px-2 lg:py-0.5 lg:text-[10px] xl:px-2.5 xl:py-1 xl:text-xs ${getMethodBadgeClass(expense.method)}`}>
                             {expense.method}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-sm text-slate-700">
+                        <td className="px-6 py-4 text-sm text-slate-700 lg:px-4 lg:py-3 lg:text-[12px] xl:px-6 xl:py-4 xl:text-sm">
                           <div className="max-w-[24rem] truncate">{expense.notes || '-'}</div>
                         </td>
                       </tr>

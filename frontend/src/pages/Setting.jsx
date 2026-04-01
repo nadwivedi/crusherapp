@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import EmployeeManagement from '../components/EmployeeManagement';
 
 const STORAGE_KEY = 'crusher-app-settings';
 
@@ -311,6 +312,10 @@ export default function Setting() {
               </div>
               </div>
             </SettingCard>
+
+            {user?.role !== 'employee' && (
+               <EmployeeManagement />
+            )}
 
             <SettingCard
               title="Session"
