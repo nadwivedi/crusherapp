@@ -27,7 +27,8 @@ const initialFormData = {
   vehicleId: '',
   vehicleNo: '',
   boulderDate: formatDateForInput(),
-  boulderTime: formatTimeForInput(),
+  entryTime: '',
+  exitTime: '',
   tareWeight: '',
   grossWeight: '',
   netWeight: '',
@@ -204,7 +205,8 @@ export default function BoulderEntry({ onModalFinish = null }) {
         vehicleId: formData.vehicleId,
         vehicleNo: formData.vehicleNo.toUpperCase(),
         boulderDate: formData.boulderDate,
-        boulderTime: formData.boulderTime,
+        entryTime: formData.entryTime,
+        exitTime: formData.exitTime,
         tareWeight: parseFloat(formData.tareWeight),
         grossWeight: parseFloat(formData.grossWeight),
         netWeight: parseFloat(formData.netWeight),
@@ -272,7 +274,8 @@ export default function BoulderEntry({ onModalFinish = null }) {
       tareWeight > 0 ||
       netWeight > 0 ||
       data.boulderDate ||
-      data.boulderTime
+      data.entryTime ||
+      data.exitTime
     );
 
     if (ocrRaw) {
@@ -323,7 +326,8 @@ export default function BoulderEntry({ onModalFinish = null }) {
       tareWeight: tareWeight > 0 ? tareWeight : prev.tareWeight,
       netWeight: netWeight > 0 ? netWeight : prev.netWeight,
       boulderDate: data.boulderDate || prev.boulderDate,
-      boulderTime: data.boulderTime || prev.boulderTime,
+      entryTime: data.entryTime || prev.entryTime,
+      exitTime: data.exitTime || prev.exitTime,
       slipImg: data.slipImg || prev.slipImg
     }));
 
@@ -474,7 +478,7 @@ export default function BoulderEntry({ onModalFinish = null }) {
                   Boulder Details
                 </h3>
                 <div className="grid grid-cols-1 gap-3">
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className={`grid grid-cols-1 gap-3 ${formData.slipImg ? 'sm:grid-cols-3' : 'sm:grid-cols-1'}`}>
                     <div className="space-y-1">
                       <label className={labelClass}>Entry Date</label>
                       <input
@@ -488,16 +492,31 @@ export default function BoulderEntry({ onModalFinish = null }) {
                       />
                     </div>
 
-                    <div className="space-y-1">
-                      <label className={labelClass}>Entry Time</label>
-                      <input
-                        type="time"
-                        name="boulderTime"
-                        value={formData.boulderTime || ''}
-                        onChange={handleChange}
-                        className={`${inputClass} focus:ring-indigo-500`}
-                      />
-                    </div>
+                    {formData.slipImg && (
+                      <div className="grid grid-cols-2 gap-3 sm:col-span-2">
+                        <div className="space-y-1">
+                          <label className={labelClass}>Entry Time</label>
+                          <input
+                            type="time"
+                            name="entryTime"
+                            value={formData.entryTime || ''}
+                            onChange={handleChange}
+                            className={`${inputClass} focus:ring-indigo-500`}
+                          />
+                        </div>
+                        
+                        <div className="space-y-1">
+                          <label className={labelClass}>Exit Time</label>
+                          <input
+                            type="time"
+                            name="exitTime"
+                            value={formData.exitTime || ''}
+                            onChange={handleChange}
+                            className={`${inputClass} focus:ring-indigo-500`}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-1">

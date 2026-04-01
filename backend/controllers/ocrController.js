@@ -64,6 +64,30 @@ const parseSlipTime = (raw = "") => {
 };
 
 /**
+ * Sort two HH:MM time strings and return { entryTime, exitTime }.
+ */
+const resolveEntryAndExitTimes = (time1, time2) => {
+  const t1 = parseSlipTime(time1);
+  const t2 = parseSlipTime(time2);
+  
+  if (!t1 && !t2) return { entryTime: "", exitTime: "" };
+  if (t1 && !t2) return { entryTime: t1, exitTime: t1 };
+  if (!t1 && t2) return { entryTime: t2, exitTime: t2 };
+
+  // Compare minutes since midnight
+  const [h1, m1] = t1.split(":").map(Number);
+  const [h2, m2] = t2.split(":").map(Number);
+  const minutes1 = h1 * 60 + m1;
+  const minutes2 = h2 * 60 + m2;
+
+  if (minutes1 <= minutes2) {
+    return { entryTime: t1, exitTime: t2 };
+  } else {
+    return { entryTime: t2, exitTime: t1 };
+  }
+};
+
+/**
  * Fix common OCR character confusions in the LAST 4 DIGITS of an Indian
  * vehicle registration number.
  *
@@ -177,11 +201,14 @@ Fields to extract:
 - tareWeight: TARE weight in kg (number only)
 - netWeight: NET weight in kg (number only)
 - saleDate: date in DD/MM/YYYY format
+- time1: first time seen on the slip (HH:MM format, 24h)
+- time2: second time seen on the slip (HH:MM format, 24h, or "" if only one time visible)
 
 Return ONLY:
-{"vehicleNo":"","materialType":"","grossWeight":0,"tareWeight":0,"netWeight":0,"saleDate":""}`;
+{"vehicleNo":"","materialType":"","grossWeight":0,"tareWeight":0,"netWeight":0,"saleDate":"","time1":"","time2":""}`;
 
     const parsed = await callGroq(apiKey, dataUrl, prompt);
+    const { entryTime, exitTime } = resolveEntryAndExitTimes(parsed.time1, parsed.time2);
 
     return res.json({
       vehicleNo:    normalizeVehicleNo(parsed.vehicleNo),
@@ -190,6 +217,8 @@ Return ONLY:
       tareWeight:   Number(parsed.tareWeight)  || 0,
       netWeight:    Number(parsed.netWeight)   || 0,
       saleDate:     parseSlipDate(parsed.saleDate),
+      entryTime,
+      exitTime
     });
   } catch (err) {
     console.error("Sale OCR extraction error:", err);
@@ -221,12 +250,14 @@ Fields to extract:
 - tareWeight: TARE weight in kg (number only)
 - netWeight: NET weight in kg (number only)
 - boulderDate: date in DD/MM/YYYY format
-- boulderTime: time in HH:MM 24h format, or "" if not visible
+- time1: first time seen on the slip (HH:MM format, 24h)
+- time2: second time seen on the slip (HH:MM format, 24h, or "" if only one time visible)
 
 Return ONLY:
-{"vehicleNo":"","grossWeight":0,"tareWeight":0,"netWeight":0,"boulderDate":"","boulderTime":""}`;
+{"vehicleNo":"","grossWeight":0,"tareWeight":0,"netWeight":0,"boulderDate":"","time1":"","time2":""}`;
 
     const parsed = await callGroq(apiKey, dataUrl, prompt);
+    const { entryTime, exitTime } = resolveEntryAndExitTimes(parsed.time1, parsed.time2);
 
     return res.json({
       vehicleNo:   normalizeVehicleNo(parsed.vehicleNo),
@@ -235,7 +266,8 @@ Return ONLY:
       tareWeight:   Number(parsed.tareWeight)  || 0,
       netWeight:    Number(parsed.netWeight)   || 0,
       boulderDate:  parseSlipDate(parsed.boulderDate || parsed.saleDate),
-      boulderTime:  parseSlipTime(parsed.boulderTime || parsed.saleTime),
+      entryTime,
+      exitTime
     });
   } catch (err) {
     console.error("Boulder OCR extraction error:", err);

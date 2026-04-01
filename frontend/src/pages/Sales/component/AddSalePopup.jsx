@@ -212,7 +212,7 @@ export default function AddSalePopup({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/55 p-0 backdrop-blur-[2px] md:items-center md:p-6" onClick={handleCancel}>
-      <div className="relative flex h-[100dvh] max-h-[100dvh] w-full max-w-[30rem] flex-col overflow-hidden rounded-none border border-slate-200 bg-white shadow-[0_30px_80px_rgba(15,23,42,0.28)] md:h-auto md:max-h-[88vh] md:rounded-2xl" onClick={(e) => e.stopPropagation()}>
+      <div className="relative flex h-[100dvh] max-h-[100dvh] w-full max-w-[30rem] md:max-w-[40rem] flex-col overflow-hidden rounded-none border border-slate-200 bg-white shadow-[0_30px_80px_rgba(15,23,42,0.28)] md:h-auto md:max-h-[88vh] md:rounded-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="bg-[linear-gradient(135deg,#2563eb_0%,#4338ca_55%,#7c3aed_100%)] px-4 py-3 text-white">
           <div className="flex justify-between items-center">
             <h2 className="text-base font-bold md:text-lg">
@@ -302,7 +302,7 @@ export default function AddSalePopup({
                     Sale Details
                   </h3>
                   <div className="grid grid-cols-1 gap-3">
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className={`grid grid-cols-1 gap-3 ${formData?.slipImg ? 'sm:grid-cols-3' : 'sm:grid-cols-1'}`}>
                     <div className="space-y-1">
                       <label className={labelClass}>Invoice Date</label>
                       <div className="relative">
@@ -319,17 +319,33 @@ export default function AddSalePopup({
                       </div>
                     </div>
 
-                    <div className="space-y-1">
-                      <label className={labelClass}>Sale Time</label>
-                      <input
-                        type="time"
-                        name="saleTime"
-                        value={formData.saleTime || ''}
-                        onChange={handleInputChange}
-                        onKeyDown={handleSelectEnterMoveNext}
-                        className={`${inputClass} focus:ring-indigo-500`}
-                      />
-                    </div>
+                    {formData?.slipImg && (
+                      <div className="grid grid-cols-2 gap-3 sm:col-span-2">
+                        <div className="space-y-1">
+                          <label className={labelClass}>Entry Time</label>
+                          <input
+                            type="time"
+                            name="entryTime"
+                            value={formData.entryTime || ''}
+                            onChange={handleInputChange}
+                            onKeyDown={handleSelectEnterMoveNext}
+                            className={`${inputClass} focus:ring-indigo-500`}
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className={labelClass}>Exit Time</label>
+                          <input
+                            type="time"
+                            name="exitTime"
+                            value={formData.exitTime || ''}
+                            onChange={handleInputChange}
+                            onKeyDown={handleSelectEnterMoveNext}
+                            className={`${inputClass} focus:ring-indigo-500`}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-1">

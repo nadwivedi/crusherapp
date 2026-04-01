@@ -90,7 +90,8 @@ const parseSaleDate = (value) => {
 
 const getInitialFormData = () => ({
   saleDate: formatDateForInput(),
-  saleTime: formatTimeForInput(),
+  entryTime: '',
+  exitTime: '',
   party: '',
   customerName: '',
   customerPhone: '',
@@ -1503,7 +1504,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
   const handleOcrFill = (data) => {
     if (!data) return;
 
-    const { vehicleNo: ocrRaw, materialType, grossWeight, tareWeight, netWeight, saleDate } = data;
+    const { vehicleNo: ocrRaw, materialType, grossWeight, tareWeight, netWeight, saleDate, entryTime, exitTime } = data;
     const upperOcrRaw = String(ocrRaw || '').trim().toUpperCase();
 
     // Vehicle No
@@ -1603,6 +1604,14 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
       setFormData((prev) => ({ ...prev, saleDate }));
     }
 
+    if (entryTime) {
+      setFormData((prev) => ({ ...prev, entryTime }));
+    }
+
+    if (exitTime) {
+      setFormData((prev) => ({ ...prev, exitTime }));
+    }
+
     if (data?.slipImg) {
       setFormData((prev) => ({ ...prev, slipImg: data.slipImg }));
     }
@@ -1700,7 +1709,8 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         ...sale,
       party: normalizedPartyId,
       saleDate: formatDateForInput(sale.saleDate),
-      saleTime: sale.saleTime || formatTimeForInput(sale.saleDate),
+      entryTime: sale.entryTime || formatTimeForInput(sale.saleDate),
+      exitTime: sale.exitTime || formatTimeForInput(sale.saleDate),
       customerName: resolvedLeadgerName,
       customerPhone: String(sale.customerPhone || '').replace(/\D/g, '').slice(0, 10),
       customerAddress: sale.customerAddress || '',

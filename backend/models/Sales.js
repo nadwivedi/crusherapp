@@ -24,7 +24,12 @@ const salesSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
-    saleTime: {
+    entryTime: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    exitTime: {
       type: String,
       trim: true,
       default: "",

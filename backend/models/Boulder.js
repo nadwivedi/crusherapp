@@ -46,7 +46,12 @@ const boulderSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
-    boulderTime: {
+    entryTime: {
+      type: String,
+      trim: true,
+      default: getCurrentTime,
+    },
+    exitTime: {
       type: String,
       trim: true,
       default: getCurrentTime,
