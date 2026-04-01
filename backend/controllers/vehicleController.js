@@ -13,9 +13,11 @@ const createVehicle = async (req, res) => {
   }
 };
 
-const getAllVehicles = async (_req, res) => {
+const getAllVehicles = async (req, res) => {
   try {
-    const vehicles = await Vehicle.find().sort({ createdAt: -1 });
+    const { vehicleType } = req.query;
+    const filter = vehicleType ? { vehicleType } : {};
+    const vehicles = await Vehicle.find(filter).sort({ createdAt: -1 });
     return res.json(vehicles);
   } catch (error) {
     return res.status(500).json({

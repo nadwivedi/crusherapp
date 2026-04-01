@@ -82,7 +82,7 @@ export default function BoulderEntry({ onModalFinish = null }) {
 
   const fetchVehicles = async () => {
     try {
-      const response = await apiClient.get('/vehicles');
+      const response = await apiClient.get('/vehicles', { params: { vehicleType: 'boulder' } });
       setVehicles(Array.isArray(response) ? response : []);
     } catch (error) {
       console.error('Error fetching vehicles:', error);
@@ -262,12 +262,12 @@ export default function BoulderEntry({ onModalFinish = null }) {
   const handleOcrFill = useCallback((data) => {
     if (!data) return;
 
-    const vehicleNo = String(data.vehicleNo || '').trim().toUpperCase();
+    const ocrRaw = String(data.vehicleNo || '').trim().toUpperCase();
     const grossWeight = Number(data.grossWeight || 0);
     const tareWeight = Number(data.tareWeight || 0);
     const netWeight = Number(data.netWeight || 0) || Math.max(grossWeight - tareWeight, 0);
     const hasExtractedFields = Boolean(
-      vehicleNo ||
+      ocrRaw ||
       grossWeight > 0 ||
       tareWeight > 0 ||
       netWeight > 0 ||
@@ -275,17 +275,50 @@ export default function BoulderEntry({ onModalFinish = null }) {
       data.boulderTime
     );
 
-    if (vehicleNo) {
-      setVehicleQuery(vehicleNo);
-      const matchedVehicle = vehicles.find((vehicle) => getVehicleDisplayName(vehicle).toUpperCase() === vehicleNo);
+    if (ocrRaw) {
+      // --- Smart vehicle matching with last-4-digit fallback ---
+      // 1. Exact match
+      let matchedVehicle = vehicles.find(
+        (v) => getVehicleDisplayName(v).toUpperCase() === ocrRaw
+      );
+
+      // 2. Last-4-digit match (handles OCR mistakes in prefix letters)
+      if (!matchedVehicle) {
+        const last4 = ocrRaw.replace(/\D/g, '').slice(-4); // last 4 digits only
+        if (last4.length === 4) {
+          matchedVehicle = vehicles.find((v) => {
+            const vNo = getVehicleDisplayName(v).toUpperCase();
+            const vLast4 = vNo.replace(/\D/g, '').slice(-4);
+            return vLast4 === last4;
+          });
+        }
+      }
+
+      // 3. Partial string includes match (fallback)
+      if (!matchedVehicle) {
+        matchedVehicle = vehicles.find((v) =>
+          getVehicleDisplayName(v).toUpperCase().includes(ocrRaw.slice(-4))
+        );
+      }
+
+      const resolvedVehicleNo = matchedVehicle
+        ? getVehicleDisplayName(matchedVehicle).toUpperCase()
+        : ocrRaw;
+
+      setVehicleQuery(resolvedVehicleNo);
       if (matchedVehicle) {
         selectVehicle(matchedVehicle);
+      } else {
+        setFormData((prev) => ({
+          ...prev,
+          vehicleNo: resolvedVehicleNo
+        }));
       }
     }
 
     setFormData((prev) => updateWeights({
       ...prev,
-      vehicleNo: vehicleNo || prev.vehicleNo,
+      vehicleNo: ocrRaw || prev.vehicleNo,
       grossWeight: grossWeight > 0 ? grossWeight : prev.grossWeight,
       tareWeight: tareWeight > 0 ? tareWeight : prev.tareWeight,
       netWeight: netWeight > 0 ? netWeight : prev.netWeight,

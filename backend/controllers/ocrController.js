@@ -1,6 +1,7 @@
 const multer = require("multer");
 
-// Use memory storage so we don't touch the disk
+// ─── Multer Setup ────────────────────────────────────────────────────────────
+
 const storage = multer.memoryStorage();
 const upload = multer({
   storage,
@@ -14,9 +15,10 @@ const upload = multer({
   },
 });
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
 /**
- * Normalize the raw material string from the slip into one of the
- * allowed enum values: 60mm | 40mm | 20mm | 10mm | 6mm | 4mm | dust | wmm | gsb
+ * Normalize material type string into allowed enum values.
  */
 const normalizeMaterial = (raw = "") => {
   const s = String(raw).trim().toLowerCase().replace(/\s+/g, "");
@@ -33,18 +35,15 @@ const normalizeMaterial = (raw = "") => {
 };
 
 /**
- * Parse a date string from the slip (DD/MM/YYYY or YYYY/MM/DD) and
- * return it as yyyy-mm-dd for the HTML date input.
+ * Parse a date string (DD/MM/YYYY or YYYY-MM-DD) → yyyy-mm-dd.
  */
 const parseSlipDate = (raw = "") => {
   const s = String(raw).trim();
-  // DD/MM/YYYY
   const dmy = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
   if (dmy) {
     const [, d, m, y] = dmy;
     return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
   }
-  // YYYY/MM/DD or YYYY-MM-DD
   const ymd = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
   if (ymd) {
     const [, y, m, d] = ymd;
@@ -53,6 +52,9 @@ const parseSlipDate = (raw = "") => {
   return "";
 };
 
+/**
+ * Parse a time string → HH:MM.
+ */
 const parseSlipTime = (raw = "") => {
   const s = String(raw || "").trim();
   const match = s.match(/^(\d{1,2})[:.](\d{2})/);
@@ -61,190 +63,180 @@ const parseSlipTime = (raw = "") => {
   return `${String(Number(h)).padStart(2, "0")}:${String(Number(m)).padStart(2, "0")}`;
 };
 
-const extractSaleFromImage = async (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ message: "No image file provided" });
+/**
+ * Fix common OCR character confusions in the LAST 4 DIGITS of an Indian
+ * vehicle registration number.
+ *
+ * Indian plates:  SS 00 LL 0000  (10 chars) e.g. CG04AB6430
+ *            or:  SS 00 L  0000  ( 9 chars) e.g. CG12Y1234
+ *
+ * The last 4 characters are ALWAYS digits. Letters misread there are
+ * corrected using the table below with very high confidence.
+ *
+ * Map: O→0  I/L→1  S→5  B→8  Z→2  G→6  T→7  A→4
+ */
+const LETTER_TO_DIGIT = {
+  O: "0", I: "1", L: "1", S: "5",
+  B: "8", Z: "2", G: "6", T: "7", A: "4",
+};
+
+const normalizeVehicleNo = (raw = "") => {
+  const s = String(raw).trim().toUpperCase().replace(/[\s\-]/g, "");
+  if (s.length < 4) return s;
+
+  const prefix = s.slice(0, s.length - 4); // everything before last 4
+  const suffix = s.slice(-4);               // last 4 — always should be digits
+
+  const fixedSuffix = suffix
+    .split("")
+    .map((ch) => LETTER_TO_DIGIT[ch] ?? ch)
+    .join("");
+
+  return prefix + fixedSuffix;
+};
+
+// ─── Shared Groq Caller ───────────────────────────────────────────────────────
+
+const callGroq = async (apiKey, dataUrl, prompt) => {
+  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: "meta-llama/llama-4-scout-17b-16e-instruct",
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "image_url", image_url: { url: dataUrl } },
+            { type: "text", text: prompt },
+          ],
+        },
+      ],
+      max_tokens: 256,
+      temperature: 0,
+    }),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Groq API error: ${errText}`);
   }
+
+  const groqData = await response.json();
+  const rawContent = groqData?.choices?.[0]?.message?.content || "";
+  const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error(`Could not parse OCR JSON. Raw: ${rawContent}`);
+  }
+  return JSON.parse(jsonMatch[0]);
+};
+
+// ─── Shared prompt section for vehicle number ────────────────────────────────
+
+const VEHICLE_NO_PROMPT = `
+IMPORTANT — Indian Vehicle Number Format:
+Indian vehicle numbers are 9 or 10 characters with NO spaces or hyphens:
+  10-char: SS 00 LL 0000  e.g. CG04AB6430  (2-letter series)
+   9-char: SS 00 L  0000  e.g. CG12Y1234   (1-letter series)
+  SS = 2-letter state code (CG, MP, MH, UP, RJ, HR …)
+  00 = 2-digit district number
+  L/LL = 1 or 2 letter series code
+  0000 = 4-digit serial — THE LAST 4 CHARACTERS ARE ALWAYS DIGITS, NEVER LETTERS
+
+Common OCR confusions to watch for:
+  Last 4 digits: O→0, I or L→1, S→5, B→8, Z→2, G→6, T→7, A→4
+  Letter section: digit 0 may look like letter O, digit 1 like I — keep as letters there
+  Y and V look very similar — read carefully from the image
+  Output the full number as a single string with no spaces or hyphens.`;
+
+// ─── Sales OCR ───────────────────────────────────────────────────────────────
+
+const extractSaleFromImage = async (req, res) => {
+  if (!req.file) return res.status(400).json({ message: "No image file provided" });
 
   const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ message: "GROQ_API_KEY is not configured" });
-  }
+  if (!apiKey) return res.status(500).json({ message: "GROQ_API_KEY is not configured" });
 
   try {
-    // Convert buffer to base64 data URL
     const base64 = req.file.buffer.toString("base64");
     const mimeType = req.file.mimetype || "image/jpeg";
     const dataUrl = `data:${mimeType};base64,${base64}`;
 
-    const prompt = `You are an OCR assistant for a stone crusher business. 
-Extract the following fields from this weighbridge slip image and return ONLY a valid JSON object with no extra text or markdown.
+    const prompt =
+      `You are an OCR assistant for a stone crusher business in India.
+Extract fields from this weighbridge SALE slip. Return ONLY a valid JSON object, no markdown.
+${VEHICLE_NO_PROMPT}
 
 Fields to extract:
-- vehicleNo: vehicle registration number (e.g. MP22ZD6430)
-- materialType: material/stone type (e.g. 60MM, 40MM, 20MM, 10MM, 6MM, 4MM, WMM, GSB, DUST)
-- grossWeight: GROSS Wt in kg (numeric, no units)
-- tareWeight: TARE Wt in kg (numeric, no units)  
-- netWeight: NET Wt in kg (numeric, no units)
-- saleDate: date from the slip in DD/MM/YYYY format
+- vehicleNo: vehicle registration number (9 or 10 chars, no spaces)
+- materialType: stone type (60MM, 40MM, 20MM, 10MM, 6MM, 4MM, WMM, GSB, DUST)
+- grossWeight: GROSS weight in kg (number only)
+- tareWeight: TARE weight in kg (number only)
+- netWeight: NET weight in kg (number only)
+- saleDate: date in DD/MM/YYYY format
 
-Return ONLY this JSON format:
+Return ONLY:
 {"vehicleNo":"","materialType":"","grossWeight":0,"tareWeight":0,"netWeight":0,"saleDate":""}`;
 
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: "meta-llama/llama-4-scout-17b-16e-instruct",
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "image_url",
-                image_url: { url: dataUrl },
-              },
-              {
-                type: "text",
-                text: prompt,
-              },
-            ],
-          },
-        ],
-        max_tokens: 256,
-        temperature: 0,
-      }),
-    });
+    const parsed = await callGroq(apiKey, dataUrl, prompt);
 
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error("Groq API error:", errText);
-      return res.status(502).json({ message: "Groq API request failed", detail: errText });
-    }
-
-    const groqData = await response.json();
-    const rawContent = groqData?.choices?.[0]?.message?.content || "";
-
-    // Extract JSON from the response (strip any markdown fences if present)
-    const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      return res.status(422).json({
-        message: "Could not parse OCR response as JSON",
-        raw: rawContent,
-      });
-    }
-
-    const parsed = JSON.parse(jsonMatch[0]);
-
-    // Normalize and validate the extracted values
-    const result = {
-      vehicleNo: String(parsed.vehicleNo || "").trim().toUpperCase(),
+    return res.json({
+      vehicleNo:    normalizeVehicleNo(parsed.vehicleNo),
       materialType: normalizeMaterial(parsed.materialType),
-      grossWeight: Number(parsed.grossWeight) || 0,
-      tareWeight: Number(parsed.tareWeight) || 0,
-      netWeight: Number(parsed.netWeight) || 0,
-      saleDate: parseSlipDate(parsed.saleDate),
-    };
-
-    return res.json(result);
+      grossWeight:  Number(parsed.grossWeight) || 0,
+      tareWeight:   Number(parsed.tareWeight)  || 0,
+      netWeight:    Number(parsed.netWeight)   || 0,
+      saleDate:     parseSlipDate(parsed.saleDate),
+    });
   } catch (err) {
-    console.error("OCR extraction error:", err);
+    console.error("Sale OCR extraction error:", err);
     return res.status(500).json({ message: "OCR extraction failed", error: err.message });
   }
 };
 
+// ─── Boulder OCR ─────────────────────────────────────────────────────────────
+
 const extractBoulderFromImage = async (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ message: "No image file provided" });
-  }
+  if (!req.file) return res.status(400).json({ message: "No image file provided" });
 
   const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ message: "GROQ_API_KEY is not configured" });
-  }
+  if (!apiKey) return res.status(500).json({ message: "GROQ_API_KEY is not configured" });
 
   try {
     const base64 = req.file.buffer.toString("base64");
     const mimeType = req.file.mimetype || "image/jpeg";
     const dataUrl = `data:${mimeType};base64,${base64}`;
 
-    const prompt = `You are an OCR assistant for a stone crusher business.
-This is a BOULDER weighbridge slip similar to sample files named boulder.jpeg and boulder2.jpeg.
-Extract the following fields from this boulder slip image and return ONLY a valid JSON object with no extra text or markdown.
+    const prompt =
+      `You are an OCR assistant for a stone crusher business in India.
+Extract fields from this BOULDER weighbridge slip (raw material incoming). Return ONLY a valid JSON object, no markdown.
+${VEHICLE_NO_PROMPT}
 
 Fields to extract:
-- vehicleNo: vehicle registration number (e.g. CG04AB1234)
-- materialType: always return "boulder"
-- grossWeight: GROSS Wt in kg (numeric, no units)
-- tareWeight: TARE Wt in kg (numeric, no units)
-- netWeight: NET Wt in kg (numeric, no units)
-- boulderDate: date from the slip in DD/MM/YYYY format
-- boulderTime: time from the slip in HH:MM format if visible, otherwise ""
+- vehicleNo: vehicle registration number (9 or 10 chars, no spaces)
+- grossWeight: GROSS weight in kg (number only)
+- tareWeight: TARE weight in kg (number only)
+- netWeight: NET weight in kg (number only)
+- boulderDate: date in DD/MM/YYYY format
+- boulderTime: time in HH:MM 24h format, or "" if not visible
 
-Return ONLY this JSON format:
-{"vehicleNo":"","materialType":"boulder","grossWeight":0,"tareWeight":0,"netWeight":0,"boulderDate":"","boulderTime":""}`;
+Return ONLY:
+{"vehicleNo":"","grossWeight":0,"tareWeight":0,"netWeight":0,"boulderDate":"","boulderTime":""}`;
 
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: "meta-llama/llama-4-scout-17b-16e-instruct",
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "image_url",
-                image_url: { url: dataUrl },
-              },
-              {
-                type: "text",
-                text: prompt,
-              },
-            ],
-          },
-        ],
-        max_tokens: 256,
-        temperature: 0,
-      }),
-    });
+    const parsed = await callGroq(apiKey, dataUrl, prompt);
 
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error("Groq API error:", errText);
-      return res.status(502).json({ message: "Groq API request failed", detail: errText });
-    }
-
-    const groqData = await response.json();
-    const rawContent = groqData?.choices?.[0]?.message?.content || "";
-    const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
-
-    if (!jsonMatch) {
-      return res.status(422).json({
-        message: "Could not parse OCR response as JSON",
-        raw: rawContent,
-      });
-    }
-
-    const parsed = JSON.parse(jsonMatch[0]);
-
-    const result = {
-      vehicleNo: String(parsed.vehicleNo || "").trim().toUpperCase(),
+    return res.json({
+      vehicleNo:   normalizeVehicleNo(parsed.vehicleNo),
       materialType: "boulder",
-      grossWeight: Number(parsed.grossWeight) || 0,
-      tareWeight: Number(parsed.tareWeight) || 0,
-      netWeight: Number(parsed.netWeight) || 0,
-      boulderDate: parseSlipDate(parsed.boulderDate || parsed.saleDate),
-      boulderTime: parseSlipTime(parsed.boulderTime || parsed.saleTime),
-    };
-
-    return res.json(result);
+      grossWeight:  Number(parsed.grossWeight) || 0,
+      tareWeight:   Number(parsed.tareWeight)  || 0,
+      netWeight:    Number(parsed.netWeight)   || 0,
+      boulderDate:  parseSlipDate(parsed.boulderDate || parsed.saleDate),
+      boulderTime:  parseSlipTime(parsed.boulderTime || parsed.saleTime),
+    });
   } catch (err) {
     console.error("Boulder OCR extraction error:", err);
     return res.status(500).json({ message: "Boulder OCR extraction failed", error: err.message });

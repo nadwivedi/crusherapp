@@ -358,7 +358,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
 
   const fetchVehicles = async () => {
     try {
-      const response = await apiClient.get('/vehicles');
+      const response = await apiClient.get('/vehicles', { params: { vehicleType: 'sales' } });
       setVehicles(Array.isArray(response) ? response : []);
     } catch (err) {
       console.error('Error fetching vehicles:', err);
@@ -1503,18 +1503,39 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
   const handleOcrFill = (data) => {
     if (!data) return;
 
-    const { vehicleNo, materialType, grossWeight, tareWeight, netWeight, saleDate } = data;
+    const { vehicleNo: ocrRaw, materialType, grossWeight, tareWeight, netWeight, saleDate } = data;
+    const upperOcrRaw = String(ocrRaw || '').trim().toUpperCase();
 
     // Vehicle No
-    if (vehicleNo) {
-      const upperVehicle = String(vehicleNo).toUpperCase();
-      setVehicleQuery(upperVehicle);
-      const matched = vehicles.find(
-        (v) => String(v.vehicleNo || '').toUpperCase() === upperVehicle
+    if (upperOcrRaw) {
+      // 1. Exact match
+      let matchedVehicle = vehicles.find(
+        (v) => String(v.vehicleNo || '').toUpperCase() === upperOcrRaw
       );
-      if (matched) {
-        selectVehicle(matched);
+
+      // 2. Last-4-digit match (handles OCR mistakes like Y→V, 0→O)
+      if (!matchedVehicle) {
+        const last4 = upperOcrRaw.replace(/\D/g, '').slice(-4);
+        if (last4.length === 4) {
+          matchedVehicle = vehicles.find((v) => {
+            const vLast4 = String(v.vehicleNo || '').replace(/\D/g, '').slice(-4);
+            return vLast4 === last4;
+          });
+        }
+      }
+
+      // 3. Partial includes fallback
+      if (!matchedVehicle) {
+        const tail = upperOcrRaw.slice(-4);
+        matchedVehicle = vehicles.find((v) =>
+          String(v.vehicleNo || '').toUpperCase().includes(tail)
+        );
+      }
+
+      if (matchedVehicle) {
+        selectVehicle(matchedVehicle);
       } else {
+        setVehicleQuery(upperOcrRaw);
         setFormData((prev) => {
           const tare = Number(tareWeight || prev.tareWeight || 0);
           const gross = Number(grossWeight || prev.grossWeight || 0);
@@ -1522,7 +1543,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
           const total = calculateSaleTotalAmount(net, prev.rate);
           return {
             ...prev,
-            vehicleNo: upperVehicle,
+            vehicleNo: upperOcrRaw,
             tareWeight: tare || prev.tareWeight,
             grossWeight: gross || prev.grossWeight,
             netWeight: net || prev.netWeight,
@@ -1552,11 +1573,16 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
     }
 
     // Weights (only if vehicle wasn't already matched — vehicle match sets them)
-    const matchedVehicle = vehicleNo
-      ? vehicles.find((v) => String(v.vehicleNo || '').toUpperCase() === String(vehicleNo).toUpperCase())
-      : null;
+    // 1. Try exact logic again here to avoid overwriting netWeight if vehicle was matched above
+    let matchedVehicleForWeights = null;
+    if (upperOcrRaw) {
+      const last4 = upperOcrRaw.replace(/\D/g, '').slice(-4);
+      matchedVehicleForWeights = vehicles.find((v) => String(v.vehicleNo || '').toUpperCase() === upperOcrRaw)
+        || (last4.length === 4 ? vehicles.find((v) => String(v.vehicleNo || '').replace(/\D/g, '').slice(-4) === last4) : null)
+        || vehicles.find((v) => String(v.vehicleNo || '').toUpperCase().includes(upperOcrRaw.slice(-4)));
+    }
 
-    if (!matchedVehicle) {
+    if (!matchedVehicleForWeights) {
       const tare = Number(tareWeight || 0);
       const gross = Number(grossWeight || 0);
       const net = Number(netWeight || 0) || (gross - tare);
