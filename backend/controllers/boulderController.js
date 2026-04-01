@@ -90,6 +90,14 @@ const normalizeBoulderPayload = async (payload) => {
     normalizedPayload.boulderTime = `${normalizedPayload.boulderTime}`.trim().slice(0, 5);
   }
 
+  if (normalizedPayload.entryTime !== undefined) {
+    normalizedPayload.entryTime = `${normalizedPayload.entryTime || ""}`.trim().slice(0, 5);
+  }
+
+  if (normalizedPayload.exitTime !== undefined) {
+    normalizedPayload.exitTime = `${normalizedPayload.exitTime || ""}`.trim().slice(0, 5);
+  }
+
   if (!normalizedPayload.boulderTime) {
     normalizedPayload.boulderTime = getCurrentTime();
   }

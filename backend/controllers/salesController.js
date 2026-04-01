@@ -58,6 +58,14 @@ const normalizeSalesPayload = (payload = {}) => {
     nextPayload.netWeight = toNumber(nextPayload.grossWeight) - toNumber(nextPayload.tareWeight);
   }
 
+  if (Object.prototype.hasOwnProperty.call(nextPayload, "entryTime")) {
+    nextPayload.entryTime = `${nextPayload.entryTime || ""}`.trim().slice(0, 5);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(nextPayload, "exitTime")) {
+    nextPayload.exitTime = `${nextPayload.exitTime || ""}`.trim().slice(0, 5);
+  }
+
   delete nextPayload.party;
   delete nextPayload.materialType;
   delete nextPayload.invoice;
@@ -80,6 +88,8 @@ const serializeSale = (saleDoc) => {
     party: sale.partyId || null,
     materialType: sale.stoneSize || "",
     invoice: sale.invoiceNumber || "",
+    entryTime: `${sale.entryTime || ""}`.trim().slice(0, 5),
+    exitTime: `${sale.exitTime || ""}`.trim().slice(0, 5),
     tareWeight,
     grossWeight,
     netWeight,

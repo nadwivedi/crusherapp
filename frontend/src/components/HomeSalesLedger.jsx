@@ -20,6 +20,11 @@ const formatNumber = (value) => Number(value || 0).toLocaleString('en-IN', {
   maximumFractionDigits: 2
 });
 
+const formatTime = (value) => {
+  const normalized = String(value || '').trim();
+  return normalized || '-';
+};
+
 const formatSaleTypeLabel = (value) => {
   if (value === 'cash sale') return 'Cash Sale';
   if (value === 'credit sale') return 'Credit Sale';
@@ -39,9 +44,9 @@ function StatCard({ title, value, subtitle, icon: Icon, tone }) {
     <div className="rounded-2xl border border-white/70 bg-white/90 px-4 py-3 shadow-[0_16px_30px_rgba(15,23,42,0.08)] lg:px-3 lg:py-2.5 xl:px-4 xl:py-3">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500 lg:text-[8px] xl:text-[10px]">{title}</p>
-          <p className="mt-1 text-lg font-black text-slate-800 lg:text-[14px] xl:text-lg">{value}</p>
-          <p className="mt-0.5 text-xs text-slate-500 lg:text-[10px] xl:text-xs">{subtitle}</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500 lg:text-[7px] xl:text-[10px]">{title}</p>
+          <p className="mt-1 text-lg font-black text-slate-800 lg:text-[12px] xl:text-lg">{value}</p>
+          <p className="mt-0.5 text-xs text-slate-500 lg:text-[9px] xl:text-xs">{subtitle}</p>
         </div>
         <div className={`rounded-xl bg-gradient-to-br p-2 text-white lg:p-1.5 xl:p-2 ${tone}`}>
           <Icon className="h-4 w-4 lg:h-3 lg:w-3 xl:h-4 xl:w-4" />
@@ -144,6 +149,10 @@ export default function HomeSalesLedger() {
                       <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Vehicle</p><p className="mt-1 text-sm font-semibold text-slate-800">{sale.vehicleNo || '-'}</p></div>
                       <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Sale Type</p><p className="mt-1 text-sm font-semibold text-slate-800">{formatSaleTypeLabel(sale.saleType)}</p></div>
                     </div>
+                    <div className="grid grid-cols-2 gap-3 border-t border-slate-100 p-3">
+                      <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Entry Time</p><p className="mt-1 text-sm text-slate-800">{formatTime(sale.entryTime)}</p></div>
+                      <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Exit Time</p><p className="mt-1 text-sm text-slate-800">{formatTime(sale.exitTime)}</p></div>
+                    </div>
                     <div className="grid grid-cols-3 gap-3 border-t border-slate-100 p-3">
                       <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Gross</p><p className="mt-1 text-sm text-slate-800">{formatNumber(grossWeight)}</p></div>
                       <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Tare</p><p className="mt-1 text-sm text-slate-800">{formatNumber(tareWeight)}</p></div>
@@ -162,15 +171,17 @@ export default function HomeSalesLedger() {
             <table className="w-full min-w-[900px] xl:min-w-[980px]">
               <thead>
                 <tr className="bg-[linear-gradient(135deg,#0f766e_0%,#0d9488_38%,#0891b2_72%,#0284c7_100%)] text-white">
-                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-xs">Date</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-xs">Invoice</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-xs">Vehicle</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-xs">Party</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-xs">Material</th>
-                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-[0.14em] lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-xs">Gross</th>
-                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-[0.14em] lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-xs">Tare</th>
-                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-[0.14em] lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-xs">Net</th>
-                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-[0.14em] lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-xs">Total</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] lg:px-2 lg:py-1 lg:text-[8px] xl:px-4 xl:py-3 xl:text-xs">Date</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] lg:px-2 lg:py-1 lg:text-[8px] xl:px-4 xl:py-3 xl:text-xs">Invoice</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] lg:px-2 lg:py-1 lg:text-[8px] xl:px-4 xl:py-3 xl:text-xs">Vehicle</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] lg:px-2 lg:py-1 lg:text-[8px] xl:px-4 xl:py-3 xl:text-xs">Party</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] lg:px-2 lg:py-1 lg:text-[8px] xl:px-4 xl:py-3 xl:text-xs">Material</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] lg:px-2 lg:py-1 lg:text-[8px] xl:px-4 xl:py-3 xl:text-xs">Entry</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] lg:px-2 lg:py-1 lg:text-[8px] xl:px-4 xl:py-3 xl:text-xs">Exit</th>
+                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-[0.14em] lg:px-2 lg:py-1 lg:text-[8px] xl:px-4 xl:py-3 xl:text-xs">Gross</th>
+                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-[0.14em] lg:px-2 lg:py-1 lg:text-[8px] xl:px-4 xl:py-3 xl:text-xs">Tare</th>
+                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-[0.14em] lg:px-2 lg:py-1 lg:text-[8px] xl:px-4 xl:py-3 xl:text-xs">Net</th>
+                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-[0.14em] lg:px-2 lg:py-1 lg:text-[8px] xl:px-4 xl:py-3 xl:text-xs">Total</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -183,23 +194,25 @@ export default function HomeSalesLedger() {
 
                   return (
                     <tr key={sale._id} className="hover:bg-slate-50">
-                      <td className="px-4 py-3 text-sm text-slate-700 lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-[12px]">{formatDate(sale.saleDate || sale.createdAt)}</td>
-                      <td className="px-4 py-3 text-sm font-semibold text-slate-700 lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-[12px]">{sale.invoiceNumber || '-'}</td>
-                      <td className="px-4 py-3 text-sm text-slate-700 lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-[12px]">{sale.vehicleNo || '-'}</td>
-                      <td className="px-4 py-3 text-sm text-slate-700 lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-[12px]">{partyName}</td>
-                      <td className="px-4 py-3 lg:px-2.5 lg:py-2 xl:px-4 xl:py-3">
+                      <td className="px-4 py-3 text-sm text-slate-700 lg:px-2 lg:py-1.5 lg:text-[9px] xl:px-4 xl:py-3 xl:text-[12px]">{formatDate(sale.saleDate || sale.createdAt)}</td>
+                      <td className="px-4 py-3 text-sm font-semibold text-slate-700 lg:px-2 lg:py-1.5 lg:text-[9px] xl:px-4 xl:py-3 xl:text-[12px]">{sale.invoiceNumber || '-'}</td>
+                      <td className="px-4 py-3 text-sm text-slate-700 lg:px-2 lg:py-1.5 lg:text-[9px] xl:px-4 xl:py-3 xl:text-[12px]">{sale.vehicleNo || '-'}</td>
+                      <td className="px-4 py-3 text-sm text-slate-700 lg:px-2 lg:py-1.5 lg:text-[9px] xl:px-4 xl:py-3 xl:text-[12px]">{partyName}</td>
+                      <td className="px-4 py-3 lg:px-2 lg:py-1.5 xl:px-4 xl:py-3">
                         {materialName && materialName !== '-' ? (
-                          <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold lg:px-1.5 lg:py-0.5 lg:text-[10px] xl:px-2.5 xl:py-1 xl:text-xs ${getMaterialBadgeClass(materialName)}`}>
+                          <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold lg:px-1.5 lg:py-0.5 lg:text-[9px] xl:px-2.5 xl:py-1 xl:text-xs ${getMaterialBadgeClass(materialName)}`}>
                             {String(materialName).toUpperCase()}
                           </span>
                         ) : (
-                          <span className="text-sm text-slate-700 lg:text-[12px] xl:text-sm">-</span>
+                          <span className="text-sm text-slate-700 lg:text-[9px] xl:text-sm">-</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-right text-sm font-semibold text-slate-700 lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-[12px]">{formatNumber(grossWeight)}</td>
-                      <td className="px-4 py-3 text-right text-sm font-semibold text-slate-700 lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-[12px]">{formatNumber(tareWeight)}</td>
-                      <td className="px-4 py-3 text-right text-sm font-semibold text-sky-700 lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-[12px]">{formatNumber(netWeight)}</td>
-                      <td className="px-4 py-3 text-right text-sm font-semibold text-emerald-600 lg:px-2.5 lg:py-2 lg:text-[10px] xl:px-4 xl:py-3 xl:text-[12px]">{formatCurrency(sale.totalAmount)}</td>
+                      <td className="px-4 py-3 text-sm text-slate-700 lg:px-2 lg:py-1.5 lg:text-[9px] xl:px-4 xl:py-3 xl:text-[12px]">{formatTime(sale.entryTime)}</td>
+                      <td className="px-4 py-3 text-sm text-slate-700 lg:px-2 lg:py-1.5 lg:text-[9px] xl:px-4 xl:py-3 xl:text-[12px]">{formatTime(sale.exitTime)}</td>
+                      <td className="px-4 py-3 text-right text-sm font-semibold text-slate-700 lg:px-2 lg:py-1.5 lg:text-[9px] xl:px-4 xl:py-3 xl:text-[12px]">{formatNumber(grossWeight)}</td>
+                      <td className="px-4 py-3 text-right text-sm font-semibold text-slate-700 lg:px-2 lg:py-1.5 lg:text-[9px] xl:px-4 xl:py-3 xl:text-[12px]">{formatNumber(tareWeight)}</td>
+                      <td className="px-4 py-3 text-right text-sm font-semibold text-sky-700 lg:px-2 lg:py-1.5 lg:text-[9px] xl:px-4 xl:py-3 xl:text-[12px]">{formatNumber(netWeight)}</td>
+                      <td className="px-4 py-3 text-right text-sm font-semibold text-emerald-600 lg:px-2 lg:py-1.5 lg:text-[9px] xl:px-4 xl:py-3 xl:text-[12px]">{formatCurrency(sale.totalAmount)}</td>
                     </tr>
                   );
                 })}
