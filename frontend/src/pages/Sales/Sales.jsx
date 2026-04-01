@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ShoppingCart, IndianRupee, Search } from 'lucide-react';
+import { CalendarDays, Plus, Search } from 'lucide-react';
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { toast } from 'react-toastify';
 import apiClient from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
@@ -169,6 +170,49 @@ const formatSaleTypeLabel = (value) => {
   return 'Credit Sale';
 };
 
+const SALES_RANGE_OPTIONS = [
+  { value: '3d', label: 'Last 3 Days' },
+  { value: '7d', label: 'Last 7 Days' },
+  { value: '30d', label: 'Last 30 Days' },
+  { value: '90d', label: 'Last 90 Days' },
+  { value: 'currentYear', label: 'Current Year' },
+  { value: 'lifetime', label: 'Lifetime' }
+];
+
+const isWithinRange = (value, range) => {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return false;
+
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
+  const start = new Date(today);
+  start.setHours(0, 0, 0, 0);
+
+  if (range === '3d') {
+    start.setDate(today.getDate() - 2);
+    return date >= start && date <= today;
+  }
+  if (range === '7d') {
+    start.setDate(today.getDate() - 6);
+    return date >= start && date <= today;
+  }
+  if (range === '30d') {
+    start.setDate(today.getDate() - 29);
+    return date >= start && date <= today;
+  }
+  if (range === '90d') {
+    start.setDate(today.getDate() - 89);
+    return date >= start && date <= today;
+  }
+  if (range === 'currentYear') {
+    const yearStart = new Date(today.getFullYear(), 0, 1);
+    yearStart.setHours(0, 0, 0, 0);
+    return date >= yearStart && date <= today;
+  }
+
+  return true;
+};
+
 export default function Sales({ modalOnly = false, onModalFinish = null }) {
   const toastOptions = { autoClose: 1200 };
   const location = useLocation();
@@ -202,8 +246,8 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [search, setSearch] = useState('');
-  const [dateFilter, setDateFilter] = useState('');
-  const [selectedMonthKey, setSelectedMonthKey] = useState('');
+  const [chartRange, setChartRange] = useState('30d');
+  const [tableRange, setTableRange] = useState('lifetime');
   const [formData, setFormData] = useState(initialFormData);
   const [currentItem, setCurrentItem] = useState(initialCurrentItem);
   const [showPartyForm, setShowPartyForm] = useState(false);
@@ -237,13 +281,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
     fetchSales();
     fetchLeadgers();
     fetchVehicles();
-  }, [search, dateFilter]);
-
-  useEffect(() => {
-    if (dateFilter !== 'monthwise') {
-      setSelectedMonthKey('');
-    }
-  }, [dateFilter]);
+  }, []);
 
   useEffect(() => {
     if (location.state?.openShortcut !== 'sale' || showForm) return;
@@ -276,37 +314,6 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [showForm]);
 
-  const getFromDateByFilter = () => {
-    const now = new Date();
-    if (dateFilter === '7d') {
-      now.setDate(now.getDate() - 7);
-      return now.toISOString().split('T')[0];
-    }
-    if (dateFilter === '30d') {
-      now.setDate(now.getDate() - 30);
-      return now.toISOString().split('T')[0];
-    }
-    if (dateFilter === '3m') {
-      now.setMonth(now.getMonth() - 3);
-      return now.toISOString().split('T')[0];
-    }
-    if (dateFilter === '6m') {
-      now.setMonth(now.getMonth() - 6);
-      return now.toISOString().split('T')[0];
-    }
-    if (dateFilter === '1y') {
-      now.setFullYear(now.getFullYear() - 1);
-      return now.toISOString().split('T')[0];
-    }
-    return '';
-  };
-
-  const getMonthKey = (dateValue) => {
-    const date = new Date(dateValue);
-    if (Number.isNaN(date.getTime())) return '';
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-  };
-
   const getSaleInvoicePdfUrl = (saleId) => {
     const baseUrl = String(apiClient.defaults.baseURL || '/api').replace(/\/+$/, '');
     return `${baseUrl}/sales/${saleId}/invoice-pdf`;
@@ -320,13 +327,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
   const fetchSales = async () => {
     try {
       setLoading(true);
-      const fromDate = getFromDateByFilter();
-      const response = await apiClient.get('/sales', {
-        params: {
-          search,
-          fromDate: fromDate || undefined
-        }
-      });
+      const response = await apiClient.get('/sales');
       setSales(Array.isArray(response) ? response : []);
       setError('');
     } catch (err) {
@@ -1807,40 +1808,63 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
     setShowForm(true);
   };
 
-  const monthWiseSummary = useMemo(() => {
-    const grouped = new Map();
-
-    sales.forEach((sale) => {
-      const monthKey = getMonthKey(sale.saleDate);
-      if (!monthKey) return;
-
-      if (!grouped.has(monthKey)) {
-        const monthDate = new Date(sale.saleDate);
-        grouped.set(monthKey, {
-          key: monthKey,
-          label: monthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-          saleCount: 0,
-          totalAmount: 0
-        });
-      }
-
-      const bucket = grouped.get(monthKey);
-      const total = Number(sale.totalAmount || 0);
-
-      bucket.saleCount += 1;
-      bucket.totalAmount += total;
-    });
-
-    return Array.from(grouped.values()).sort((a, b) => b.key.localeCompare(a.key));
-  }, [sales]);
+  const chartSales = useMemo(
+    () => sales.filter((sale) => isWithinRange(sale.saleDate, chartRange)),
+    [sales, chartRange]
+  );
 
   const visibleSales = useMemo(() => {
-    if (dateFilter !== 'monthwise' || !selectedMonthKey) return sales;
-    return sales.filter((sale) => getMonthKey(sale.saleDate) === selectedMonthKey);
-  }, [sales, dateFilter, selectedMonthKey]);
+    const normalizedSearch = String(search || '').trim().toLowerCase();
 
-  const totalSales = visibleSales.length;
-  const totalAmount = visibleSales.reduce((sum, sale) => sum + Number(sale.totalAmount || 0), 0);
+    return sales.filter((sale) => {
+      if (!isWithinRange(sale.saleDate, tableRange)) return false;
+
+      if (!normalizedSearch) return true;
+
+      const haystack = [
+        sale.invoiceNumber,
+        resolveLeadgerNameById(sale.partyId || sale.party) || sale.customerName,
+        sale.vehicleNo,
+        sale.materialType,
+        sale.type,
+        sale.notes,
+        sale.saleDate
+      ].join(' ').toLowerCase();
+
+      return haystack.includes(normalizedSearch);
+    });
+  }, [sales, search, tableRange, leadgers]);
+
+  const salesTrendData = useMemo(() => {
+    const grouped = chartSales.reduce((acc, sale) => {
+      const key = formatDateForInput(sale.saleDate);
+      if (!key) return acc;
+      acc[key] = (acc[key] || 0) + Number(sale.totalAmount || 0);
+      return acc;
+    }, {});
+
+    return Object.entries(grouped)
+      .sort(([a], [b]) => new Date(a) - new Date(b))
+      .map(([date, amount]) => ({
+        date: new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+        amount: Number(amount.toFixed(2))
+      }));
+  }, [chartSales]);
+
+  const materialChartData = useMemo(() => {
+    const grouped = chartSales.reduce((acc, sale) => {
+      const label = String(sale.materialType || 'Other').toUpperCase();
+      acc[label] = (acc[label] || 0) + Number(sale.totalAmount || 0);
+      return acc;
+    }, {});
+
+    return Object.entries(grouped)
+      .map(([name, amount]) => ({ name, amount: Number(amount.toFixed(2)) }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 6);
+  }, [chartSales]);
+
+  const chartTotalAmount = chartSales.reduce((sum, sale) => sum + Number(sale.totalAmount || 0), 0);
   const popupFieldClass = 'w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm font-medium text-gray-900 transition-all focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200';
   const popupLabelClass = 'mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-600';
   const popupSectionClass = 'rounded-xl border-2 border-indigo-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-3 md:p-4';
@@ -1967,44 +1991,14 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50">
-      <div className="w-full px-3 pb-8 pt-4 md:px-4 lg:px-6 lg:pt-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-stone-100">
+      <div className="mx-auto max-w-[95%] px-4 py-6">
 
       {error && (
-        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
+        <div className="mb-6 rounded-2xl border border-rose-200 bg-rose-50 px-6 py-4 text-sm font-semibold text-rose-700 shadow-lg">
           {error}
         </div>
       )}
-
-      <div className="mb-5 mt-1 grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-4">
-        <div className="group relative overflow-hidden rounded-xl bg-white p-2.5 shadow-sm ring-1 ring-slate-200/50 transition-all hover:shadow-md sm:rounded-2xl sm:p-5">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-[10px] sm:text-xs font-medium text-slate-500 leading-tight">Total Sales</p>
-              <p className="mt-1 sm:mt-2 text-base sm:text-2xl font-bold text-slate-800 leading-tight">{totalSales}</p>
-            </div>
-            <div className="hidden sm:flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600 transition-transform group-hover:scale-110">
-              <ShoppingCart className="h-6 w-6" />
-            </div>
-          </div>
-          <div className="absolute inset-x-0 bottom-0 h-0.5 sm:h-1 bg-gradient-to-r from-blue-500 to-cyan-400 opacity-80"></div>
-        </div>
-        <div className="group relative overflow-hidden rounded-xl bg-white p-2.5 shadow-sm ring-1 ring-slate-200/50 transition-all hover:shadow-md sm:rounded-2xl sm:p-5">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-[10px] sm:text-xs font-medium text-slate-500 leading-tight">Total Amount</p>
-              <p className="mt-1 sm:mt-2 text-[11px] sm:text-2xl font-bold text-slate-800 leading-tight">
-                <span className="text-[10px] sm:text-base text-slate-400 font-medium mr-1">Rs</span>
-                {totalAmount.toFixed(2)}
-              </p>
-            </div>
-            <div className="hidden sm:flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 transition-transform group-hover:scale-110">
-              <IndianRupee className="h-6 w-6" />
-            </div>
-          </div>
-          <div className="absolute inset-x-0 bottom-0 h-0.5 sm:h-1 bg-gradient-to-r from-emerald-500 to-teal-400 opacity-80"></div>
-        </div>
-      </div>
 
       <AddSalePopup
         showForm={showForm}
@@ -2116,118 +2110,130 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         }}
       />
       )}
-      <div className="mb-6 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
-        <div className="border-b border-gray-200 bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 px-6 py-5">
-          <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
-            <div className="relative w-full lg:w-[22%] lg:min-w-[260px]">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search sales..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 bg-white py-2.5 pl-9 pr-4 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-              />
+      <div className="mb-6 overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-xl">
+        <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-6 py-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-black text-slate-800">Sales Charts</h2>
+              <p className="text-sm text-slate-500">Review how sales move across time</p>
             </div>
-            <select
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 lg:w-56"
-            >
-              <option value="">Sale History - All Time</option>
-              <option value="7d">Sale History - 7 Days</option>
-              <option value="30d">Sale History - 30 Days</option>
-              <option value="3m">Sale History - 3 Months</option>
-              <option value="6m">Sale History - 6 Months</option>
-              <option value="1y">Sale History - 1 Year</option>
-              <option value="monthwise">Sale History - Month Wise</option>
-            </select>
-            <button
-              onClick={handleOpenForm}
-              className="inline-flex items-center justify-center whitespace-nowrap rounded-lg bg-slate-800 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-900"
-            >
-              + New Sale
-            </button>
+
+            <div className="relative">
+              <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <select
+                value={chartRange}
+                onChange={(e) => setChartRange(e.target.value)}
+                className="w-full rounded-xl border-2 border-slate-300 bg-white py-2.5 pl-10 pr-4 text-sm font-medium text-slate-700 transition-all focus:border-sky-500 focus:outline-none focus:ring-4 focus:ring-sky-100 sm:w-52"
+              >
+                {SALES_RANGE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
-      {dateFilter === 'monthwise' && (
-        <div className="border-b border-slate-200 bg-white px-4 py-4 sm:px-5">
-          <div className="mb-3 flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setSelectedMonthKey('')}
-              className={`rounded-md border px-3 py-1.5 text-xs font-semibold transition ${
-                !selectedMonthKey
-                  ? 'border-slate-700 bg-slate-800 text-white'
-                  : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
-              }`}
-            >
-              All Months
-            </button>
-            {monthWiseSummary.map((month) => (
-              <button
-                key={month.key}
-                type="button"
-                onClick={() => setSelectedMonthKey(month.key)}
-                className={`rounded-md border px-3 py-1.5 text-xs font-semibold transition ${
-                  selectedMonthKey === month.key
-                    ? 'border-blue-700 bg-blue-700 text-white'
-                    : 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100'
-                }`}
-              >
-                {month.label}
-              </button>
-            ))}
-          </div>
-
-          {monthWiseSummary.length === 0 ? (
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
-              No monthly sale history available for the current search.
-            </div>
-          ) : (
-            <div className="rounded-[20px] border border-slate-200 bg-[radial-gradient(circle_at_top_right,rgba(148,163,184,0.16),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(241,245,249,0.96)_100%)] p-3 shadow-[0_18px_36px_rgba(15,23,42,0.08)] sm:p-5">
-              <div className="overflow-x-auto">
-              <table className="w-full min-w-[560px] border-separate border-spacing-0 text-left text-sm whitespace-nowrap">
-                <thead className="bg-[linear-gradient(135deg,#0f766e_0%,#0d9488_38%,#0891b2_72%,#0284c7_100%)] text-white">
-                  <tr>
-                    <th className="border-y-2 border-l-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold">Month</th>
-                    <th className="border-y-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold">Invoices</th>
-                    <th className="border-y-2 border-r-2 border-black px-4 py-3.5 text-center text-sm font-semibold">Total Sale</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-[linear-gradient(180deg,rgba(255,255,255,0.94)_0%,rgba(248,250,252,0.98)_100%)] text-slate-600">
-                  {monthWiseSummary.map((month) => (
-                    <tr
-                      key={month.key}
-                      onClick={() => setSelectedMonthKey(month.key)}
-                      className={`cursor-pointer transition-colors duration-150 ${
-                        selectedMonthKey === month.key ? 'bg-blue-100/80' : 'hover:bg-slate-200/45'
-                      }`}
-                    >
-                      <td className="border border-slate-400 px-4 py-3 text-center font-semibold text-slate-800">{month.label}</td>
-                      <td className="border border-slate-400 px-4 py-3 text-center">{month.saleCount}</td>
-                      <td className="border border-slate-400 px-4 py-3 text-center font-semibold text-emerald-700">
-                        Rs {month.totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        <div className="grid grid-cols-1 gap-4 border-b border-slate-100 bg-slate-50/70 px-6 py-5 xl:grid-cols-[1.6fr_1fr]">
+          <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-black uppercase tracking-[0.16em] text-slate-700">Sales Flow</h3>
+                <p className="text-xs text-slate-500">How sales value moves across the selected dates</p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Total</p>
+                <p className="text-lg font-black text-emerald-600">
+                  Rs {chartTotalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </p>
               </div>
             </div>
-          )}
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={salesTrendData} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="salesTrendFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.35} />
+                      <stop offset="100%" stopColor="#0ea5e9" stopOpacity={0.04} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis dataKey="date" tick={{ fontSize: 12, fill: '#475569' }} />
+                  <YAxis tick={{ fontSize: 12, fill: '#475569' }} width={80} />
+                  <Tooltip formatter={(value) => `Rs ${Number(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`} />
+                  <Area type="monotone" dataKey="amount" stroke="#0284c7" strokeWidth={3} fill="url(#salesTrendFill)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+            <div className="mb-4">
+              <h3 className="text-sm font-black uppercase tracking-[0.16em] text-slate-700">Top Materials</h3>
+              <p className="text-xs text-slate-500">Highest sale value by material in the selected range</p>
+            </div>
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={materialChartData} layout="vertical" margin={{ top: 4, right: 8, left: 12, bottom: 4 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
+                  <XAxis type="number" tick={{ fontSize: 12, fill: '#475569' }} />
+                  <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: '#475569' }} width={110} />
+                  <Tooltip formatter={(value) => `Rs ${Number(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`} />
+                  <Bar dataKey="amount" fill="#0f766e" radius={[0, 8, 8, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
         </div>
-      )}
+
+        <div className="border-b border-slate-100 bg-white px-6 py-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-black text-slate-800">Sales Table</h2>
+              <p className="text-sm text-slate-500">Search and review sale entries</p>
+            </div>
+
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search sales..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full rounded-xl border-2 border-slate-400 bg-white py-2.5 pl-10 pr-4 text-sm font-medium text-slate-700 transition-all focus:border-sky-500 focus:outline-none focus:ring-4 focus:ring-sky-100 sm:w-64"
+                />
+              </div>
+
+              <div className="relative">
+                <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <select
+                  value={tableRange}
+                  onChange={(e) => setTableRange(e.target.value)}
+                  className="w-full rounded-xl border-2 border-slate-300 bg-white py-2.5 pl-10 pr-4 text-sm font-medium text-slate-700 transition-all focus:border-sky-500 focus:outline-none focus:ring-4 focus:ring-sky-100 sm:w-52"
+                >
+                  {SALES_RANGE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <button
+                onClick={handleOpenForm}
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-slate-800 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-900"
+              >
+                <Plus className="h-4 w-4" />
+                New Sale
+              </button>
+            </div>
+          </div>
+        </div>
 
       {/* Sales List */}
       {loading && !showForm ? (
         <div className="px-6 py-10 text-center text-slate-500">Loading...</div>
       ) : visibleSales.length === 0 ? (
         <div className="rounded-[20px] border border-dashed border-slate-300 bg-white/80 px-6 py-10 text-center text-slate-500">
-          {dateFilter === 'monthwise' && selectedMonthKey
-            ? 'No sales found for selected month.'
-            : 'No sales found. Create your first sale!'}
+          No sales found. Create your first sale!
         </div>
       ) : (
         <div className="rounded-[20px] border border-slate-200 bg-[radial-gradient(circle_at_top_right,rgba(148,163,184,0.16),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(241,245,249,0.96)_100%)] p-3 shadow-[0_18px_36px_rgba(15,23,42,0.08)] sm:p-5">

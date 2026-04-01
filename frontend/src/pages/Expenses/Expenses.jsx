@@ -750,6 +750,16 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
     setPartyListIndex(selectedIndex >= 0 ? selectedIndex : (partyOptions.length > 0 ? 0 : -1));
   };
 
+  const handleExpenseGroupFocus = () => {
+    const selectedIndex = expenseGroupOptions.findIndex(
+      (group) => String(group?._id || '') === String(formData.expenseGroup || '')
+    );
+    setIsPartySectionActive(false);
+    setIsMethodSectionActive(false);
+    setIsExpenseGroupSectionActive(true);
+    setExpenseGroupListIndex(selectedIndex >= 0 ? selectedIndex : (expenseGroupOptions.length > 0 ? 0 : -1));
+  };
+
   const handleGoodsExpenseGroupFocus = () => {
     const selectedIndex = expenseGroupOptions.findIndex(
       (group) => String(group?._id || '') === String(formData.expenseGroup || '')
@@ -1276,6 +1286,7 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
                         ref={expenseGroupInputRef}
                         type="text"
                         value={expenseGroupQuery}
+                        onFocus={handleExpenseGroupFocus}
                         onChange={handleExpenseGroupInputChange}
                         onKeyDown={handleExpenseGroupInputKeyDown}
                         className={`${getInlineFieldClass('indigo')} pr-10`}
