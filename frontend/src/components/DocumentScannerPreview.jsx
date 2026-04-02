@@ -1,5 +1,7 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Loader2, Check, X, Wand2, RefreshCcw } from 'lucide-react';
+import ReactCrop, { centerCrop, makeAspectCrop } from 'react-image-crop';
+import 'react-image-crop/dist/ReactCrop.css';
 
 // Helper to create the Image object
 const createImage = (url) =>
@@ -57,22 +59,45 @@ const applySharpen = (ctx, w, h, strength = 0.5) => {
 };
 
 // Core function to optionally enhance the entire image
-const getEnhancedImg = async (imageSrc, rotation = 0, enhance = false) => {
+const getEnhancedImg = async (imageSrc, crop, rotation = 0, enhance = false) => {
   const image = await createImage(imageSrc);
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
 
   if (!ctx) return null;
 
-  let width = image.width;
-  let height = image.height;
+  let cropX = 0;
+  let cropY = 0;
+  let cropW = image.width;
+  let cropH = image.height;
+
+  if (crop && crop.width > 0 && crop.height > 0) {
+      cropX = crop.x;
+      cropY = crop.y;
+      cropW = crop.width;
+      cropH = crop.height;
+  }
+
+  // Optimization: Resize image if it's too large to save storage
+  let finalW = cropW;
+  let finalH = cropH;
+  const MAX_DIMENSION = 1600;
+  if (finalW > MAX_DIMENSION || finalH > MAX_DIMENSION) {
+    if (finalW > finalH) {
+      finalH = Math.round((finalH * MAX_DIMENSION) / finalW);
+      finalW = MAX_DIMENSION;
+    } else {
+      finalW = Math.round((finalW * MAX_DIMENSION) / finalH);
+      finalH = MAX_DIMENSION;
+    }
+  }
 
   if (rotation === 90 || rotation === 270) {
-    canvas.width = height;
-    canvas.height = width;
+    canvas.width = finalH;
+    canvas.height = finalW;
   } else {
-    canvas.width = width;
-    canvas.height = height;
+    canvas.width = finalW;
+    canvas.height = finalH;
   }
 
   if (enhance) {
@@ -84,7 +109,14 @@ const getEnhancedImg = async (imageSrc, rotation = 0, enhance = false) => {
   // Draw with rotation
   ctx.translate(canvas.width / 2, canvas.height / 2);
   ctx.rotate((rotation * Math.PI) / 180);
-  ctx.drawImage(image, -width / 2, -height / 2, width, height);
+  
+  // Draw only the cropped portion
+  ctx.drawImage(
+      image,
+      cropX, cropY, cropW, cropH,
+      -finalW / 2, -finalH / 2, finalW, finalH
+  );
+  
   // Reset transform
   ctx.setTransform(1, 0, 0, 1, 0, 0);
 
@@ -105,8 +137,8 @@ const getEnhancedImg = async (imageSrc, rotation = 0, enhance = false) => {
         }
         resolve(blob);
       },
-      'image/jpeg',
-      0.9
+      'image/webp',
+      0.8
     );
   });
 };
@@ -117,6 +149,10 @@ export default function DocumentScannerPreview({ file, onCancel, onConfirm }) {
   const [isEnhancing, setIsEnhancing] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
 
+  const imgRef = useRef(null);
+  const [crop, setCrop] = useState();
+  const [completedCrop, setCompletedCrop] = useState();
+
   useEffect(() => {
     if (file) {
       const reader = new FileReader();
@@ -125,13 +161,38 @@ export default function DocumentScannerPreview({ file, onCancel, onConfirm }) {
     }
   }, [file]);
 
+  const onImageLoad = useCallback((e) => {
+    const { width, height } = e.currentTarget;
+    const initialCrop = centerCrop(
+        makeAspectCrop({ unit: '%', width: 90, height: 90 }, width / height, width, height),
+        width,
+        height
+    );
+    setCrop(initialCrop); 
+  }, []);
+
   const handleConfirm = async () => {
     if (!imageSrc) return;
     setIsProcessing(true);
+
+    let pixelCrop = null;
+    if (completedCrop && completedCrop.width > 0 && completedCrop.height > 0 && imgRef.current) {
+        const scaleX = imgRef.current.naturalWidth / imgRef.current.width;
+        const scaleY = imgRef.current.naturalHeight / imgRef.current.height;
+        
+        pixelCrop = {
+            unit: 'px',
+            x: completedCrop.x * scaleX,
+            y: completedCrop.y * scaleY,
+            width: completedCrop.width * scaleX,
+            height: completedCrop.height * scaleY
+        };
+    }
+
     try {
-      const enhancedImageBlob = await getEnhancedImg(imageSrc, rotation, isEnhancing);
-      const newFile = new File([enhancedImageBlob], 'scanned_slip.jpg', {
-        type: 'image/jpeg',
+      const enhancedImageBlob = await getEnhancedImg(imageSrc, pixelCrop, rotation, isEnhancing);
+      const newFile = new File([enhancedImageBlob], 'scanned_slip.webp', {
+        type: 'image/webp',
       });
       onConfirm(newFile);
     } catch (e) {
@@ -148,7 +209,7 @@ export default function DocumentScannerPreview({ file, onCancel, onConfirm }) {
 
   if (!imageSrc) {
     return (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm">
+      <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm">
         <Loader2 className="h-10 w-10 animate-spin text-white" />
       </div>
     );
@@ -165,12 +226,12 @@ export default function DocumentScannerPreview({ file, onCancel, onConfirm }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col bg-slate-950 md:p-6 p-0 text-white backdrop-blur-[2px]">
+    <div className="fixed inset-0 z-[110] flex flex-col bg-slate-950 md:p-6 p-0 text-white backdrop-blur-[2px]">
       <div className="flex flex-1 flex-col overflow-hidden bg-slate-900 shadow-xl md:rounded-2xl border border-slate-700">
         
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 bg-slate-800 border-b border-slate-700">
-          <h2 className="text-sm font-bold md:text-base">Document Preview</h2>
+          <h2 className="text-sm font-bold md:text-base">Document Preview & Crop</h2>
           <button
             onClick={onCancel}
             className="rounded-lg p-1.5 transition hover:bg-slate-700"
@@ -182,11 +243,20 @@ export default function DocumentScannerPreview({ file, onCancel, onConfirm }) {
 
         {/* Image Preview Container */}
         <div className="relative flex-1 bg-black flex items-center justify-center overflow-hidden p-4">
-          <img 
-            src={imageSrc} 
-            alt="Document preview" 
-            style={previewStyle}
-          />
+          <ReactCrop
+              crop={crop}
+              onChange={(_, percentCrop) => setCrop(percentCrop)}
+              onComplete={(c) => setCompletedCrop(c)}
+          >
+              <img 
+                ref={imgRef}
+                src={imageSrc} 
+                alt="Document preview" 
+                onLoad={onImageLoad}
+                style={previewStyle}
+                className="max-h-[70vh]"
+              />
+          </ReactCrop>
         </div>
 
         {/* Bottom Controls */}

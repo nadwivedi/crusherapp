@@ -1711,7 +1711,9 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         onModalFinish();
       }
     } catch (err) {
-      setError(err.message || 'Error saving sale');
+      const errorMessage = err.message || 'Error saving sale';
+      setError(errorMessage);
+      toast.error(errorMessage, toastOptions);
     } finally {
       setLoading(false);
     }
@@ -2235,13 +2237,15 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
                 </select>
               </div>
 
-              <button
-                onClick={handleOpenForm}
-                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-slate-800 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-900"
-              >
-                <Plus className="h-4 w-4" />
-                New Sale
-              </button>
+              {(user?.role === 'owner' || user?.permissions?.add) && (
+                <button
+                  onClick={handleOpenForm}
+                  className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-slate-800 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-900"
+                >
+                  <Plus className="h-4 w-4" />
+                  New Sale
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -2364,12 +2368,14 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-center gap-2">
-                      <button
-                        onClick={() => handleEdit(sale)}
-                        className="inline-flex items-center justify-center rounded-md border border-blue-200 bg-white px-3 py-1.5 text-[11px] font-medium text-blue-700 shadow-sm transition hover:border-blue-300 hover:bg-blue-50"
-                      >
-                        Edit
-                      </button>
+                      {(user?.role === 'owner' || user?.permissions?.edit) && (
+                        <button
+                          onClick={() => handleEdit(sale)}
+                          className="inline-flex items-center justify-center rounded-md border border-blue-200 bg-white px-3 py-1.5 text-[11px] font-medium text-blue-700 shadow-sm transition hover:border-blue-300 hover:bg-blue-50"
+                        >
+                          Edit
+                        </button>
+                      )}
                       </div>
                     </td>
                   </tr>

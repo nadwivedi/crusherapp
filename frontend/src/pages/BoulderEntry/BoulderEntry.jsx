@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import apiClient from '../../utils/api';
 import { handlePopupFormKeyDown } from '../../utils/popupFormKeyboard';
 import { useFloatingDropdownPosition } from '../../utils/useFloatingDropdownPosition';
+import DocumentScannerPreview from '../../components/DocumentScannerPreview';
 import AddVehiclePopup from '../Vehicle/component/AddVehiclePopup';
 
 const formatDateForInput = (value = new Date()) => {
@@ -46,6 +47,7 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
   const [showVehicleForm, setShowVehicleForm] = useState(false);
   const [isVehicleSectionActive, setIsVehicleSectionActive] = useState(false);
   const [vehicleListIndex, setVehicleListIndex] = useState(-1);
+  const [scannerState, setScannerState] = useState(null);
   const vehicleSectionRef = useRef(null);
   const vehicleInputRef = useRef(null);
   const dateInputRef = useRef(null);
@@ -265,33 +267,11 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
     }
   };
 
-  const handleSlipUpload = async (event) => {
+  const handleSlipUploadChange = useCallback((event) => {
     const file = event.target.files?.[0];
-    if (!file) return;
-
-    try {
-      setUploadingSlip(true);
-      const body = new FormData();
-      body.append('slip', file);
-
-      const response = await apiClient.post('/uploads/slip', body, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-
-      setFormData((prev) => ({
-        ...prev,
-        slipImg: response?.url || response?.relativePath || ''
-      }));
-      toast.success('Slip uploaded successfully');
-    } catch (error) {
-      toast.error(error?.message || 'Error uploading slip');
-    } finally {
-      setUploadingSlip(false);
-      event.target.value = '';
-    }
-  };
+    event.target.value = '';
+    if (file) setScannerState({ file, type: 'upload' });
+  }, []);
 
   const handleOcrFill = useCallback((data) => {
     if (!data) return;
@@ -415,17 +395,17 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
     }
   }, [handleOcrFill, uploadSlipFile]);
 
-  const handleOcrFileChange = useCallback(async (event) => {
+  const handleOcrFileChange = useCallback((event) => {
     const file = event.target.files?.[0];
     event.target.value = '';
-    await sendImageToOcr(file);
-  }, [sendImageToOcr]);
+    if (file) setScannerState({ file, type: 'ocr' });
+  }, []);
 
-  const handleOcrCameraChange = useCallback(async (event) => {
+  const handleOcrCameraChange = useCallback((event) => {
     const file = event.target.files?.[0];
     event.target.value = '';
-    await sendImageToOcr(file);
-  }, [sendImageToOcr]);
+    if (file) setScannerState({ file, type: 'ocr' });
+  }, []);
 
   const isSlipPreviewImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(String(formData.slipImg || ''));
 
@@ -500,6 +480,31 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
             </p>
             <p className="text-xs text-slate-500">Extracting boulder entry with AI</p>
           </div>
+        )}
+
+        {scannerState && (
+          <DocumentScannerPreview
+            file={scannerState.file}
+            onCancel={() => setScannerState(null)}
+            onConfirm={async (processedFile) => {
+              const type = scannerState.type;
+              setScannerState(null);
+              if (type === 'ocr') {
+                await sendImageToOcr(processedFile);
+              } else {
+                try {
+                  setUploadingSlip(true);
+                  const url = await uploadSlipFile(processedFile);
+                  setFormData((prev) => ({ ...prev, slipImg: url }));
+                  toast.success('Slip uploaded successfully');
+                } catch (error) {
+                  toast.error(error?.message || 'Error uploading slip');
+                } finally {
+                  setUploadingSlip(false);
+                }
+              }
+            }}
+          />
         )}
 
         <form onSubmit={handleSubmit} onKeyDown={(e) => handlePopupFormKeyDown(e, handleClose)} className="flex flex-1 flex-col overflow-hidden bg-white">
@@ -640,8 +645,8 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
                     <input
                       id="boulder-slip-upload"
                       type="file"
-                      accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
-                      onChange={handleSlipUpload}
+                      accept=".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf"
+                      onChange={handleSlipUploadChange}
                       disabled={uploadingSlip}
                       className="hidden"
                     />

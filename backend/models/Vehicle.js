@@ -23,6 +23,9 @@ const vehicleSchema = new mongoose.Schema(
       enum: ["boulder", "sales"],
       default: "sales",
     },
+    rcImg: {
+      type: String,
+    },
   },
   {
     timestamps: true,
