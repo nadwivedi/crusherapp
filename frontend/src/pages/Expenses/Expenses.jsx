@@ -196,7 +196,7 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
   const fetchParties = async () => {
     try {
       const response = await apiClient.get('/parties');
-      setParties(response.data || []);
+      setParties(Array.isArray(response) ? response : (response?.data || []));
     } catch (err) {
       console.error('Error fetching parties:', err);
     }
