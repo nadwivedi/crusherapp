@@ -14,14 +14,14 @@ createRoot(document.getElementById('root')).render(
         <App />
         <ToastContainer
           position="top-right"
-          autoClose={4000}
+          autoClose={1200}
           hideProgressBar={false}
           newestOnTop
           closeOnClick
           rtl={false}
-          pauseOnFocusLoss
+          pauseOnFocusLoss={false}
           draggable
-          pauseOnHover
+          pauseOnHover={false}
           theme="colored"
         />
       </AuthProvider>
