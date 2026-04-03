@@ -223,7 +223,9 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.vehicleId || !formData.vehicleNo || !formData.tareWeight || !formData.grossWeight) {
+    // vehicleId is optional — it's only set when a vehicle is matched from the list.
+    // vehicleNo is always required; grossWeight and tareWeight must be non-zero.
+    if (!formData.vehicleNo || !formData.tareWeight || !formData.grossWeight) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -231,7 +233,7 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
     setLoading(true);
     try {
       const payload = {
-        vehicleId: formData.vehicleId,
+        vehicleId: formData.vehicleId || undefined,
         vehicleNo: formData.vehicleNo.toUpperCase(),
         boulderDate: formData.boulderDate,
         entryTime: formData.entryTime,

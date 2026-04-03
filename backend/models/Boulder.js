@@ -12,7 +12,6 @@ const boulderSchema = new mongoose.Schema(
     vehicleId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Vehicle",
-      required: true,
     },
     vehicleNo: {
       type: String,
