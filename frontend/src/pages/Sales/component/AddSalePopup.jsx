@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Building2, CalendarDays, Package, Truck, Camera, Upload, Loader2, Eye } from 'lucide-react';
+import { Building2, CalendarDays, Package, Truck, Camera, Upload, Loader2, Eye, AlertCircle, Check, X } from 'lucide-react';
 import apiClient from '../../../utils/api';
 import { handlePopupFormKeyDown } from '../../../utils/popupFormKeyboard';
 import { useFloatingDropdownPosition } from '../../../utils/useFloatingDropdownPosition';
@@ -79,7 +79,9 @@ export default function AddSalePopup({
   selectLeadger,
   selectVehicle,
   selectProduct,
-  onOcrFill
+  onOcrFill,
+  ocrVehicleMismatch,
+  setOcrVehicleMismatch
 }) {
   const localProductInputRef = useRef(null);
   const paidAmountInputRef = useRef(null);
@@ -431,11 +433,45 @@ export default function AddSalePopup({
                           value={vehicleQuery}
                           onChange={handleVehicleInputChange}
                           onKeyDown={handleVehicleInputKeyDown}
-                          className={`${inputClass} pl-9 focus:ring-indigo-500`}
-                          placeholder="Type to search vehicle..."
                           autoComplete="off"
                         />
                       </div>
+
+                      {ocrVehicleMismatch && (
+                        <div className="mt-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                          <div className="flex flex-col gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 shadow-sm">
+                            <div className="flex items-start gap-2">
+                              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                              <div className="flex-1">
+                                <p className="text-[12px] font-bold text-amber-900">Vehicle Mismatch Confirmation</p>
+                                <p className="text-[11px] text-amber-700">OCR read "<span className="font-bold underlineDecoration">{ocrVehicleMismatch.ocrValue}</span>" but we matched "<span className="font-bold">{ocrVehicleMismatch.matchedValue}</span>" from your list based on the last 4 digits.</p>
+                              </div>
+                            </div>
+                            <div className="mt-1 flex items-center justify-end gap-2">
+                              <span className="text-[10px] font-medium text-amber-600">Which one is correct?</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  handleVehicleInputChange({ target: { value: ocrVehicleMismatch.ocrValue } });
+                                  setOcrVehicleMismatch(null);
+                                }}
+                                className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-white px-2.5 py-1.5 text-[11px] font-bold text-amber-700 transition hover:bg-amber-100"
+                              >
+                                <X className="h-3 w-3" />
+                                {ocrVehicleMismatch.ocrValue}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setOcrVehicleMismatch(null)}
+                                className="flex items-center gap-1.5 rounded-lg bg-amber-600 px-2.5 py-1.5 text-[11px] font-bold text-white transition hover:bg-amber-700 shadow-sm"
+                              >
+                                <Check className="h-3 w-3" />
+                                {ocrVehicleMismatch.matchedValue}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
                       {isVehicleSectionActive && vehicleDropdownStyle && (
                         <div

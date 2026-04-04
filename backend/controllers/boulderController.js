@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const Boulder = require("../models/Boulder");
 const Counter = require("../models/Counter");
+const Party = require("../models/Party");
 const Vehicle = require("../models/Vehicle");
 
 const getCurrentTime = () => {
@@ -32,6 +33,64 @@ const createBoulderNumber = async (boulderDateValue) => {
   );
 
   return `BOL-${boulderYear}-${String(counter.seq).padStart(2, "0")}`;
+};
+
+const normalizeVehicleNo = (value) => `${value || ""}`.trim().toUpperCase();
+
+const resolveVehicleParty = async (payload) => {
+  if (payload.partyId && mongoose.Types.ObjectId.isValid(payload.partyId)) {
+    const existingParty = await Party.findById(payload.partyId);
+    if (existingParty) return existingParty._id;
+  }
+
+  const partyName = typeof payload.partyName === "string"
+    ? payload.partyName.trim()
+    : "";
+
+  if (!partyName) {
+    return null;
+  }
+
+  const existingParty = await Party.findOne({
+    name: { $regex: `^${partyName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, $options: "i" },
+  });
+
+  if (existingParty) {
+    return existingParty._id;
+  }
+
+  const createdParty = await Party.create({
+    name: partyName,
+    type: "customer",
+  });
+
+  return createdParty._id;
+};
+
+const resolvePartySnapshot = async ({ partyId, partyName, fallbackPartyId = null }) => {
+  const primaryPartyId = partyId && mongoose.Types.ObjectId.isValid(partyId) ? partyId : null;
+  const fallbackId = fallbackPartyId && mongoose.Types.ObjectId.isValid(fallbackPartyId) ? fallbackPartyId : null;
+
+  if (primaryPartyId) {
+    const party = await Party.findById(primaryPartyId).select("name");
+    if (party?.name) {
+      return { partyId: party._id, partyName: party.name };
+    }
+  }
+
+  const trimmedPartyName = typeof partyName === "string" ? partyName.trim() : "";
+  if (trimmedPartyName) {
+    return { partyId: primaryPartyId || null, partyName: trimmedPartyName };
+  }
+
+  if (fallbackId) {
+    const fallbackParty = await Party.findById(fallbackId).select("name");
+    if (fallbackParty?.name) {
+      return { partyId: fallbackParty._id, partyName: fallbackParty.name };
+    }
+  }
+
+  return { partyId: null, partyName: "" };
 };
 
 const normalizeBoulderPayload = async (payload) => {
@@ -115,18 +174,34 @@ const normalizeBoulderPayload = async (payload) => {
       throw new Error("Vehicle not found");
     }
   } else if (hasVehicleNo) {
+    const normalizedVehicleNo = normalizeVehicleNo(normalizedPayload.vehicleNo);
     vehicle = await Vehicle.findOne({
-      vehicleNo: normalizedPayload.vehicleNo.trim().toUpperCase(),
+      vehicleNo: normalizedVehicleNo,
     });
 
     if (!vehicle) {
-      throw new Error("Vehicle not found");
+      const resolvedPartyId = await resolveVehicleParty(normalizedPayload);
+      const tareWeight = Number(normalizedPayload.tareWeight);
+
+      vehicle = await Vehicle.create({
+        partyId: resolvedPartyId,
+        vehicleNo: normalizedVehicleNo,
+        unladenWeight: Number.isFinite(tareWeight) && tareWeight >= 0 ? tareWeight : 0,
+        vehicleType: "boulder",
+      });
     }
   }
 
   if (vehicle) {
     normalizedPayload.vehicleId = vehicle._id;
     normalizedPayload.vehicleNo = vehicle.vehicleNo;
+    const partySnapshot = await resolvePartySnapshot({
+      partyId: normalizedPayload.partyId,
+      partyName: normalizedPayload.partyName,
+      fallbackPartyId: vehicle.partyId,
+    });
+    normalizedPayload.partyId = partySnapshot.partyId;
+    normalizedPayload.partyName = partySnapshot.partyName;
 
     if (normalizedPayload.tareWeight === undefined) {
       normalizedPayload.tareWeight = vehicle.unladenWeight;
@@ -140,6 +215,13 @@ const normalizeBoulderPayload = async (payload) => {
       normalizedPayload.netWeight =
         Number(normalizedPayload.grossWeight) - Number(normalizedPayload.tareWeight);
     }
+  } else {
+    const partySnapshot = await resolvePartySnapshot({
+      partyId: normalizedPayload.partyId,
+      partyName: normalizedPayload.partyName,
+    });
+    normalizedPayload.partyId = partySnapshot.partyId;
+    normalizedPayload.partyName = partySnapshot.partyName;
   }
 
   return normalizedPayload;

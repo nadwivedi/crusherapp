@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const Sales = require("../models/Sales");
 const Counter = require("../models/Counter");
 const Receipt = require("../models/Receipt");
+const Vehicle = require("../models/Vehicle");
 
 const SALE_TYPES = {
   SALE: "sale",
@@ -15,6 +16,8 @@ const toNumber = (value, fallback = 0) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
 };
+
+const normalizeVehicleNo = (value) => String(value || "").trim().toUpperCase();
 
 const normalizeSalesPayload = (payload = {}) => {
   const nextPayload = { ...payload };
@@ -75,6 +78,52 @@ const normalizeSalesPayload = (payload = {}) => {
   return nextPayload;
 };
 
+const resolveSalesVehicle = async (payload = {}) => {
+  const normalizedVehicleId = `${payload.vehicleId || ""}`.trim();
+  const normalizedVehicleNo = normalizeVehicleNo(payload.vehicleNo);
+
+  if (!normalizedVehicleId && !normalizedVehicleNo) {
+    return payload;
+  }
+
+  let vehicle = null;
+
+  if (normalizedVehicleId) {
+    if (!mongoose.Types.ObjectId.isValid(normalizedVehicleId)) {
+      throw new Error("Invalid vehicle id");
+    }
+
+    vehicle = await Vehicle.findById(normalizedVehicleId);
+    if (!vehicle) {
+      throw new Error("Vehicle not found");
+    }
+  } else {
+    vehicle = await Vehicle.findOne({ vehicleNo: normalizedVehicleNo });
+
+    if (!vehicle) {
+      if (!payload.partyId || !mongoose.Types.ObjectId.isValid(payload.partyId)) {
+        throw new Error("Party is required for new vehicle");
+      }
+
+      vehicle = await Vehicle.create({
+        partyId: payload.partyId,
+        vehicleNo: normalizedVehicleNo,
+        unladenWeight: Math.max(0, toNumber(payload.tareWeight)),
+        vehicleType: "sales",
+      });
+    }
+  }
+
+  return {
+    ...payload,
+    vehicleId: vehicle._id,
+    vehicleNo: vehicle.vehicleNo,
+    tareWeight: Object.prototype.hasOwnProperty.call(payload, "tareWeight")
+      ? payload.tareWeight
+      : vehicle.unladenWeight,
+  };
+};
+
 const serializeSale = (saleDoc) => {
   if (!saleDoc) return saleDoc;
 
@@ -86,6 +135,7 @@ const serializeSale = (saleDoc) => {
   return {
     ...sale,
     party: sale.partyId || null,
+    vehicleId: sale.vehicleId || null,
     materialType: sale.stoneSize || "",
     invoice: sale.invoiceNumber || "",
     entryTime: `${sale.entryTime || ""}`.trim().slice(0, 5),
@@ -195,7 +245,7 @@ const createInvoiceNumber = async (saleDateValue) => {
 const createSales = async (req, res) => {
   try {
     const breakdown = getSalePaymentBreakdown(req.body.totalAmount, req.body.paidAmount);
-    const normalizedBody = normalizeSalesPayload(req.body);
+    const normalizedBody = await resolveSalesVehicle(normalizeSalesPayload(req.body));
     const payload = {
       ...normalizedBody,
       saleDate: normalizedBody.saleDate || new Date(),
@@ -268,7 +318,7 @@ const editSales = async (req, res) => {
       return res.status(404).json({ message: "Sales not found" });
     }
 
-    const updatePayload = normalizeSalesPayload(req.body);
+    const updatePayload = await resolveSalesVehicle(normalizeSalesPayload(req.body));
     delete updatePayload.invoiceNumber;
 
     const nextTotalAmount = Object.prototype.hasOwnProperty.call(updatePayload, "totalAmount")

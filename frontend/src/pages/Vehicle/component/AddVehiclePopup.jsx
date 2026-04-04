@@ -1,18 +1,15 @@
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { ChevronDown, Scale, Truck, Eye, Upload } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronDown, Scale, Truck } from 'lucide-react';
 import { toast } from 'react-toastify';
 import apiClient from '../../../utils/api';
 import AddPartyPopup from '../../Party/component/AddPartyPopup';
 import { handlePopupFormKeyDown } from '../../../utils/popupFormKeyboard';
 import { useFloatingDropdownPosition } from '../../../utils/useFloatingDropdownPosition';
-import DocumentScannerPreview from '../../../components/DocumentScannerPreview';
-
 const initialFormData = {
   partyId: '',
   vehicleNo: '',
   unladenWeight: '',
-  vehicleType: 'sales',
-  rcImg: ''
+  vehicleType: 'sales'
 };
 
 const FIELD_SELECTOR = [
@@ -121,39 +118,6 @@ export default function AddVehiclePopup({ vehicle, onClose, onSave, onVehicleSav
   const vehicleTypeSectionRef = useRef(null);
   const vehicleTypeInputRef = useRef(null);
   const isEditing = Boolean(vehicle?._id);
-
-  const [uploadingRc, setUploadingRc] = useState(false);
-  const [scannerFile, setScannerFile] = useState(null);
-
-  const isRcPreviewImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(String(formData.rcImg || ''));
-
-  const handleRcUploadChange = useCallback((event) => {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (file) setScannerFile(file);
-  }, []);
-
-  const uploadRcFile = useCallback(async (file) => {
-    try {
-      setUploadingRc(true);
-      const body = new FormData();
-      body.append('slip', file); // reusing the generic /slip endpoint for images
-
-      const response = await apiClient.post('/uploads/slip', body, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-
-      const url = response?.url || response?.relativePath || '';
-      setFormData((prev) => ({ ...prev, rcImg: url }));
-      toast.success('RC Image uploaded successfully');
-    } catch (error) {
-      toast.error(error?.message || 'Error uploading RC image');
-    } finally {
-      setUploadingRc(false);
-    }
-  }, []);
 
   useEffect(() => {
     setFormData(vehicle || { ...initialFormData, vehicleType: defaultVehicleType || 'sales' });
@@ -587,8 +551,7 @@ export default function AddVehiclePopup({ vehicle, onClose, onSave, onVehicleSav
         partyId: formData.partyId,
         vehicleNo: String(formData.vehicleNo || '').toUpperCase(),
         unladenWeight: parseFloat(formData.unladenWeight),
-        vehicleType: formData.vehicleType || 'sales',
-        rcImg: formData.rcImg
+        vehicleType: formData.vehicleType || 'sales'
       };
 
       if (isEditing) {
@@ -643,17 +606,6 @@ export default function AddVehiclePopup({ vehicle, onClose, onSave, onVehicleSav
             </button>
           </div>
         </div>
-
-        {scannerFile && (
-          <DocumentScannerPreview
-            file={scannerFile}
-            onCancel={() => setScannerFile(null)}
-            onConfirm={async (processedFile) => {
-              setScannerFile(null);
-              await uploadRcFile(processedFile);
-            }}
-          />
-        )}
 
         <form
           id="vehicle-form"
@@ -759,55 +711,6 @@ export default function AddVehiclePopup({ vehicle, onClose, onSave, onVehicleSav
                     {errors.vehicleType ? <p className="mt-1 text-xs text-red-500">{errors.vehicleType}</p> : null}
                   </div>
 
-                  <div className="min-w-0 md:col-span-2">
-                    <label className="mb-1.5 block text-xs font-semibold text-gray-700 sm:text-sm">Vehicle RC Image</label>
-                    <input
-                      id="vehicle-rc-upload"
-                      type="file"
-                      accept=".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf"
-                      onChange={handleRcUploadChange}
-                      disabled={uploadingRc}
-                      className="hidden"
-                    />
-                    <label
-                      htmlFor="vehicle-rc-upload"
-                      className={`mb-2 flex min-h-[40px] cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed px-3 py-2 text-center text-[13px] font-semibold transition ${
-                        uploadingRc
-                          ? 'border-indigo-200 bg-indigo-50 text-indigo-500 opacity-75'
-                          : 'border-indigo-300 bg-white text-indigo-700 hover:bg-indigo-50'
-                      }`}
-                    >
-                      <Upload className="h-4 w-4" />
-                      <span>{uploadingRc ? 'Uploading...' : formData.rcImg ? 'RC Uploaded' : 'Upload RC Image'}</span>
-                    </label>
-                    {formData.rcImg ? (
-                      <div className="rounded-xl border border-slate-200 bg-white p-2">
-                        {isRcPreviewImage ? (
-                          <img
-                            src={formData.rcImg}
-                            alt="RC preview"
-                            className="h-32 w-full rounded-lg object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-24 items-center justify-center rounded-lg bg-slate-100 text-sm font-medium text-slate-600">
-                            RC uploaded
-                          </div>
-                        )}
-                        <div className="mt-2 flex items-center justify-between gap-2">
-                          <p className="truncate text-[12px] text-slate-500">{formData.rcImg}</p>
-                          <a
-                            href={formData.rcImg}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex shrink-0 items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-[12px] font-semibold text-indigo-700 transition hover:bg-indigo-100"
-                          >
-                            <Eye className="h-3.5 w-3.5" />
-                            Preview
-                          </a>
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
                 </div>
               </div>
 

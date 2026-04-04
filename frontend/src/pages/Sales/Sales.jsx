@@ -5,6 +5,7 @@ import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Too
 import { toast } from 'react-toastify';
 import apiClient from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
+import { getSmartVehicleMatch } from '../../utils/vehicleMatching';
 import AddPartyPopup from '../Party/component/AddPartyPopup';
 import AddProductPopup from '../Products/component/AddProductPopup';
 import AddVehiclePopup from '../Vehicle/component/AddVehiclePopup';
@@ -94,6 +95,7 @@ const getInitialFormData = () => ({
   entryTime: '',
   exitTime: '',
   party: '',
+  vehicleId: '',
   customerName: '',
   customerPhone: '',
   customerAddress: '',
@@ -284,6 +286,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
   const [productQuery, setProductQuery] = useState('');
   const [productListIndex, setProductListIndex] = useState(-1);
   const [isProductSectionActive, setIsProductSectionActive] = useState(false);
+  const [ocrVehicleMismatch, setOcrVehicleMismatch] = useState(null);
   const leadgerSectionRef = useRef(null);
   const leadgerInputRef = useRef(null);
   const vehicleSectionRef = useRef(null);
@@ -713,8 +716,10 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
   const selectVehicle = (vehicle, partyOptions = leadgers) => {
     if (!vehicle) {
       setVehicleQuery('');
+      setOcrVehicleMismatch(null);
       setFormData((prev) => ({
         ...prev,
+        vehicleId: '',
         vehicleNo: '',
         tareWeight: '',
         netWeight: prev.grossWeight ? Number(prev.grossWeight || 0) : '',
@@ -724,6 +729,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
       return;
     }
 
+    setOcrVehicleMismatch(null);
     const vehicleNumber = getVehicleDisplayName(vehicle);
     const unladenWeight = vehicle?.unladenWeight ?? '';
     const linkedParty = vehicle?.partyId
@@ -734,6 +740,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
     setFormData((prev) => {
       const nextState = {
         ...prev,
+        vehicleId: vehicle._id,
         vehicleNo: vehicleNumber,
         tareWeight: unladenWeight
       };
@@ -768,6 +775,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
   const handleVehicleInputChange = (e) => {
     const value = String(e.target.value || '').toUpperCase();
     setVehicleQuery(value);
+    setOcrVehicleMismatch(null);
 
     if (!normalizeText(value)) {
       selectVehicle(null);
@@ -783,6 +791,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
     const firstMatch = findBestVehicleMatch(value);
     setFormData((prev) => ({
       ...prev,
+      vehicleId: firstMatch?._id || '',
       vehicleNo: firstMatch ? getVehicleDisplayName(firstMatch) : value
     }));
     setVehicleListIndex(firstMatch ? 0 : -1);
@@ -1399,7 +1408,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         return;
       }
       if (name === 'vehicleNo') {
-        setFormData({ ...formData, vehicleNo: String(value || '').toUpperCase() });
+        setFormData({ ...formData, vehicleId: '', vehicleNo: String(value || '').toUpperCase() });
         return;
       }
     if (name === 'materialType') {
@@ -1526,28 +1535,13 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
 
     // Vehicle No
     if (upperOcrRaw) {
-      // 1. Exact match
-      let matchedVehicle = vehicles.find(
-        (v) => String(v.vehicleNo || '').toUpperCase() === upperOcrRaw
-      );
+      const matchResult = getSmartVehicleMatch(upperOcrRaw, vehicles, getVehicleDisplayName);
+      const { matchedVehicle, isMismatch, matchedValue } = matchResult;
 
-      // 2. Last-4-digit match (handles OCR mistakes like Y→V, 0→O)
-      if (!matchedVehicle) {
-        const last4 = upperOcrRaw.replace(/\D/g, '').slice(-4);
-        if (last4.length === 4) {
-          matchedVehicle = vehicles.find((v) => {
-            const vLast4 = String(v.vehicleNo || '').replace(/\D/g, '').slice(-4);
-            return vLast4 === last4;
-          });
-        }
-      }
-
-      // 3. Partial includes fallback
-      if (!matchedVehicle) {
-        const tail = upperOcrRaw.slice(-4);
-        matchedVehicle = vehicles.find((v) =>
-          String(v.vehicleNo || '').toUpperCase().includes(tail)
-        );
+      if (isMismatch) {
+        setOcrVehicleMismatch({ ocrValue: upperOcrRaw, matchedValue });
+      } else {
+        setOcrVehicleMismatch(null);
       }
 
       if (matchedVehicle) {
@@ -1561,6 +1555,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
           const total = calculateSaleTotalAmount(net, prev.rate);
           return {
             ...prev,
+            vehicleId: '',
             vehicleNo: upperOcrRaw,
             tareWeight: tare || prev.tareWeight,
             grossWeight: gross || prev.grossWeight,
@@ -1592,15 +1587,13 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
 
     // Weights (only if vehicle wasn't already matched — vehicle match sets them)
     // 1. Try exact logic again here to avoid overwriting netWeight if vehicle was matched above
-    let matchedVehicleForWeights = null;
-    if (upperOcrRaw) {
-      const last4 = upperOcrRaw.replace(/\D/g, '').slice(-4);
-      matchedVehicleForWeights = vehicles.find((v) => String(v.vehicleNo || '').toUpperCase() === upperOcrRaw)
-        || (last4.length === 4 ? vehicles.find((v) => String(v.vehicleNo || '').replace(/\D/g, '').slice(-4) === last4) : null)
-        || vehicles.find((v) => String(v.vehicleNo || '').toUpperCase().includes(upperOcrRaw.slice(-4)));
-    }
+    const isMatchedInDb = !!vehicles.find(v => {
+      const vNo = String(v.vehicleNo || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const ocrShort = upperOcrRaw.replace(/[^A-Z0-9]/g, '');
+      return vNo === ocrShort || (ocrShort.length >= 4 && vNo.endsWith(ocrShort.slice(-4)));
+    });
 
-    if (!matchedVehicleForWeights) {
+    if (!isMatchedInDb) {
       const tare = Number(tareWeight || 0);
       const gross = Number(grossWeight || 0);
       const net = Number(netWeight || 0) || (gross - tare);
@@ -1668,6 +1661,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
       setLoading(true);
       const submitData = {
         partyId: formData.party,
+        vehicleId: formData.vehicleId || undefined,
         vehicleNo: String(formData.vehicleNo || '').trim().toUpperCase(),
         stoneSize: formData.materialType,
         entryTime: String(formData.entryTime || '').trim(),
@@ -1729,6 +1723,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         ...getInitialFormData(),
         ...sale,
       party: normalizedPartyId,
+      vehicleId: typeof sale.vehicleId === 'object' ? sale.vehicleId?._id || '' : sale.vehicleId || '',
       saleDate: formatDateForInput(sale.saleDate),
       entryTime: sale.entryTime || formatTimeForInput(sale.saleDate),
       exitTime: sale.exitTime || formatTimeForInput(sale.saleDate),
@@ -1972,6 +1967,8 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
           selectVehicle={selectVehicle}
           selectProduct={selectProduct}
           onOcrFill={handleOcrFill}
+          ocrVehicleMismatch={ocrVehicleMismatch}
+          setOcrVehicleMismatch={setOcrVehicleMismatch}
         />
         <AddPartyPopup
           showForm={showPartyForm}
@@ -2096,6 +2093,8 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         selectVehicle={selectVehicle}
         selectProduct={selectProduct}
         onOcrFill={handleOcrFill}
+        ocrVehicleMismatch={ocrVehicleMismatch}
+        setOcrVehicleMismatch={setOcrVehicleMismatch}
       />
       <AddPartyPopup
         showForm={showPartyForm}

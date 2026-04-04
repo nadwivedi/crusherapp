@@ -9,6 +9,11 @@ const getCurrentTime = () => {
 
 const boulderSchema = new mongoose.Schema(
   {
+    partyId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Party",
+      default: null,
+    },
     vehicleId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Vehicle",
@@ -18,6 +23,11 @@ const boulderSchema = new mongoose.Schema(
       required: true,
       trim: true,
       uppercase: true,
+    },
+    partyName: {
+      type: String,
+      trim: true,
+      default: "",
     },
     boulderNumber: {
       type: String,

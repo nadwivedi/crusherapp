@@ -7,6 +7,11 @@ const salesSchema = new mongoose.Schema(
       ref: "Party",
       required: true,
     },
+    vehicleId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Vehicle",
+      default: null,
+    },
     vehicleNo: {
       type: String,
       required: true,

@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Camera, Eye, Loader2, Scale, Truck, Upload } from 'lucide-react';
+import { AlertCircle, Camera, Check, Eye, Loader2, Scale, Truck, Upload, X } from 'lucide-react';
 import { toast } from 'react-toastify';
 import apiClient from '../../utils/api';
 import { handlePopupFormKeyDown } from '../../utils/popupFormKeyboard';
 import { useFloatingDropdownPosition } from '../../utils/useFloatingDropdownPosition';
+import { getSmartVehicleMatch } from '../../utils/vehicleMatching';
 import DocumentScannerPreview from '../../components/DocumentScannerPreview';
 import AddVehiclePopup from '../Vehicle/component/AddVehiclePopup';
 
@@ -27,6 +28,7 @@ const formatTimeForInput = (value = new Date()) => {
 const initialFormData = {
   vehicleId: '',
   vehicleNo: '',
+  partyName: '',
   boulderDate: formatDateForInput(),
   entryTime: '',
   exitTime: '',
@@ -48,6 +50,7 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
   const [isVehicleSectionActive, setIsVehicleSectionActive] = useState(false);
   const [vehicleListIndex, setVehicleListIndex] = useState(-1);
   const [scannerState, setScannerState] = useState(null);
+  const [ocrVehicleMismatch, setOcrVehicleMismatch] = useState(null); // { ocrValue, matchedValue }
   const vehicleSectionRef = useRef(null);
   const vehicleInputRef = useRef(null);
   const dateInputRef = useRef(null);
@@ -83,6 +86,7 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
     setFormData({
       vehicleId,
       vehicleNo,
+      partyName: editingEntry.partyName || '',
       boulderDate: formatDateForInput(editingEntry.boulderDate || editingEntry.createdAt),
       entryTime: editingEntry.entryTime || formatTimeForInput(editingEntry.boulderDate || editingEntry.createdAt),
       exitTime: editingEntry.exitTime || '',
@@ -142,6 +146,7 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
     }));
     setVehicleQuery(vehicleName);
     setIsVehicleSectionActive(false);
+    setOcrVehicleMismatch(null);
   };
 
   const openInlineVehicleForm = () => {
@@ -175,6 +180,7 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
     const value = event.target.value;
     setVehicleQuery(value);
     setIsVehicleSectionActive(true);
+    setOcrVehicleMismatch(null);
     setFormData((prev) => ({
       ...prev,
       vehicleId: '',
@@ -235,6 +241,7 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
       const payload = {
         vehicleId: formData.vehicleId || undefined,
         vehicleNo: formData.vehicleNo.toUpperCase(),
+        partyName: String(formData.partyName || '').trim(),
         boulderDate: formData.boulderDate,
         entryTime: formData.entryTime,
         exitTime: formData.exitTime,
@@ -293,49 +300,29 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
     );
 
     if (ocrRaw) {
-      // --- Smart vehicle matching with last-4-digit fallback ---
-      // 1. Exact match
-      let matchedVehicle = vehicles.find(
-        (v) => getVehicleDisplayName(v).toUpperCase() === ocrRaw
-      );
+      const matchResult = getSmartVehicleMatch(ocrRaw, vehicles, getVehicleDisplayName);
+      const { matchedVehicle, isMismatch, matchedValue } = matchResult;
 
-      // 2. Last-4-digit match (handles OCR mistakes in prefix letters)
-      if (!matchedVehicle) {
-        const last4 = ocrRaw.replace(/\D/g, '').slice(-4); // last 4 digits only
-        if (last4.length === 4) {
-          matchedVehicle = vehicles.find((v) => {
-            const vNo = getVehicleDisplayName(v).toUpperCase();
-            const vLast4 = vNo.replace(/\D/g, '').slice(-4);
-            return vLast4 === last4;
-          });
-        }
+      if (isMismatch) {
+        setOcrVehicleMismatch({ ocrValue: ocrRaw, matchedValue });
+      } else {
+        setOcrVehicleMismatch(null);
       }
 
-      // 3. Partial string includes match (fallback)
-      if (!matchedVehicle) {
-        matchedVehicle = vehicles.find((v) =>
-          getVehicleDisplayName(v).toUpperCase().includes(ocrRaw.slice(-4))
-        );
-      }
-
-      const resolvedVehicleNo = matchedVehicle
-        ? getVehicleDisplayName(matchedVehicle).toUpperCase()
-        : ocrRaw;
-
-      setVehicleQuery(resolvedVehicleNo);
       if (matchedVehicle) {
         selectVehicle(matchedVehicle);
       } else {
+        setVehicleQuery(ocrRaw);
         setFormData((prev) => ({
           ...prev,
-          vehicleNo: resolvedVehicleNo
+          vehicleNo: ocrRaw,
+          vehicleId: ''
         }));
       }
     }
 
     setFormData((prev) => updateWeights({
       ...prev,
-      vehicleNo: ocrRaw || prev.vehicleNo,
       grossWeight: grossWeight > 0 ? grossWeight : prev.grossWeight,
       tareWeight: tareWeight > 0 ? tareWeight : prev.tareWeight,
       netWeight: netWeight > 0 ? netWeight : prev.netWeight,
@@ -348,7 +335,7 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
     if (hasExtractedFields) {
       toast.success('Boulder slip data extracted!', { autoClose: 1500 });
     }
-  }, [vehicles]);
+  }, [vehicles, selectVehicle]);
 
   const uploadSlipFile = useCallback(async (file) => {
     const body = new FormData();
@@ -584,6 +571,43 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
                         />
                       </div>
 
+                      {ocrVehicleMismatch && (
+                        <div className="mt-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                          <div className="flex flex-col gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 shadow-sm">
+                            <div className="flex items-start gap-2">
+                              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                              <div className="flex-1">
+                                <p className="text-[12px] font-bold text-amber-900">Vehicle Mismatch Confirmation</p>
+                                <p className="text-[11px] text-amber-700">OCR read "<span className="font-bold underlineDecoration">{ocrVehicleMismatch.ocrValue}</span>" but we matched "<span className="font-bold">{ocrVehicleMismatch.matchedValue}</span>" from your list based on the last 4 digits.</p>
+                              </div>
+                            </div>
+                            <div className="mt-1 flex items-center justify-end gap-2">
+                              <span className="text-[10px] font-medium text-amber-600">Which one is correct?</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setVehicleQuery(ocrVehicleMismatch.ocrValue);
+                                  setFormData(prev => ({ ...prev, vehicleNo: ocrVehicleMismatch.ocrValue, vehicleId: '' }));
+                                  setOcrVehicleMismatch(null);
+                                }}
+                                className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-white px-2.5 py-1.5 text-[11px] font-bold text-amber-700 transition hover:bg-amber-100"
+                              >
+                                <X className="h-3 w-3" />
+                                {ocrVehicleMismatch.ocrValue}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setOcrVehicleMismatch(null)}
+                                className="flex items-center gap-1.5 rounded-lg bg-amber-600 px-2.5 py-1.5 text-[11px] font-bold text-white transition hover:bg-amber-700 shadow-sm"
+                              >
+                                <Check className="h-3 w-3" />
+                                {ocrVehicleMismatch.matchedValue}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       {isVehicleSectionActive && vehicleDropdownStyle && (
                         <div
                           className="fixed z-[80] overflow-hidden rounded-xl border border-amber-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.18)]"
@@ -690,6 +714,18 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
                         </div>
                       </div>
                     ) : null}
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className={labelClass}>Party Name</label>
+                    <input
+                      type="text"
+                      name="partyName"
+                      value={formData.partyName || ''}
+                      onChange={handleChange}
+                      className={`${inputClass} focus:ring-indigo-500`}
+                      placeholder="Enter party name"
+                    />
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
