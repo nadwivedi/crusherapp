@@ -1499,7 +1499,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         };
 
       const response = await apiClient.post('/parties', payload);
-      const createdParty = response?.data || null;
+      const createdParty = response || null;
 
       if (!createdParty?._id) {
         throw new Error('Party created but response was incomplete');

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AlertCircle, Camera, Check, Eye, Loader2, Scale, Truck, Upload, X } from 'lucide-react';
+import { AlertCircle, Camera, Check, ChevronDown, Eye, Loader2, Scale, Truck, Upload, X } from 'lucide-react';
 import { toast } from 'react-toastify';
 import apiClient from '../../utils/api';
 import { handlePopupFormKeyDown } from '../../utils/popupFormKeyboard';
@@ -42,17 +42,23 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
   const [formData, setFormData] = useState(initialFormData);
   const [vehicleQuery, setVehicleQuery] = useState('');
   const [vehicles, setVehicles] = useState([]);
+  const [parties, setParties] = useState([]);
+  const [partyQuery, setPartyQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [uploadingSlip, setUploadingSlip] = useState(false);
   const [isOcrLoading, setIsOcrLoading] = useState(false);
   const [ocrMode, setOcrMode] = useState('');
   const [showVehicleForm, setShowVehicleForm] = useState(false);
   const [isVehicleSectionActive, setIsVehicleSectionActive] = useState(false);
+  const [isPartySectionActive, setIsPartySectionActive] = useState(false);
   const [vehicleListIndex, setVehicleListIndex] = useState(-1);
+  const [partyListIndex, setPartyListIndex] = useState(-1);
   const [scannerState, setScannerState] = useState(null);
   const [ocrVehicleMismatch, setOcrVehicleMismatch] = useState(null); // { ocrValue, matchedValue }
   const vehicleSectionRef = useRef(null);
   const vehicleInputRef = useRef(null);
+  const partySectionRef = useRef(null);
+  const partyInputRef = useRef(null);
   const dateInputRef = useRef(null);
   const ocrFileInputRef = useRef(null);
   const ocrCameraInputRef = useRef(null);
@@ -63,6 +69,7 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
 
   useEffect(() => {
     fetchVehicles();
+    fetchParties();
   }, []);
 
   useEffect(() => {
@@ -75,6 +82,7 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
     if (!editingEntry?._id) {
       setFormData(initialFormData);
       setVehicleQuery('');
+      setPartyQuery('');
       return;
     }
 
@@ -96,6 +104,7 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
       slipImg: editingEntry.slipImg || ''
     });
     setVehicleQuery(vehicleNo);
+    setPartyQuery(editingEntry.partyName || '');
   }, [editingEntry]);
 
   const filteredVehicles = useMemo(() => {
@@ -104,14 +113,30 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
     return vehicles.filter((vehicle) => getVehicleDisplayName(vehicle).toLowerCase().includes(search));
   }, [vehicles, vehicleQuery]);
 
+  const filteredParties = useMemo(() => {
+    const search = partyQuery.trim().toLowerCase();
+    if (!search) return parties;
+    return parties.filter((party) => String(party?.partyName || party?.name || '').trim().toLowerCase().includes(search));
+  }, [parties, partyQuery]);
+
   useEffect(() => {
     setVehicleListIndex(filteredVehicles.length > 0 ? 0 : -1);
   }, [filteredVehicles]);
+
+  useEffect(() => {
+    setPartyListIndex(filteredParties.length > 0 ? 0 : -1);
+  }, [filteredParties]);
 
   const vehicleDropdownStyle = useFloatingDropdownPosition(
     vehicleSectionRef,
     isVehicleSectionActive,
     [filteredVehicles.length, vehicleListIndex]
+  );
+
+  const partyDropdownStyle = useFloatingDropdownPosition(
+    partySectionRef,
+    isPartySectionActive,
+    [filteredParties.length, partyListIndex]
   );
 
   const fetchVehicles = async () => {
@@ -120,6 +145,15 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
       setVehicles(Array.isArray(response) ? response : []);
     } catch (error) {
       console.error('Error fetching vehicles:', error);
+    }
+  };
+
+  const fetchParties = async () => {
+    try {
+      const response = await apiClient.get('/parties');
+      setParties(Array.isArray(response) ? response : []);
+    } catch (error) {
+      console.error('Error fetching parties:', error);
     }
   };
 
@@ -226,6 +260,57 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
     }
   };
 
+  const selectParty = (party) => {
+    const partyName = String(party?.partyName || party?.name || '').trim();
+    if (!partyName) return;
+
+    setPartyQuery(partyName);
+    setFormData((prev) => ({ ...prev, partyName }));
+    setIsPartySectionActive(false);
+  };
+
+  const handlePartyFocus = () => {
+    setIsPartySectionActive(true);
+    setPartyListIndex(filteredParties.length > 0 ? 0 : -1);
+  };
+
+  const handlePartyInputChange = (event) => {
+    const value = event.target.value;
+    setPartyQuery(value);
+    setIsPartySectionActive(true);
+    setFormData((prev) => ({ ...prev, partyName: value }));
+  };
+
+  const handlePartyInputKeyDown = (event) => {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setIsPartySectionActive(true);
+      setPartyListIndex((prev) => {
+        if (filteredParties.length === 0) return -1;
+        return prev < filteredParties.length - 1 ? prev + 1 : 0;
+      });
+      return;
+    }
+
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setIsPartySectionActive(true);
+      setPartyListIndex((prev) => {
+        if (filteredParties.length === 0) return -1;
+        return prev > 0 ? prev - 1 : filteredParties.length - 1;
+      });
+      return;
+    }
+
+    if (event.key === 'Enter' && isPartySectionActive && filteredParties.length > 0) {
+      event.preventDefault();
+      const selectedParty = filteredParties[partyListIndex] || filteredParties[0];
+      if (selectedParty) {
+        selectParty(selectedParty);
+      }
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -260,6 +345,7 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
       }
       setFormData(initialFormData);
       setVehicleQuery('');
+      setPartyQuery('');
       if (onModalFinish) {
         onModalFinish();
       }
@@ -718,14 +804,83 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
 
                   <div className="space-y-1">
                     <label className={labelClass}>Party Name</label>
-                    <input
-                      type="text"
-                      name="partyName"
-                      value={formData.partyName || ''}
-                      onChange={handleChange}
-                      className={`${inputClass} focus:ring-indigo-500`}
-                      placeholder="Enter party name"
-                    />
+                    <div
+                      ref={partySectionRef}
+                      className="relative"
+                      onFocusCapture={handlePartyFocus}
+                      onBlurCapture={(event) => {
+                        const nextFocused = event.relatedTarget;
+                        if (partySectionRef.current && nextFocused instanceof Node && partySectionRef.current.contains(nextFocused)) return;
+                        setIsPartySectionActive(false);
+                      }}
+                    >
+                      <div className="relative">
+                        <input
+                          ref={partyInputRef}
+                          type="text"
+                          name="partyName"
+                          value={partyQuery}
+                          onChange={handlePartyInputChange}
+                          onKeyDown={handlePartyInputKeyDown}
+                          className={`${inputClass} pr-10 focus:ring-indigo-500`}
+                          placeholder="Type to search party..."
+                          autoComplete="off"
+                        />
+                        <ChevronDown className={`pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-indigo-500 transition-transform ${isPartySectionActive ? 'rotate-180' : ''}`} />
+                      </div>
+
+                      {isPartySectionActive && partyDropdownStyle && (
+                        <div
+                          className="fixed z-[80] overflow-hidden rounded-xl border border-amber-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.18)]"
+                          style={partyDropdownStyle}
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          <div className="flex items-center justify-between border-b border-amber-100 bg-gradient-to-r from-amber-50 to-yellow-50 px-3 py-2">
+                            <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-amber-700">Party List</span>
+                            <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-amber-700 shadow-sm">
+                              {filteredParties.length}
+                            </span>
+                          </div>
+                          <div className="overflow-y-auto py-1" style={{ maxHeight: partyDropdownStyle.maxHeight }}>
+                            {filteredParties.length === 0 ? (
+                              <div className="px-3 py-3 text-center text-[13px] text-slate-500">
+                                No matching parties found.
+                              </div>
+                            ) : (
+                              filteredParties.map((party, index) => {
+                                const isActive = index === partyListIndex;
+                                const partyName = String(party?.partyName || party?.name || '').trim();
+                                const isSelected = String(formData.partyName || '') === partyName;
+
+                                return (
+                                  <button
+                                    key={party._id || `${partyName}-${index}`}
+                                    type="button"
+                                    onMouseDown={(event) => event.preventDefault()}
+                                    onMouseEnter={() => setPartyListIndex(index)}
+                                    onClick={() => selectParty(party)}
+                                    className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-[13px] transition ${
+                                      isActive
+                                        ? 'bg-yellow-200 text-amber-950'
+                                        : isSelected
+                                        ? 'bg-yellow-50 text-amber-800'
+                                        : 'text-slate-700 hover:bg-amber-50'
+                                    }`}
+                                  >
+                                    <span className="truncate font-medium">{partyName}</span>
+                                    {isSelected ? (
+                                      <span className="shrink-0 rounded-full border border-amber-200 bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+                                        Selected
+                                      </span>
+                                    ) : null}
+                                  </button>
+                                );
+                              })
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">

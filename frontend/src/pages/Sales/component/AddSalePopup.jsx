@@ -363,46 +363,13 @@ export default function AddSalePopup({
                     )}
                   </div>
 
-                  <div className="space-y-1">
-                    <label className={labelClass}>Slip Image</label>
-                    <div className="rounded-xl border border-slate-200 bg-white p-2">
-                      {formData?.slipImg ? (
-                        <>
-                          {isSlipPreviewImage ? (
-                            <img
-                              src={formData.slipImg}
-                              alt="Slip preview"
-                              className="h-36 w-full rounded-lg object-cover"
-                            />
-                          ) : (
-                            <div className="flex h-28 items-center justify-center rounded-lg bg-slate-100 text-sm font-medium text-slate-600">
-                              Slip ready to save
-                            </div>
-                          )}
-                          <div className="mt-2 flex items-center justify-between gap-2">
-                            <p className="truncate text-[12px] text-slate-500">{formData.slipImg}</p>
-                            <a
-                              href={formData.slipImg}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex shrink-0 items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-[12px] font-semibold text-indigo-700 transition hover:bg-indigo-100"
-                            >
-                              <Eye className="h-3.5 w-3.5" />
-                              Preview
-                            </a>
-                          </div>
-                        </>
-                      ) : (
-                        <div className="flex h-24 items-center justify-center rounded-lg bg-slate-50 text-sm text-slate-400">
-                          Uploaded or scanned slip will appear here
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   <div className="space-y-1">
                     <div className="relative mb-1 min-h-[16px]">
-                      <label className="block pr-24 text-[11px] font-semibold text-gray-700 md:text-xs">Vehicle No</label>
+                      <label className="flex items-center gap-1.5 pr-24 text-[11px] font-semibold text-gray-700 md:text-xs">
+                        <Truck className="h-3.5 w-3.5 text-indigo-500" />
+                        <span>Vehicle No</span>
+                      </label>
                       {isVehicleSectionActive && (
                         <button
                           type="button"
@@ -425,7 +392,6 @@ export default function AddSalePopup({
                       }}
                     >
                       <div className="relative">
-                        <Truck className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-indigo-400 pointer-events-none" />
                         <input
                           ref={vehicleInputRef}
                           type="text"
@@ -434,6 +400,8 @@ export default function AddSalePopup({
                           onChange={handleVehicleInputChange}
                           onKeyDown={handleVehicleInputKeyDown}
                           autoComplete="off"
+                          className={`${inputClass} focus:ring-indigo-500`}
+                          placeholder="Type to search vehicle..."
                         />
                       </div>
 
@@ -637,6 +605,7 @@ export default function AddSalePopup({
                       )}
                     </div>
                   </div>
+                  </div>
 
                   <div className="space-y-1">
                     <label className={labelClass}>Material Type</label>
@@ -820,6 +789,37 @@ export default function AddSalePopup({
                       ) : null}
                     </div>
                   </div>
+
+                  {formData?.slipImg ? (
+                    <div className="space-y-1">
+                      <label className={labelClass}>Slip Image</label>
+                      <div className="rounded-xl border border-slate-200 bg-white p-2">
+                        {isSlipPreviewImage ? (
+                          <img
+                            src={formData.slipImg}
+                            alt="Slip preview"
+                            className="h-36 w-full rounded-lg object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-28 items-center justify-center rounded-lg bg-slate-100 text-sm font-medium text-slate-600">
+                            Slip ready to save
+                          </div>
+                        )}
+                        <div className="mt-2 flex items-center justify-between gap-2">
+                          <p className="truncate text-[12px] text-slate-500">{formData.slipImg}</p>
+                          <a
+                            href={formData.slipImg}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex shrink-0 items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-[12px] font-semibold text-indigo-700 transition hover:bg-indigo-100"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                            Preview
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
             </div>
           </div>
