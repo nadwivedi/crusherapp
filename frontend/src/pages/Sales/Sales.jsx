@@ -5,7 +5,7 @@ import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Too
 import { toast } from 'react-toastify';
 import apiClient from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
-import { getSmartVehicleMatch } from '../../utils/vehicleMatching';
+import { getSmartVehicleMatch, normalizeVehicleValue } from '../../utils/vehicleMatching';
 import AddPartyPopup from '../Party/component/AddPartyPopup';
 import AddProductPopup from '../Products/component/AddProductPopup';
 import AddVehiclePopup from '../Vehicle/component/AddVehiclePopup';
@@ -770,6 +770,44 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
 
     const selectedIndex = filteredVehicles.findIndex((item) => String(item._id) === String(vehicle._id));
     setVehicleListIndex(selectedIndex >= 0 ? selectedIndex : 0);
+  };
+
+  const ensureVehicleExists = async () => {
+    const normalizedVehicleNo = normalizeVehicleValue(formData.vehicleNo);
+    const partyId = String(formData.party || '').trim();
+
+    if (!normalizedVehicleNo || !partyId) {
+      return formData.vehicleId || '';
+    }
+
+    const matchedVehicle = vehicles.find((vehicle) => (
+      normalizeVehicleValue(getVehicleDisplayName(vehicle)) === normalizedVehicleNo
+    )) || null;
+
+    if (matchedVehicle?._id) {
+      if (String(formData.vehicleId || '') !== String(matchedVehicle._id)) {
+        selectVehicle(matchedVehicle);
+      }
+      return matchedVehicle._id;
+    }
+
+    const createdVehicle = await apiClient.post('/vehicles', {
+      partyId,
+      vehicleNo: String(formData.vehicleNo || '').trim().toUpperCase(),
+      unladenWeight: Number(formData.tareWeight || 0),
+      vehicleType: 'sales'
+    });
+
+    if (createdVehicle?._id) {
+      setVehicles((prev) => [
+        createdVehicle,
+        ...prev.filter((item) => String(item._id) !== String(createdVehicle._id))
+      ]);
+      selectVehicle(createdVehicle);
+      return createdVehicle._id;
+    }
+
+    return formData.vehicleId || '';
   };
 
   const handleVehicleInputChange = (e) => {
@@ -1659,9 +1697,10 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
 
     try {
       setLoading(true);
+      const ensuredVehicleId = await ensureVehicleExists();
       const submitData = {
         partyId: formData.party,
-        vehicleId: formData.vehicleId || undefined,
+        vehicleId: ensuredVehicleId || formData.vehicleId || undefined,
         vehicleNo: String(formData.vehicleNo || '').trim().toUpperCase(),
         stoneSize: formData.materialType,
         entryTime: String(formData.entryTime || '').trim(),

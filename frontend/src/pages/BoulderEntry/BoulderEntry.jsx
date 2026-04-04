@@ -4,9 +4,11 @@ import { toast } from 'react-toastify';
 import apiClient from '../../utils/api';
 import { handlePopupFormKeyDown } from '../../utils/popupFormKeyboard';
 import { useFloatingDropdownPosition } from '../../utils/useFloatingDropdownPosition';
-import { getSmartVehicleMatch } from '../../utils/vehicleMatching';
+import { getSmartVehicleMatch, normalizeVehicleValue } from '../../utils/vehicleMatching';
 import DocumentScannerPreview from '../../components/DocumentScannerPreview';
 import AddVehiclePopup from '../Vehicle/component/AddVehiclePopup';
+
+const isCompleteVehicleNumber = (value) => normalizeVehicleValue(value).length >= 9;
 
 const formatDateForInput = (value = new Date()) => {
   const date = value instanceof Date ? value : new Date(value);
@@ -110,6 +112,14 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
   const filteredVehicles = useMemo(() => {
     const search = vehicleQuery.trim().toLowerCase();
     if (!search) return vehicles;
+    const exactMatch = vehicles.find((vehicle) => (
+      normalizeVehicleValue(getVehicleDisplayName(vehicle)) === normalizeVehicleValue(search)
+    ));
+
+    if (isCompleteVehicleNumber(search) && !exactMatch) {
+      return [];
+    }
+
     return vehicles.filter((vehicle) => getVehicleDisplayName(vehicle).toLowerCase().includes(search));
   }, [vehicles, vehicleQuery]);
 
@@ -269,6 +279,59 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
     setIsPartySectionActive(false);
   };
 
+  const findPartyByName = useCallback((partyName) => {
+    const normalizedPartyName = String(partyName || '').trim().toLowerCase();
+    if (!normalizedPartyName) return null;
+
+    return parties.find((party) => {
+      const candidateName = String(party?.partyName || party?.name || '').trim().toLowerCase();
+      return candidateName === normalizedPartyName;
+    }) || null;
+  }, [parties]);
+
+  const ensureVehicleExists = useCallback(async () => {
+    const normalizedVehicleNo = normalizeVehicleValue(formData.vehicleNo);
+    const partyName = String(formData.partyName || '').trim();
+
+    if (!normalizedVehicleNo || !partyName) {
+      return formData.vehicleId || '';
+    }
+
+    const matchedVehicle = vehicles.find((vehicle) => (
+      normalizeVehicleValue(getVehicleDisplayName(vehicle)) === normalizedVehicleNo
+    )) || null;
+
+    if (matchedVehicle?._id) {
+      if (String(formData.vehicleId || '') !== String(matchedVehicle._id)) {
+        selectVehicle(matchedVehicle);
+      }
+      return matchedVehicle._id;
+    }
+
+    const matchedParty = findPartyByName(partyName);
+    if (!matchedParty?._id) {
+      return formData.vehicleId || '';
+    }
+
+    const createdVehicle = await apiClient.post('/vehicles', {
+      partyId: matchedParty._id,
+      vehicleNo: String(formData.vehicleNo || '').trim().toUpperCase(),
+      unladenWeight: Number(formData.tareWeight || 0),
+      vehicleType: 'boulder'
+    });
+
+    if (createdVehicle?._id) {
+      setVehicles((prev) => [
+        createdVehicle,
+        ...prev.filter((item) => String(item._id) !== String(createdVehicle._id))
+      ]);
+      selectVehicle(createdVehicle);
+      return createdVehicle._id;
+    }
+
+    return formData.vehicleId || '';
+  }, [findPartyByName, formData.partyName, formData.tareWeight, formData.vehicleId, formData.vehicleNo, selectVehicle, vehicles]);
+
   const handlePartyFocus = () => {
     setIsPartySectionActive(true);
     setPartyListIndex(filteredParties.length > 0 ? 0 : -1);
@@ -323,8 +386,9 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
 
     setLoading(true);
     try {
+      const ensuredVehicleId = await ensureVehicleExists();
       const payload = {
-        vehicleId: formData.vehicleId || undefined,
+        vehicleId: ensuredVehicleId || formData.vehicleId || undefined,
         vehicleNo: formData.vehicleNo.toUpperCase(),
         partyName: String(formData.partyName || '').trim(),
         boulderDate: formData.boulderDate,
