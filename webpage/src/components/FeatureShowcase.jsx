@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Camera, Zap, FileText, Check } from 'lucide-react';
+import { Camera, Zap, FileText, Check, Scale, Wallet, Boxes, Users } from 'lucide-react';
 
 const FeatureShowcase = () => {
   return (
@@ -161,6 +161,39 @@ const FeatureShowcase = () => {
             </motion.div>
           </div>
 
+        </div>
+
+        <div className="mt-16 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
+          {[
+            {
+              icon: Scale,
+              title: 'Weightbridge Auto Entry',
+              description: 'Capture weightbridge readings and reduce repetitive typing at dispatch time.',
+            },
+            {
+              icon: Wallet,
+              title: 'Expense Management',
+              description: 'Track operational expenses with cleaner day-to-day control.',
+            },
+            {
+              icon: Users,
+              title: 'Party Wise Ledger',
+              description: 'See each party ledger, pending amount, and transaction history clearly.',
+            },
+            {
+              icon: Boxes,
+              title: 'Stock Movement',
+              description: 'Monitor incoming boulder, outgoing sales, and stock movement in one flow.',
+            },
+          ].map(({ icon: Icon, title, description }) => (
+            <div key={title} className="rounded-3xl border border-gray-100 bg-gray-50 p-6 shadow-sm">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-orange/10 text-brand-orange">
+                <Icon className="h-6 w-6" />
+              </div>
+              <h4 className="mt-5 text-xl font-bold text-brand-navy">{title}</h4>
+              <p className="mt-3 text-sm leading-relaxed text-brand-slate">{description}</p>
+            </div>
+          ))}
         </div>
       </div>
     </section>

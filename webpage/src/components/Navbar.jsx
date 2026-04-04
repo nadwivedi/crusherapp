@@ -25,11 +25,17 @@ const Navbar = () => {
           <div className="hidden md:flex items-center space-x-8">
             <Link to="/" className="text-brand-slate hover:text-brand-orange transition-colors font-medium">Home</Link>
             <Link to="/about" className="text-brand-slate hover:text-brand-orange transition-colors font-medium">About</Link>
+            <Link to="/pricing" className="text-brand-slate hover:text-brand-orange transition-colors font-medium">Pricing</Link>
             <Link to="/contact" className="text-brand-slate hover:text-brand-orange transition-colors font-medium">Contact</Link>
             
-            <button className="bg-brand-orange text-white px-6 py-2 rounded-full font-semibold shadow-lg hover:shadow-orange-500/30 hover:-translate-y-0.5 transition-all">
+            <a
+              href="https://app.crusherbook.com"
+              target="_blank"
+              rel="noreferrer"
+              className="bg-brand-orange text-white px-6 py-2 rounded-full font-semibold shadow-lg hover:shadow-orange-500/30 hover:-translate-y-0.5 transition-all"
+            >
               Login
-            </button>
+            </a>
           </div>
 
           {/* Mobile Menu Button */}
@@ -64,6 +70,13 @@ const Navbar = () => {
               About
             </Link>
             <Link 
+              to="/pricing" 
+              onClick={() => setIsOpen(false)}
+              className="block px-3 py-3 rounded-md text-base font-medium text-brand-slate hover:bg-gray-50 hover:text-brand-orange"
+            >
+              Pricing
+            </Link>
+            <Link 
               to="/contact" 
               onClick={() => setIsOpen(false)}
               className="block px-3 py-3 rounded-md text-base font-medium text-brand-slate hover:bg-gray-50 hover:text-brand-orange"
@@ -71,9 +84,14 @@ const Navbar = () => {
               Contact
             </Link>
             <div className="pt-4 px-3">
-              <button className="w-full bg-brand-orange text-white px-6 py-3 rounded-full font-semibold shadow-md">
+              <a
+                href="https://app.crusherbook.com"
+                target="_blank"
+                rel="noreferrer"
+                className="block w-full bg-brand-orange text-center text-white px-6 py-3 rounded-full font-semibold shadow-md"
+              >
                 Login
-              </button>
+              </a>
             </div>
           </div>
         </div>

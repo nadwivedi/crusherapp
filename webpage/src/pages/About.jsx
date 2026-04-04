@@ -1,14 +1,30 @@
 import { motion } from 'framer-motion';
 import { Target, Users, Shield, TrendingUp } from 'lucide-react';
-import { Helmet } from 'react-helmet-async';
+import ContactActions from '../components/ContactActions';
+import Seo from '../components/Seo';
+
+const aboutSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'AboutPage',
+  name: 'About CrusherBook',
+  url: 'https://crusherbook.com/about',
+  description: 'About CrusherBook, stone crusher plant ERP software built for weighbridge workflow, ledger, stock, expenses, and reporting.',
+};
 
 const About = () => {
   return (
     <div className="w-full pt-10 pb-24 bg-gray-50">
-      <Helmet>
-        <title>About Us | Crusherbook ERP Solution</title>
-        <meta name="description" content="Learn more about Crusherbook, the premier stone crusher management software and ERP solution built for the rock crushing industry." />
-      </Helmet>
+      <Seo
+        title="About CrusherBook ERP"
+        description="Learn about CrusherBook, a stone crusher plant ERP system built for weighbridge workflow, slip entry, party ledger, expenses, stock, and reports."
+        path="/about"
+        keywords={[
+          'about crusher ERP',
+          'stone crusher plant software company',
+          'crusher management software India',
+        ]}
+        schema={aboutSchema}
+      />
       
       {/* Header */}
       <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 mb-20 mt-10">
@@ -99,6 +115,16 @@ const About = () => {
             <p className="text-brand-slate font-medium">Uptime guarantee</p>
           </motion.div>
 
+        </div>
+
+        <div className="mt-16 rounded-3xl bg-brand-navy px-8 py-10 text-center text-white shadow-xl">
+          <h2 className="text-3xl font-bold">Built Around Crusher Plant Daily Work</h2>
+          <p className="mx-auto mt-4 max-w-3xl text-base leading-relaxed text-white/80">
+            From weightbridge connection and sales slip entry to party wise ledger, expense management, employee access, stock movement, and profit and loss visibility, Crusherbook is designed for real plant operations.
+          </p>
+          <div className="mt-8">
+            <ContactActions primaryLabel="WhatsApp Us" secondaryLabel="Call Team" />
+          </div>
         </div>
 
       </div>

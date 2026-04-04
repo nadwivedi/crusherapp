@@ -20,9 +20,9 @@ const Footer = () => {
               The ultimate ERP management software for rock crusher plants. Automate your workflow, manage stock, and increase productivity from anywhere.
             </p>
             <div className="flex space-x-4">
-              <a href="#" className="text-gray-400 hover:text-brand-orange transition-colors"><Globe size={20} /></a>
-              <a href="#" className="text-gray-400 hover:text-brand-orange transition-colors"><MessageCircle size={20} /></a>
-              <a href="#" className="text-gray-400 hover:text-brand-orange transition-colors"><Share2 size={20} /></a>
+              <a href="https://crusherbook.com" className="text-gray-400 hover:text-brand-orange transition-colors" aria-label="CrusherBook website"><Globe size={20} /></a>
+              <a href="https://wa.me/916264682508" target="_blank" rel="noreferrer" className="text-gray-400 hover:text-brand-orange transition-colors" aria-label="CrusherBook WhatsApp"><MessageCircle size={20} /></a>
+              <a href="https://app.crusherbook.com" target="_blank" rel="noreferrer" className="text-gray-400 hover:text-brand-orange transition-colors" aria-label="CrusherBook login"><Share2 size={20} /></a>
             </div>
           </div>
 
@@ -32,8 +32,8 @@ const Footer = () => {
             <ul className="space-y-4">
               <li><Link to="/" className="text-gray-400 hover:text-brand-orange transition-colors">Home</Link></li>
               <li><Link to="/about" className="text-gray-400 hover:text-brand-orange transition-colors">About Us</Link></li>
-              <li><a href="#" className="text-gray-400 hover:text-brand-orange transition-colors">Features</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-brand-orange transition-colors">Pricing</a></li>
+              <li><Link to="/pricing" className="text-gray-400 hover:text-brand-orange transition-colors">Pricing</Link></li>
+              <li><Link to="/contact" className="text-gray-400 hover:text-brand-orange transition-colors">Contact</Link></li>
             </ul>
           </div>
 
@@ -41,9 +41,9 @@ const Footer = () => {
           <div>
             <h3 className="text-lg font-semibold mb-6">Support</h3>
             <ul className="space-y-4">
-              <li><a href="#" className="text-gray-400 hover:text-brand-orange transition-colors">Help Center</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-brand-orange transition-colors">Privacy Policy</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-brand-orange transition-colors">Terms of Service</a></li>
+              <li><a href="https://wa.me/916264682508" target="_blank" rel="noreferrer" className="text-gray-400 hover:text-brand-orange transition-colors">WhatsApp Support</a></li>
+              <li><a href="tel:+916264682508" className="text-gray-400 hover:text-brand-orange transition-colors">Call Support</a></li>
+              <li><a href="https://app.crusherbook.com" target="_blank" rel="noreferrer" className="text-gray-400 hover:text-brand-orange transition-colors">Login</a></li>
             </ul>
           </div>
 
