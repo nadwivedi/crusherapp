@@ -11,6 +11,8 @@ import AddProductPopup from '../Products/component/AddProductPopup';
 import AddVehiclePopup from '../Vehicle/component/AddVehiclePopup';
 import AddSalePopup from './component/AddSalePopup';
 
+const isCompleteVehicleNumber = (value) => normalizeVehicleValue(value).length >= 9;
+
 const MATERIAL_TYPE_OPTIONS = [
   { value: '60mm', label: '60mm' },
   { value: '40mm', label: '40mm' },
@@ -442,11 +444,20 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
   const filteredVehicles = useMemo(() => {
     const normalizedQuery = normalizeText(vehicleQuery);
     const normalizedSelectedVehicle = normalizeText(formData.vehicleNo);
+    const exactVehicle = vehicles.find((vehicle) => (
+      normalizeVehicleValue(getVehicleDisplayName(vehicle)) === normalizeVehicleValue(vehicleQuery)
+    )) || null;
+    const isCompleteTypedVehicle = isCompleteVehicleNumber(vehicleQuery);
+
+    if (isCompleteTypedVehicle && !exactVehicle) {
+      return [];
+    }
 
     if (
       isVehicleSectionActive
       && normalizedQuery
       && normalizedQuery === normalizedSelectedVehicle
+      && exactVehicle
     ) {
       return vehicles;
     }
@@ -631,6 +642,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
   const findBestVehicleMatch = (value) => {
     const normalized = normalizeText(value);
     if (!normalized) return null;
+    if (isCompleteVehicleNumber(value)) return null;
     return vehicles.find((vehicle) => normalizeText(getVehicleDisplayName(vehicle)).startsWith(normalized))
       || vehicles.find((vehicle) => normalizeText(getVehicleDisplayName(vehicle)).includes(normalized))
       || null;
