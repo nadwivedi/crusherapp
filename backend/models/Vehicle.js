@@ -2,6 +2,11 @@ const mongoose = require("mongoose");
 
 const vehicleSchema = new mongoose.Schema(
   {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
     partyId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Party",
@@ -31,5 +36,8 @@ const vehicleSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+vehicleSchema.index({ userId: 1, vehicleNo: 1 }, { unique: true });
+vehicleSchema.index({ userId: 1, vehicleType: 1, createdAt: -1 });
 
 module.exports = mongoose.models.Vehicle || mongoose.model("Vehicle", vehicleSchema);

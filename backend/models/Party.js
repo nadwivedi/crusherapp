@@ -8,6 +8,11 @@ const normalizeRate = (value) => {
 
 const partySchema = new mongoose.Schema(
   {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
     name: {
       type: String,
       required: true,
@@ -100,6 +105,9 @@ const partySchema = new mongoose.Schema(
     toObject: { virtuals: true },
   }
 );
+
+partySchema.index({ userId: 1, name: 1 });
+partySchema.index({ userId: 1, type: 1, createdAt: -1 });
 
 partySchema.virtual("partyName")
   .get(function partyNameGetter() {

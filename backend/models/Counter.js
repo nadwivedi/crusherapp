@@ -2,10 +2,14 @@ const mongoose = require("mongoose");
 
 const counterSchema = new mongoose.Schema(
   {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
     key: {
       type: String,
       required: true,
-      unique: true,
       trim: true,
     },
     seq: {
@@ -18,5 +22,7 @@ const counterSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+counterSchema.index({ userId: 1, key: 1 }, { unique: true });
 
 module.exports = mongoose.models.Counter || mongoose.model("Counter", counterSchema);

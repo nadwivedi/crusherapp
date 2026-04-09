@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Bank = require("../models/Bank");
+const { scopedFilter, scopedIdFilter } = require("../utils/ownership");
 
 const CASH_ACCOUNT_NAME = "Cash Account";
 
@@ -10,14 +11,16 @@ const toNumber = (value, fallback = 0) => {
 
 const normalizeBankName = (value) => String(value || "").trim();
 
-const ensureCashAccount = async () => {
+const ensureCashAccount = async (userId) => {
   const existingCashAccount = await Bank.findOne({
+    userId,
     name: { $regex: `^${CASH_ACCOUNT_NAME}$`, $options: "i" },
   });
 
   if (existingCashAccount) return existingCashAccount;
 
   return Bank.create({
+    userId,
     name: CASH_ACCOUNT_NAME,
     totalBalance: 0,
     notes: "",
@@ -32,6 +35,7 @@ const createBank = async (req, res) => {
     }
 
     const bank = await Bank.create({
+      userId: req.userId,
       name,
       totalBalance: Math.max(0, toNumber(req.body.totalBalance)),
       notes: String(req.body.notes || "").trim(),
@@ -48,14 +52,14 @@ const createBank = async (req, res) => {
 
 const getAllBanks = async (req, res) => {
   try {
-    await ensureCashAccount();
+    await ensureCashAccount(req.userId);
 
     const normalizedSearch = String(req.query.search || "").trim();
-    const filter = normalizedSearch
+    const filter = scopedFilter(req, normalizedSearch
       ? {
           name: { $regex: normalizedSearch, $options: "i" },
         }
-      : {};
+      : {});
 
     const banks = await Bank.find(filter).sort({ name: 1, createdAt: -1 });
     return res.json({ data: banks });
@@ -80,8 +84,8 @@ const updateBank = async (req, res) => {
       return res.status(400).json({ message: "Bank name is required" });
     }
 
-    const bank = await Bank.findByIdAndUpdate(
-      id,
+    const bank = await Bank.findOneAndUpdate(
+      scopedIdFilter(req, id),
       {
         name,
         totalBalance: Math.max(0, toNumber(req.body.totalBalance)),
@@ -114,7 +118,7 @@ const deleteBank = async (req, res) => {
   }
 
   try {
-    const bank = await Bank.findById(id);
+    const bank = await Bank.findOne(scopedIdFilter(req, id));
 
     if (!bank) {
       return res.status(404).json({ message: "Bank not found" });
@@ -124,7 +128,7 @@ const deleteBank = async (req, res) => {
       return res.status(400).json({ message: "Cash Account cannot be deleted" });
     }
 
-    await Bank.findByIdAndDelete(id);
+    await Bank.deleteOne(scopedIdFilter(req, id));
     return res.json({ message: "Bank deleted successfully" });
   } catch (error) {
     return res.status(500).json({

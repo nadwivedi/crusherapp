@@ -4,6 +4,7 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const path = require("path");
 const connectDB = require("./config/mongodb");
+const syncOwnershipIndexes = require("./config/syncIndexes");
 const authRoutes = require("./routes/authRoutes");
 const bankRoutes = require("./routes/bankRoutes");
 const boulderRoutes = require("./routes/boulderRoutes");
@@ -64,6 +65,7 @@ app.use("/api/ocr", ocrRoutes);
 const startServer = async () => {
   try {
     await connectDB();
+    await syncOwnershipIndexes();
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });

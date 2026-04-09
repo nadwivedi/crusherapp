@@ -9,6 +9,11 @@ const getCurrentTime = () => {
 
 const boulderSchema = new mongoose.Schema(
   {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
     partyId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Party",
@@ -33,7 +38,6 @@ const boulderSchema = new mongoose.Schema(
       type: String,
       trim: true,
       uppercase: true,
-      unique: true,
       sparse: true,
     },
     grossWeight: {
@@ -75,5 +79,8 @@ const boulderSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+boulderSchema.index({ userId: 1, boulderNumber: 1 }, { unique: true, sparse: true });
+boulderSchema.index({ userId: 1, boulderDate: -1, createdAt: -1 });
 
 module.exports = mongoose.models.Boulder || mongoose.model("Boulder", boulderSchema);

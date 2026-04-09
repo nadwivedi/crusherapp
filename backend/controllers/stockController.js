@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Stock = require("../models/Stock");
+const { scopedFilter, scopedIdFilter } = require("../utils/ownership");
 
 const buildSearchQuery = (search) => {
   const normalizedSearch = String(search || "").trim();
@@ -17,7 +18,10 @@ const buildSearchQuery = (search) => {
 
 const createStock = async (req, res) => {
   try {
-    const stock = await Stock.create(req.body);
+    const stock = await Stock.create({
+      ...req.body,
+      userId: req.userId,
+    });
     return res.status(201).json({ data: stock });
   } catch (error) {
     return res.status(400).json({
@@ -29,7 +33,7 @@ const createStock = async (req, res) => {
 
 const getAllStocks = async (req, res) => {
   try {
-    const stocks = await Stock.find(buildSearchQuery(req.query.search)).sort({ createdAt: -1 });
+    const stocks = await Stock.find(scopedFilter(req, buildSearchQuery(req.query.search))).sort({ createdAt: -1 });
     return res.json({ data: stocks });
   } catch (error) {
     return res.status(500).json({
@@ -47,7 +51,7 @@ const getStockById = async (req, res) => {
   }
 
   try {
-    const stock = await Stock.findById(id);
+    const stock = await Stock.findOne(scopedIdFilter(req, id));
 
     if (!stock) {
       return res.status(404).json({ message: "Stock item not found" });
@@ -70,7 +74,7 @@ const editStock = async (req, res) => {
   }
 
   try {
-    const stock = await Stock.findByIdAndUpdate(id, req.body, {
+    const stock = await Stock.findOneAndUpdate(scopedIdFilter(req, id), req.body, {
       new: true,
       runValidators: true,
     });
@@ -96,7 +100,7 @@ const deleteStock = async (req, res) => {
   }
 
   try {
-    const stock = await Stock.findByIdAndDelete(id);
+    const stock = await Stock.findOneAndDelete(scopedIdFilter(req, id));
 
     if (!stock) {
       return res.status(404).json({ message: "Stock item not found" });

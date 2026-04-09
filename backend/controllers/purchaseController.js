@@ -3,6 +3,8 @@ const Purchase = require("../models/Purchase");
 const Payment = require("../models/Payment");
 const Stock = require("../models/Stock");
 const Counter = require("../models/Counter");
+const Party = require("../models/Party");
+const { scopedFilter, scopedIdFilter } = require("../utils/ownership");
 
 const PURCHASE_TYPES = {
   PURCHASE: "purchase",
@@ -17,8 +19,8 @@ const toNumber = (value, fallback = 0) => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
-const getNextPurchaseNumber = async () => {
-  const lastEntry = await Purchase.findOne().sort({ purchaseNumber: -1 }).select("purchaseNumber");
+const getNextPurchaseNumber = async (userId) => {
+  const lastEntry = await Purchase.findOne({ userId }).sort({ purchaseNumber: -1 }).select("purchaseNumber");
   return Math.max(1, Number(lastEntry?.purchaseNumber || 0) + 1);
 };
 
@@ -30,11 +32,11 @@ const getPaymentYear = (paymentDateValue) => {
   return paymentDate.getFullYear();
 };
 
-const createPaymentNumber = async (paymentDateValue) => {
+const createPaymentNumber = async (userId, paymentDateValue) => {
   const paymentYear = getPaymentYear(paymentDateValue);
   const counterKey = `payments:${paymentYear}`;
   const counter = await Counter.findOneAndUpdate(
-    { key: counterKey },
+    { userId, key: counterKey },
     { $inc: { seq: 1 } },
     {
       new: true,
@@ -72,25 +74,27 @@ const getPurchasePaymentBreakdown = (totalAmountValue, paidAmountValue) => {
   };
 };
 
-const syncPurchaseAutoPayments = async (purchaseDoc, paymentMeta = {}) => {
+const syncPurchaseAutoPayments = async (purchaseDoc, userId, paymentMeta = {}) => {
   const breakdown = getPurchasePaymentBreakdown(purchaseDoc.totalAmount, purchaseDoc.paidAmount);
   const paymentMethod = String(paymentMeta.paymentMethod || "Cash Account").trim() || "Cash Account";
   const paymentDate = paymentMeta.paymentDate ? new Date(paymentMeta.paymentDate) : (purchaseDoc.purchaseDate || new Date());
   const paymentNotes = String(paymentMeta.paymentNotes || "").trim();
 
   await Payment.deleteMany({
+    userId,
     originPurchaseId: purchaseDoc._id,
     paymentSource: { $in: AUTO_PAYMENT_SOURCES },
   });
 
   if (breakdown.appliedAmount > 0 && breakdown.appliedAmount < breakdown.totalAmount) {
     await Payment.create({
+      userId,
       party: purchaseDoc.party || null,
       refType: "purchase",
       refId: purchaseDoc._id,
       originPurchaseId: purchaseDoc._id,
       amount: breakdown.appliedAmount,
-      paymentNumber: await createPaymentNumber(paymentDate),
+      paymentNumber: await createPaymentNumber(userId, paymentDate),
       method: paymentMethod,
       paymentDate,
       notes: paymentNotes || `Auto payment for ${purchaseDoc.supplierInvoice || `Pur-${purchaseDoc.purchaseNumber}`}`,
@@ -100,12 +104,13 @@ const syncPurchaseAutoPayments = async (purchaseDoc, paymentMeta = {}) => {
 
   if (breakdown.excessAmount > 0) {
     await Payment.create({
+      userId,
       party: purchaseDoc.party || null,
       refType: "none",
       refId: null,
       originPurchaseId: purchaseDoc._id,
       amount: breakdown.excessAmount,
-      paymentNumber: await createPaymentNumber(paymentDate),
+      paymentNumber: await createPaymentNumber(userId, paymentDate),
       method: paymentMethod,
       paymentDate,
       notes: paymentNotes || `Auto excess payment for ${purchaseDoc.supplierInvoice || `Pur-${purchaseDoc.purchaseNumber}`}`,
@@ -155,16 +160,23 @@ const validateItems = (items) => {
   return null;
 };
 
-const adjustStockLevels = async (items, direction) => {
+const adjustStockLevels = async (userId, items, direction) => {
   for (const item of items) {
-    await Stock.findByIdAndUpdate(item.product, {
+    const stock = await Stock.findOneAndUpdate({
+      _id: item.product,
+      userId,
+    }, {
       $inc: { currentStock: direction * toNumber(item.quantity) },
     });
+
+    if (!stock) {
+      throw new Error("Product not found");
+    }
   }
 };
 
-const populatePurchase = (purchaseId) => (
-  Purchase.findById(purchaseId)
+const populatePurchase = (userId, purchaseId) => (
+  Purchase.findOne({ _id: purchaseId, userId })
     .populate("party", "name")
     .populate("items.product", "name unit")
 );
@@ -177,16 +189,25 @@ const createPurchase = async (req, res) => {
       return res.status(400).json({ message: itemError });
     }
 
-    const purchaseNumber = await getNextPurchaseNumber();
+    const partyId = req.body.party || null;
+    if (partyId) {
+      const party = await Party.findOne({ _id: partyId, userId: req.userId }).select("_id");
+      if (!party) {
+        return res.status(404).json({ message: "Party not found" });
+      }
+    }
+
+    const purchaseNumber = await getNextPurchaseNumber(req.userId);
     const totalAmount = toNumber(
       req.body.totalAmount,
       normalizedItems.reduce((sum, item) => sum + toNumber(item.total), 0)
     );
     const breakdown = getPurchasePaymentBreakdown(totalAmount, req.body.paymentAmount);
     const purchase = await Purchase.create({
+      userId: req.userId,
       supplierInvoice: String(req.body.supplierInvoice || "").trim(),
       purchaseNumber,
-      party: req.body.party || null,
+      party: partyId,
       items: normalizedItems,
       purchaseDate: req.body.purchaseDate ? new Date(req.body.purchaseDate) : new Date(),
       invoiceLink: String(req.body.invoiceLink || "").trim(),
@@ -196,10 +217,10 @@ const createPurchase = async (req, res) => {
       notes: String(req.body.notes || "").trim(),
     });
 
-    await adjustStockLevels(normalizedItems, 1);
-    await syncPurchaseAutoPayments(purchase, req.body);
+    await adjustStockLevels(req.userId, normalizedItems, 1);
+    await syncPurchaseAutoPayments(purchase, req.userId, req.body);
 
-    const savedPurchase = await populatePurchase(purchase._id);
+    const savedPurchase = await populatePurchase(req.userId, purchase._id);
     return res.status(201).json({ data: savedPurchase });
   } catch (error) {
     return res.status(400).json({
@@ -211,7 +232,7 @@ const createPurchase = async (req, res) => {
 
 const getAllPurchases = async (req, res) => {
   try {
-    const filter = {};
+    const filter = scopedFilter(req);
     const normalizedSearch = String(req.query.search || "").trim();
     const normalizedFromDate = String(req.query.fromDate || "").trim();
 
@@ -259,7 +280,7 @@ const updatePurchase = async (req, res) => {
   }
 
   try {
-    const purchase = await Purchase.findById(id);
+    const purchase = await Purchase.findOne(scopedIdFilter(req, id));
     if (!purchase) {
       return res.status(404).json({ message: "Purchase not found" });
     }
@@ -270,10 +291,20 @@ const updatePurchase = async (req, res) => {
       return res.status(400).json({ message: itemError });
     }
 
-    await adjustStockLevels(purchase.items || [], -1);
-    await adjustStockLevels(normalizedItems, 1);
+    const nextPartyId = Object.prototype.hasOwnProperty.call(req.body, "party")
+      ? (req.body.party || null)
+      : purchase.party;
+    if (nextPartyId) {
+      const party = await Party.findOne({ _id: nextPartyId, userId: req.userId }).select("_id");
+      if (!party) {
+        return res.status(404).json({ message: "Party not found" });
+      }
+    }
 
-    purchase.party = req.body.party || null;
+    await adjustStockLevels(req.userId, purchase.items || [], -1);
+    await adjustStockLevels(req.userId, normalizedItems, 1);
+
+    purchase.party = nextPartyId;
     purchase.supplierInvoice = String(req.body.supplierInvoice || "").trim();
     purchase.items = normalizedItems;
     purchase.purchaseDate = req.body.purchaseDate ? new Date(req.body.purchaseDate) : purchase.purchaseDate;
@@ -291,9 +322,9 @@ const updatePurchase = async (req, res) => {
     purchase.notes = String(req.body.notes || "").trim();
 
     await purchase.save();
-    await syncPurchaseAutoPayments(purchase, req.body);
+    await syncPurchaseAutoPayments(purchase, req.userId, req.body);
 
-    const savedPurchase = await populatePurchase(purchase._id);
+    const savedPurchase = await populatePurchase(req.userId, purchase._id);
     return res.json({ data: savedPurchase });
   } catch (error) {
     return res.status(400).json({
@@ -311,19 +342,20 @@ const deletePurchase = async (req, res) => {
   }
 
   try {
-    const purchase = await Purchase.findById(id);
+    const purchase = await Purchase.findOne(scopedIdFilter(req, id));
     if (!purchase) {
       return res.status(404).json({ message: "Purchase not found" });
     }
 
-    await adjustStockLevels(purchase.items || [], -1);
+    await adjustStockLevels(req.userId, purchase.items || [], -1);
     await Payment.deleteMany({
+      userId: req.userId,
       $or: [
         { refType: "purchase", refId: purchase._id },
         { originPurchaseId: purchase._id, paymentSource: { $in: AUTO_PAYMENT_SOURCES } },
       ],
     });
-    await Purchase.findByIdAndDelete(id);
+    await Purchase.deleteOne(scopedIdFilter(req, id));
 
     return res.json({ message: "Purchase deleted successfully" });
   } catch (error) {

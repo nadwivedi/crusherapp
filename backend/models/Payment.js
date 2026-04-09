@@ -2,6 +2,11 @@ const mongoose = require("mongoose");
 
 const paymentSchema = new mongoose.Schema(
   {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
     party: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Party",
@@ -33,7 +38,6 @@ const paymentSchema = new mongoose.Schema(
       type: String,
       trim: true,
       required: true,
-      unique: true,
     },
     method: {
       type: String,
@@ -61,5 +65,8 @@ const paymentSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+paymentSchema.index({ userId: 1, paymentNumber: 1 }, { unique: true });
+paymentSchema.index({ userId: 1, paymentDate: -1, createdAt: -1 });
 
 module.exports = mongoose.models.Payment || mongoose.model("Payment", paymentSchema);

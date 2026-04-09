@@ -5,12 +5,16 @@ const {
   updateMaterialUsed,
   deleteMaterialUsed,
 } = require("../controllers/materialUsedController");
+const auth = require("../middleware/auth");
+const checkPermission = require("../middleware/role");
 
 const router = express.Router();
 
+router.use(auth);
+
 router.get("/", getAllMaterialUsed);
-router.post("/", createMaterialUsed);
-router.put("/:id", updateMaterialUsed);
-router.delete("/:id", deleteMaterialUsed);
+router.post("/", checkPermission("add"), createMaterialUsed);
+router.put("/:id", checkPermission("edit"), updateMaterialUsed);
+router.delete("/:id", checkPermission("edit"), deleteMaterialUsed);
 
 module.exports = router;

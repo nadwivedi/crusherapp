@@ -2,6 +2,11 @@ const mongoose = require("mongoose");
 
 const salesSchema = new mongoose.Schema(
   {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
     partyId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Party",
@@ -20,7 +25,6 @@ const salesSchema = new mongoose.Schema(
     },
     invoiceNumber: {
       type: String,
-      unique: true,
       sparse: true,
       trim: true,
       uppercase: true,
@@ -95,5 +99,8 @@ const salesSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+salesSchema.index({ userId: 1, invoiceNumber: 1 }, { unique: true, sparse: true });
+salesSchema.index({ userId: 1, saleDate: -1, createdAt: -1 });
 
 module.exports = mongoose.models.Sales || mongoose.model("Sales", salesSchema);

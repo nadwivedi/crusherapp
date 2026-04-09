@@ -38,6 +38,11 @@ const purchaseItemSchema = new mongoose.Schema(
 
 const purchaseSchema = new mongoose.Schema(
   {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
     supplierInvoice: {
       type: String,
       trim: true,
@@ -47,7 +52,6 @@ const purchaseSchema = new mongoose.Schema(
       type: Number,
       min: 1,
       required: true,
-      unique: true,
     },
     party: {
       type: mongoose.Schema.Types.ObjectId,
@@ -94,5 +98,8 @@ const purchaseSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+purchaseSchema.index({ userId: 1, purchaseNumber: 1 }, { unique: true });
+purchaseSchema.index({ userId: 1, purchaseDate: -1, createdAt: -1 });
 
 module.exports = mongoose.models.Purchase || mongoose.model("Purchase", purchaseSchema);

@@ -1,9 +1,13 @@
 const mongoose = require("mongoose");
 const Party = require("../models/Party");
+const { scopedFilter, scopedIdFilter } = require("../utils/ownership");
 
 const createParty = async (req, res) => {
   try {
-    const party = await Party.create(req.body);
+    const party = await Party.create({
+      ...req.body,
+      userId: req.userId,
+    });
     return res.status(201).json(party);
   } catch (error) {
     return res.status(400).json({
@@ -13,9 +17,9 @@ const createParty = async (req, res) => {
   }
 };
 
-const getAllParties = async (_req, res) => {
+const getAllParties = async (req, res) => {
   try {
-    const parties = await Party.find().sort({ createdAt: -1 });
+    const parties = await Party.find(scopedFilter(req)).sort({ createdAt: -1 });
     return res.json(parties);
   } catch (error) {
     return res.status(500).json({
@@ -33,7 +37,7 @@ const getPartyById = async (req, res) => {
   }
 
   try {
-    const party = await Party.findById(id);
+    const party = await Party.findOne(scopedIdFilter(req, id));
 
     if (!party) {
       return res.status(404).json({ message: "Party not found" });
@@ -56,7 +60,7 @@ const editParty = async (req, res) => {
   }
 
   try {
-    const party = await Party.findByIdAndUpdate(id, req.body, {
+    const party = await Party.findOneAndUpdate(scopedIdFilter(req, id), req.body, {
       new: true,
       runValidators: true,
     });
@@ -82,7 +86,7 @@ const deleteParty = async (req, res) => {
   }
 
   try {
-    const party = await Party.findByIdAndDelete(id);
+    const party = await Party.findOneAndDelete(scopedIdFilter(req, id));
 
     if (!party) {
       return res.status(404).json({ message: "Party not found" });

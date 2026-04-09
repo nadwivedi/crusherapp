@@ -2,7 +2,9 @@ const mongoose = require("mongoose");
 const Sales = require("../models/Sales");
 const Counter = require("../models/Counter");
 const Receipt = require("../models/Receipt");
+const Party = require("../models/Party");
 const Vehicle = require("../models/Vehicle");
+const { scopedFilter, scopedIdFilter } = require("../utils/ownership");
 
 const SALE_TYPES = {
   SALE: "sale",
@@ -78,7 +80,7 @@ const normalizeSalesPayload = (payload = {}) => {
   return nextPayload;
 };
 
-const resolveSalesVehicle = async (payload = {}) => {
+const resolveSalesVehicle = async (payload = {}, userId) => {
   const normalizedVehicleId = `${payload.vehicleId || ""}`.trim();
   const normalizedVehicleNo = normalizeVehicleNo(payload.vehicleNo);
 
@@ -93,19 +95,25 @@ const resolveSalesVehicle = async (payload = {}) => {
       throw new Error("Invalid vehicle id");
     }
 
-    vehicle = await Vehicle.findById(normalizedVehicleId);
+    vehicle = await Vehicle.findOne({ _id: normalizedVehicleId, userId });
     if (!vehicle) {
       throw new Error("Vehicle not found");
     }
   } else {
-    vehicle = await Vehicle.findOne({ vehicleNo: normalizedVehicleNo });
+    vehicle = await Vehicle.findOne({ userId, vehicleNo: normalizedVehicleNo });
 
     if (!vehicle) {
       if (!payload.partyId || !mongoose.Types.ObjectId.isValid(payload.partyId)) {
         throw new Error("Party is required for new vehicle");
       }
 
+      const party = await Party.findOne({ _id: payload.partyId, userId }).select("_id");
+      if (!party) {
+        throw new Error("Party not found");
+      }
+
       vehicle = await Vehicle.create({
+        userId,
         partyId: payload.partyId,
         vehicleNo: normalizedVehicleNo,
         unladenWeight: Math.max(0, toNumber(payload.tareWeight)),
@@ -146,8 +154,8 @@ const serializeSale = (saleDoc) => {
   };
 };
 
-const getNextReceiptNumber = async () => {
-  const lastEntry = await Receipt.findOne().sort({ receiptNumber: -1 }).select("receiptNumber");
+const getNextReceiptNumber = async (userId) => {
+  const lastEntry = await Receipt.findOne({ userId }).sort({ receiptNumber: -1 }).select("receiptNumber");
   return Math.max(1, Number(lastEntry?.receiptNumber || 0) + 1);
 };
 
@@ -177,22 +185,24 @@ const getSalePaymentBreakdown = (totalAmountValue, paidAmountValue) => {
   };
 };
 
-const syncSaleAutoReceipts = async (saleDoc) => {
+const syncSaleAutoReceipts = async (saleDoc, userId) => {
   const breakdown = getSalePaymentBreakdown(saleDoc.totalAmount, saleDoc.paidAmount);
 
   await Receipt.deleteMany({
+    userId,
     originSaleId: saleDoc._id,
     receiptSource: { $in: AUTO_RECEIPT_SOURCES },
   });
 
   if (breakdown.appliedAmount > 0 && breakdown.appliedAmount < breakdown.totalAmount) {
     await Receipt.create({
+      userId,
       party: saleDoc.partyId || null,
       refType: "sale",
       refId: saleDoc._id,
       originSaleId: saleDoc._id,
       amount: breakdown.appliedAmount,
-      receiptNumber: await getNextReceiptNumber(),
+      receiptNumber: await getNextReceiptNumber(userId),
       method: "Cash Account",
       receiptDate: saleDoc.saleDate || new Date(),
       notes: `Auto receipt for ${saleDoc.invoiceNumber || "sale payment"}`,
@@ -202,12 +212,13 @@ const syncSaleAutoReceipts = async (saleDoc) => {
 
   if (breakdown.excessAmount > 0) {
     await Receipt.create({
+      userId,
       party: saleDoc.partyId || null,
       refType: "none",
       refId: null,
       originSaleId: saleDoc._id,
       amount: breakdown.excessAmount,
-      receiptNumber: await getNextReceiptNumber(),
+      receiptNumber: await getNextReceiptNumber(userId),
       method: "Cash Account",
       receiptDate: saleDoc.saleDate || new Date(),
       notes: `Auto excess receipt for ${saleDoc.invoiceNumber || "sale payment"}`,
@@ -226,11 +237,11 @@ const getInvoiceYear = (saleDateValue) => {
   return saleDate.getFullYear();
 };
 
-const createInvoiceNumber = async (saleDateValue) => {
+const createInvoiceNumber = async (userId, saleDateValue) => {
   const invoiceYear = getInvoiceYear(saleDateValue);
   const counterKey = `sales:${invoiceYear}`;
   const counter = await Counter.findOneAndUpdate(
-    { key: counterKey },
+    { userId, key: counterKey },
     { $inc: { seq: 1 } },
     {
       new: true,
@@ -245,17 +256,27 @@ const createInvoiceNumber = async (saleDateValue) => {
 const createSales = async (req, res) => {
   try {
     const breakdown = getSalePaymentBreakdown(req.body.totalAmount, req.body.paidAmount);
-    const normalizedBody = await resolveSalesVehicle(normalizeSalesPayload(req.body));
+    const normalizedBody = await resolveSalesVehicle(normalizeSalesPayload(req.body), req.userId);
+    if (!normalizedBody.partyId || !mongoose.Types.ObjectId.isValid(normalizedBody.partyId)) {
+      throw new Error("Party is required");
+    }
+
+    const party = await Party.findOne({ _id: normalizedBody.partyId, userId: req.userId }).select("_id");
+    if (!party) {
+      throw new Error("Party not found");
+    }
+
     const payload = {
       ...normalizedBody,
+      userId: req.userId,
       saleDate: normalizedBody.saleDate || new Date(),
-      invoiceNumber: await createInvoiceNumber(normalizedBody.saleDate),
+      invoiceNumber: await createInvoiceNumber(req.userId, normalizedBody.saleDate),
       paidAmount: breakdown.paidAmount,
       type: breakdown.type,
     };
 
     const sales = await Sales.create(payload);
-    await syncSaleAutoReceipts(sales);
+    await syncSaleAutoReceipts(sales, req.userId);
     return res.status(201).json(serializeSale(sales));
   } catch (error) {
     return res.status(400).json({
@@ -267,7 +288,7 @@ const createSales = async (req, res) => {
 
 const getAllSales = async (req, res) => {
   try {
-    const query = {};
+    const query = scopedFilter(req);
     if (req.visibilityBoundary) {
        query.saleDate = { $gte: req.visibilityBoundary };
     }
@@ -289,7 +310,12 @@ const getSalesById = async (req, res) => {
   }
 
   try {
-    const sales = await Sales.findById(id);
+    const query = scopedIdFilter(req, id);
+    if (req.visibilityBoundary) {
+      query.saleDate = { $gte: req.visibilityBoundary };
+    }
+
+    const sales = await Sales.findOne(query);
 
     if (!sales) {
       return res.status(404).json({ message: "Sales not found" });
@@ -312,14 +338,25 @@ const editSales = async (req, res) => {
   }
 
   try {
-    const sales = await Sales.findById(id);
+    const sales = await Sales.findOne(scopedIdFilter(req, id));
 
     if (!sales) {
       return res.status(404).json({ message: "Sales not found" });
     }
 
-    const updatePayload = await resolveSalesVehicle(normalizeSalesPayload(req.body));
+    const updatePayload = await resolveSalesVehicle(normalizeSalesPayload(req.body), req.userId);
     delete updatePayload.invoiceNumber;
+
+    if (Object.prototype.hasOwnProperty.call(updatePayload, "partyId")) {
+      if (!updatePayload.partyId || !mongoose.Types.ObjectId.isValid(updatePayload.partyId)) {
+        throw new Error("Party is required");
+      }
+
+      const party = await Party.findOne({ _id: updatePayload.partyId, userId: req.userId }).select("_id");
+      if (!party) {
+        throw new Error("Party not found");
+      }
+    }
 
     const nextTotalAmount = Object.prototype.hasOwnProperty.call(updatePayload, "totalAmount")
       ? updatePayload.totalAmount
@@ -335,7 +372,7 @@ const editSales = async (req, res) => {
     });
 
     await sales.save();
-    await syncSaleAutoReceipts(sales);
+    await syncSaleAutoReceipts(sales, req.userId);
 
     return res.json(serializeSale(sales));
   } catch (error) {
@@ -354,13 +391,14 @@ const deleteSales = async (req, res) => {
   }
 
   try {
-    const sales = await Sales.findByIdAndDelete(id);
+    const sales = await Sales.findOneAndDelete(scopedIdFilter(req, id));
 
     if (!sales) {
       return res.status(404).json({ message: "Sales not found" });
     }
 
     await Receipt.deleteMany({
+      userId: req.userId,
       originSaleId: sales._id,
       receiptSource: { $in: AUTO_RECEIPT_SOURCES },
     });

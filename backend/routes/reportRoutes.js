@@ -7,8 +7,11 @@ const {
   getStockLedger,
   getDashboardAnalytics,
 } = require("../controllers/reportsController");
+const auth = require("../middleware/auth");
 
 const router = express.Router();
+
+router.use(auth);
 
 router.get("/day-book", getDayBook);
 router.get("/outstanding", getOutstanding);

@@ -8,6 +8,7 @@ const Purchase = require("../models/Purchase");
 const Receipt = require("../models/Receipt");
 const Sales = require("../models/Sales");
 const Stock = require("../models/Stock");
+const { scopedFilter, scopedIdFilter } = require("../utils/ownership");
 
 const toDateBoundary = (value, endOfDay = false) => {
   const parsed = value ? new Date(value) : null;
@@ -336,15 +337,15 @@ const buildSummary = (entries) => entries.reduce((acc, entry) => {
   saleReturns: 0,
 });
 
-const getPartyLedgerData = async ({ partyId, fromDate, toDate }) => {
+const getPartyLedgerData = async ({ userId, partyId, fromDate, toDate }) => {
   const partyFilter = partyId ? { _id: partyId } : {};
 
   const [parties, sales, purchases, receipts, payments] = await Promise.all([
-    Party.find(partyFilter).sort({ name: 1 }),
-    Sales.find(partyId ? { partyId } : {}).populate("partyId", "name").sort({ saleDate: 1, createdAt: 1 }),
-    Purchase.find(partyId ? { party: partyId } : {}).populate("party", "name").sort({ purchaseDate: 1, createdAt: 1 }),
-    Receipt.find(partyId ? { party: partyId } : {}).populate("party", "name").sort({ receiptDate: 1, createdAt: 1 }),
-    Payment.find(partyId ? { party: partyId } : {}).populate("party", "name").sort({ paymentDate: 1, createdAt: 1 }),
+    Party.find({ userId, ...partyFilter }).sort({ name: 1 }),
+    Sales.find({ userId, ...(partyId ? { partyId } : {}) }).populate("partyId", "name").sort({ saleDate: 1, createdAt: 1 }),
+    Purchase.find({ userId, ...(partyId ? { party: partyId } : {}) }).populate("party", "name").sort({ purchaseDate: 1, createdAt: 1 }),
+    Receipt.find({ userId, ...(partyId ? { party: partyId } : {}) }).populate("party", "name").sort({ receiptDate: 1, createdAt: 1 }),
+    Payment.find({ userId, ...(partyId ? { party: partyId } : {}) }).populate("party", "name").sort({ paymentDate: 1, createdAt: 1 }),
   ]);
 
   const ledgerRows = parties.flatMap((party) => buildLedgerRowsForParty({
@@ -363,10 +364,14 @@ const getPartyLedgerData = async ({ partyId, fromDate, toDate }) => {
   };
 };
 
-const getStockLedgerData = async ({ productId, fromDate, toDate }) => {
-  const stockFilter = productId ? { _id: productId } : {};
-  const purchaseFilter = {};
-  const materialUsedFilter = {};
+const getStockLedgerData = async ({ userId, productId, fromDate, toDate }) => {
+  const stockFilter = { userId };
+  const purchaseFilter = { userId };
+  const materialUsedFilter = { userId };
+
+  if (productId) {
+    stockFilter._id = productId;
+  }
 
   if (productId) {
     purchaseFilter["items.product"] = productId;
@@ -466,6 +471,7 @@ const getStockLedgerData = async ({ productId, fromDate, toDate }) => {
 const getOutstanding = async (_req, res) => {
   try {
     const { parties, ledgerRows } = await getPartyLedgerData({
+      userId: _req.userId,
       partyId: null,
       fromDate: null,
       toDate: null,
@@ -486,7 +492,7 @@ const getPartyLedger = async (req, res) => {
     const fromDate = toDateBoundary(req.query.fromDate);
     const toDate = toDateBoundary(req.query.toDate, true);
 
-    const { ledgerRows } = await getPartyLedgerData({ partyId, fromDate, toDate });
+    const { ledgerRows } = await getPartyLedgerData({ userId: req.userId, partyId, fromDate, toDate });
     return res.json(ledgerRows);
   } catch (error) {
     return res.status(500).json({
@@ -502,7 +508,7 @@ const getStockLedger = async (req, res) => {
     const fromDate = toDateBoundary(req.query.fromDate);
     const toDate = toDateBoundary(req.query.toDate, true);
 
-    const stockLedger = await getStockLedgerData({ productId, fromDate, toDate });
+    const stockLedger = await getStockLedgerData({ userId: req.userId, productId, fromDate, toDate });
     return res.json(stockLedger);
   } catch (error) {
     return res.status(500).json({
@@ -522,7 +528,7 @@ const getPartyLedgerEntryDetail = async (req, res) => {
     }
 
     if (type === "sale") {
-      const sale = await Sales.findById(refId).populate("partyId", "name");
+      const sale = await Sales.findOne(scopedIdFilter(req, refId)).populate("partyId", "name");
       if (!sale) return res.status(404).json({ message: "Sale not found" });
 
       return res.json({
@@ -553,7 +559,7 @@ const getPartyLedgerEntryDetail = async (req, res) => {
     }
 
     if (type === "purchase") {
-      const purchase = await Purchase.findById(refId)
+      const purchase = await Purchase.findOne(scopedIdFilter(req, refId))
         .populate("party", "name")
         .populate("items.product", "name unit");
 
@@ -591,11 +597,11 @@ const getPartyLedgerEntryDetail = async (req, res) => {
     }
 
     if (type === "receipt") {
-      const receipt = await Receipt.findById(refId).populate("party", "name");
+      const receipt = await Receipt.findOne(scopedIdFilter(req, refId)).populate("party", "name");
       if (!receipt) return res.status(404).json({ message: "Receipt not found" });
 
       const linkedSale = receipt.refType === "sale" && receipt.refId
-        ? await Sales.findById(receipt.refId).select("invoiceNumber")
+        ? await Sales.findOne(scopedIdFilter(req, receipt.refId)).select("invoiceNumber")
         : null;
 
       return res.json({
@@ -619,11 +625,11 @@ const getPartyLedgerEntryDetail = async (req, res) => {
     }
 
     if (type === "payment") {
-      const payment = await Payment.findById(refId).populate("party", "name");
+      const payment = await Payment.findOne(scopedIdFilter(req, refId)).populate("party", "name");
       if (!payment) return res.status(404).json({ message: "Payment not found" });
 
       const linkedPurchase = payment.refType === "purchase" && payment.refId
-        ? await Purchase.findById(payment.refId).select("purchaseNumber")
+        ? await Purchase.findOne(scopedIdFilter(req, payment.refId)).select("purchaseNumber")
         : null;
 
       return res.json({
@@ -669,13 +675,13 @@ const getDayBook = async (req, res) => {
       boulders,
       materialUsedEntries,
     ] = await Promise.all([
-      Sales.find().populate("partyId", "name").sort({ saleDate: -1, createdAt: -1 }),
-      Purchase.find().populate("party", "name").sort({ purchaseDate: -1, createdAt: -1 }),
-      Payment.find().populate("party", "name").sort({ paymentDate: -1, createdAt: -1 }),
-      Receipt.find().populate("party", "name").sort({ receiptDate: -1, createdAt: -1 }),
-      Expense.find().populate("party", "name").populate("expenseGroup", "name").sort({ expenseDate: -1, createdAt: -1 }),
-      Boulder.find().sort({ boulderDate: -1, createdAt: -1 }),
-      MaterialUsed.find().populate("vehicle", "vehicleNo vehicleNumber").populate("materialType", "name").sort({ usedDate: -1, createdAt: -1 }),
+      Sales.find(scopedFilter(req)).populate("partyId", "name").sort({ saleDate: -1, createdAt: -1 }),
+      Purchase.find(scopedFilter(req)).populate("party", "name").sort({ purchaseDate: -1, createdAt: -1 }),
+      Payment.find(scopedFilter(req)).populate("party", "name").sort({ paymentDate: -1, createdAt: -1 }),
+      Receipt.find(scopedFilter(req)).populate("party", "name").sort({ receiptDate: -1, createdAt: -1 }),
+      Expense.find(scopedFilter(req)).populate("party", "name").populate("expenseGroup", "name").sort({ expenseDate: -1, createdAt: -1 }),
+      Boulder.find(scopedFilter(req)).sort({ boulderDate: -1, createdAt: -1 }),
+      MaterialUsed.find(scopedFilter(req)).populate("vehicle", "vehicleNo vehicleNumber").populate("materialType", "name").sort({ usedDate: -1, createdAt: -1 }),
     ]);
 
     const entries = [
@@ -833,13 +839,13 @@ const getDashboardAnalytics = async (req, res) => {
     const startOfYear = new Date(now.getFullYear(), 0, 1);
     
     const [boulders, expenses, sales, parties, purchases, receipts, payments] = await Promise.all([
-      Boulder.find().select("netWeight boulderDate createdAt").lean(),
-      Expense.find().select("amount expenseDate createdAt expenseGroup").populate("expenseGroup", "name").lean(),
-      Sales.find().select("stoneSize netWeight materialWeight totalAmount saleDate createdAt partyId type").lean(),
-      Party.find().select("name openingBalance").lean(),
-      Purchase.find().select("totalAmount purchaseDate createdAt party type").lean(),
-      Receipt.find().select("amount receiptDate createdAt party").lean(),
-      Payment.find().select("amount paymentDate createdAt party").lean()
+      Boulder.find(scopedFilter(req)).select("netWeight boulderDate createdAt").lean(),
+      Expense.find(scopedFilter(req)).select("amount expenseDate createdAt expenseGroup").populate("expenseGroup", "name").lean(),
+      Sales.find(scopedFilter(req)).select("stoneSize netWeight materialWeight totalAmount saleDate createdAt partyId type").lean(),
+      Party.find(scopedFilter(req)).select("name openingBalance openingBalanceType").lean(),
+      Purchase.find(scopedFilter(req)).select("totalAmount purchaseDate createdAt party type").lean(),
+      Receipt.find(scopedFilter(req)).select("amount receiptDate createdAt party").lean(),
+      Payment.find(scopedFilter(req)).select("amount paymentDate createdAt party").lean()
     ]);
     
     const getDaysMap = (daysCount) => {

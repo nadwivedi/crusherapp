@@ -1,20 +1,22 @@
 const mongoose = require("mongoose");
 const Receipt = require("../models/Receipt");
 const Sales = require("../models/Sales");
+const Party = require("../models/Party");
+const { scopedFilter } = require("../utils/ownership");
 
 const toNumber = (value, fallback = 0) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
-const getNextReceiptNumber = async () => {
-  const lastEntry = await Receipt.findOne().sort({ receiptNumber: -1 }).select("receiptNumber");
+const getNextReceiptNumber = async (userId) => {
+  const lastEntry = await Receipt.findOne({ userId }).sort({ receiptNumber: -1 }).select("receiptNumber");
   return Math.max(1, Number(lastEntry?.receiptNumber || 0) + 1);
 };
 
-const getSaleReceiptTotal = async (saleId) => {
+const getSaleReceiptTotal = async (userId, saleId) => {
   const result = await Receipt.aggregate([
-    { $match: { refType: "sale", refId: new mongoose.Types.ObjectId(saleId) } },
+    { $match: { userId: new mongoose.Types.ObjectId(userId), refType: "sale", refId: new mongoose.Types.ObjectId(saleId) } },
     { $group: { _id: null, total: { $sum: "$amount" } } },
   ]);
 
@@ -35,17 +37,25 @@ const createReceipt = async (req, res) => {
     let resolvedRefId = null;
     let resolvedParty = req.body.party || null;
 
+    if (resolvedParty) {
+      const party = await Party.findOne({ _id: resolvedParty, userId: req.userId }).select("_id");
+      if (!party) {
+        return res.status(404).json({ message: "Party not found" });
+      }
+      resolvedParty = party._id;
+    }
+
     if (refType === "sale") {
       if (!req.body.refId || !mongoose.Types.ObjectId.isValid(req.body.refId)) {
         return res.status(400).json({ message: "Valid sale id is required" });
       }
 
-      const sale = await Sales.findById(req.body.refId);
+      const sale = await Sales.findOne({ _id: req.body.refId, userId: req.userId });
       if (!sale) {
         return res.status(404).json({ message: "Sale not found" });
       }
 
-      const receivedAmount = await getSaleReceiptTotal(sale._id);
+      const receivedAmount = await getSaleReceiptTotal(req.userId, sale._id);
       const saleEntrySettledAmount = String(sale.type || "").trim() === "cash sale"
         ? Math.min(toNumber(sale.totalAmount), toNumber(sale.paidAmount))
         : 0;
@@ -58,8 +68,9 @@ const createReceipt = async (req, res) => {
       resolvedParty = resolvedParty || sale.partyId || null;
     }
 
-    const receiptNumber = await getNextReceiptNumber();
+    const receiptNumber = await getNextReceiptNumber(req.userId);
     const receipt = await Receipt.create({
+      userId: req.userId,
       party: resolvedParty,
       refType,
       refId: resolvedRefId,
@@ -70,7 +81,7 @@ const createReceipt = async (req, res) => {
       notes: String(req.body.notes || "").trim(),
     });
 
-    const savedReceipt = await Receipt.findById(receipt._id).populate("party", "name");
+    const savedReceipt = await Receipt.findOne({ _id: receipt._id, userId: req.userId }).populate("party", "name");
     return res.status(201).json(savedReceipt);
   } catch (error) {
     return res.status(400).json({
@@ -82,7 +93,7 @@ const createReceipt = async (req, res) => {
 
 const getAllReceipts = async (req, res) => {
   try {
-    const filter = {};
+    const filter = scopedFilter(req);
     const normalizedSearch = String(req.query.search || "").trim();
     const normalizedFromDate = String(req.query.fromDate || "").trim();
 

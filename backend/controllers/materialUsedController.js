@@ -2,14 +2,15 @@ const mongoose = require("mongoose");
 const MaterialUsed = require("../models/MaterialUsed");
 const Stock = require("../models/Stock");
 const Vehicle = require("../models/Vehicle");
+const { scopedFilter, scopedIdFilter } = require("../utils/ownership");
 
 const toNumber = (value, fallback = 0) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
-const adjustStock = async (stockId, quantityChange) => {
-  const stock = await Stock.findById(stockId);
+const adjustStock = async (userId, stockId, quantityChange) => {
+  const stock = await Stock.findOne({ _id: stockId, userId });
   if (!stock) {
     throw new Error("Material type not found");
   }
@@ -24,8 +25,8 @@ const adjustStock = async (stockId, quantityChange) => {
   return stock;
 };
 
-const populateMaterialUsed = (id) => (
-  MaterialUsed.findById(id)
+const populateMaterialUsed = (userId, id) => (
+  MaterialUsed.findOne({ _id: id, userId })
     .populate("vehicle", "vehicleNo")
     .populate("materialType", "name unit")
 );
@@ -41,7 +42,7 @@ const createMaterialUsed = async (req, res) => {
       return res.status(400).json({ message: "Valid material type is required" });
     }
 
-    const stock = await Stock.findById(req.body.materialType);
+    const stock = await Stock.findOne({ _id: req.body.materialType, userId: req.userId });
     if (!stock) {
       return res.status(404).json({ message: "Material type not found" });
     }
@@ -52,15 +53,16 @@ const createMaterialUsed = async (req, res) => {
         return res.status(400).json({ message: "Invalid vehicle id" });
       }
 
-      vehicle = await Vehicle.findById(req.body.vehicle);
+      vehicle = await Vehicle.findOne({ _id: req.body.vehicle, userId: req.userId });
       if (!vehicle) {
         return res.status(404).json({ message: "Vehicle not found" });
       }
     }
 
-    await adjustStock(stock._id, -usedQty);
+    await adjustStock(req.userId, stock._id, -usedQty);
 
     const materialUsed = await MaterialUsed.create({
+      userId: req.userId,
       vehicle: vehicle?._id || null,
       vehicleNo: vehicle?.vehicleNo || "",
       materialType: stock._id,
@@ -71,7 +73,7 @@ const createMaterialUsed = async (req, res) => {
       notes: String(req.body.notes || "").trim(),
     });
 
-    const savedEntry = await populateMaterialUsed(materialUsed._id);
+    const savedEntry = await populateMaterialUsed(req.userId, materialUsed._id);
     return res.status(201).json({ data: savedEntry });
   } catch (error) {
     return res.status(400).json({
@@ -84,7 +86,7 @@ const createMaterialUsed = async (req, res) => {
 const getAllMaterialUsed = async (req, res) => {
   try {
     const normalizedSearch = String(req.query.search || "").trim();
-    const filter = {};
+    const filter = scopedFilter(req);
 
     if (normalizedSearch) {
       filter.$or = [
@@ -116,7 +118,7 @@ const updateMaterialUsed = async (req, res) => {
   }
 
   try {
-    const entry = await MaterialUsed.findById(id);
+    const entry = await MaterialUsed.findOne(scopedIdFilter(req, id));
     if (!entry) {
       return res.status(404).json({ message: "Material used entry not found" });
     }
@@ -130,7 +132,7 @@ const updateMaterialUsed = async (req, res) => {
       return res.status(400).json({ message: "Valid material type is required" });
     }
 
-    const stock = await Stock.findById(req.body.materialType);
+    const stock = await Stock.findOne({ _id: req.body.materialType, userId: req.userId });
     if (!stock) {
       return res.status(404).json({ message: "Material type not found" });
     }
@@ -141,17 +143,17 @@ const updateMaterialUsed = async (req, res) => {
         return res.status(400).json({ message: "Invalid vehicle id" });
       }
 
-      vehicle = await Vehicle.findById(req.body.vehicle);
+      vehicle = await Vehicle.findOne({ _id: req.body.vehicle, userId: req.userId });
       if (!vehicle) {
         return res.status(404).json({ message: "Vehicle not found" });
       }
     }
 
-    await adjustStock(entry.materialType, entry.usedQty);
+    await adjustStock(req.userId, entry.materialType, entry.usedQty);
     try {
-      await adjustStock(stock._id, -usedQty);
+      await adjustStock(req.userId, stock._id, -usedQty);
     } catch (error) {
-      await adjustStock(entry.materialType, -entry.usedQty);
+      await adjustStock(req.userId, entry.materialType, -entry.usedQty);
       throw error;
     }
 
@@ -166,7 +168,7 @@ const updateMaterialUsed = async (req, res) => {
 
     await entry.save();
 
-    const savedEntry = await populateMaterialUsed(entry._id);
+    const savedEntry = await populateMaterialUsed(req.userId, entry._id);
     return res.json({ data: savedEntry });
   } catch (error) {
     return res.status(400).json({
@@ -184,13 +186,13 @@ const deleteMaterialUsed = async (req, res) => {
   }
 
   try {
-    const entry = await MaterialUsed.findById(id);
+    const entry = await MaterialUsed.findOne(scopedIdFilter(req, id));
     if (!entry) {
       return res.status(404).json({ message: "Material used entry not found" });
     }
 
-    await adjustStock(entry.materialType, entry.usedQty);
-    await MaterialUsed.findByIdAndDelete(id);
+    await adjustStock(req.userId, entry.materialType, entry.usedQty);
+    await MaterialUsed.deleteOne(scopedIdFilter(req, id));
 
     return res.json({ message: "Material used entry deleted successfully" });
   } catch (error) {

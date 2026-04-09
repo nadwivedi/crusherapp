@@ -3,6 +3,7 @@ const Boulder = require("../models/Boulder");
 const Counter = require("../models/Counter");
 const Party = require("../models/Party");
 const Vehicle = require("../models/Vehicle");
+const { scopedFilter, scopedIdFilter } = require("../utils/ownership");
 
 const getCurrentTime = () => {
   const now = new Date();
@@ -19,11 +20,11 @@ const getBoulderYear = (boulderDateValue) => {
   return boulderDate.getFullYear();
 };
 
-const createBoulderNumber = async (boulderDateValue) => {
+const createBoulderNumber = async (userId, boulderDateValue) => {
   const boulderYear = getBoulderYear(boulderDateValue);
   const counterKey = `boulders:${boulderYear}`;
   const counter = await Counter.findOneAndUpdate(
-    { key: counterKey },
+    { userId, key: counterKey },
     { $inc: { seq: 1 } },
     {
       new: true,
@@ -37,9 +38,9 @@ const createBoulderNumber = async (boulderDateValue) => {
 
 const normalizeVehicleNo = (value) => `${value || ""}`.trim().toUpperCase();
 
-const resolveVehicleParty = async (payload) => {
+const resolveVehicleParty = async (payload, userId) => {
   if (payload.partyId && mongoose.Types.ObjectId.isValid(payload.partyId)) {
-    const existingParty = await Party.findById(payload.partyId);
+    const existingParty = await Party.findOne({ _id: payload.partyId, userId });
     if (existingParty) return existingParty._id;
   }
 
@@ -52,6 +53,7 @@ const resolveVehicleParty = async (payload) => {
   }
 
   const existingParty = await Party.findOne({
+    userId,
     name: { $regex: `^${partyName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, $options: "i" },
   });
 
@@ -60,6 +62,7 @@ const resolveVehicleParty = async (payload) => {
   }
 
   const createdParty = await Party.create({
+    userId,
     name: partyName,
     type: "customer",
   });
@@ -67,12 +70,12 @@ const resolveVehicleParty = async (payload) => {
   return createdParty._id;
 };
 
-const resolvePartySnapshot = async ({ partyId, partyName, fallbackPartyId = null }) => {
+const resolvePartySnapshot = async ({ partyId, partyName, fallbackPartyId = null }, userId) => {
   const primaryPartyId = partyId && mongoose.Types.ObjectId.isValid(partyId) ? partyId : null;
   const fallbackId = fallbackPartyId && mongoose.Types.ObjectId.isValid(fallbackPartyId) ? fallbackPartyId : null;
 
   if (primaryPartyId) {
-    const party = await Party.findById(primaryPartyId).select("name");
+    const party = await Party.findOne({ _id: primaryPartyId, userId }).select("name");
     if (party?.name) {
       return { partyId: party._id, partyName: party.name };
     }
@@ -84,7 +87,7 @@ const resolvePartySnapshot = async ({ partyId, partyName, fallbackPartyId = null
   }
 
   if (fallbackId) {
-    const fallbackParty = await Party.findById(fallbackId).select("name");
+    const fallbackParty = await Party.findOne({ _id: fallbackId, userId }).select("name");
     if (fallbackParty?.name) {
       return { partyId: fallbackParty._id, partyName: fallbackParty.name };
     }
@@ -93,7 +96,7 @@ const resolvePartySnapshot = async ({ partyId, partyName, fallbackPartyId = null
   return { partyId: null, partyName: "" };
 };
 
-const normalizeBoulderPayload = async (payload) => {
+const normalizeBoulderPayload = async (payload, userId) => {
   const normalizedPayload = { ...payload };
   const hasVehicleId =
     normalizedPayload.vehicleId !== undefined &&
@@ -168,7 +171,7 @@ const normalizeBoulderPayload = async (payload) => {
       throw new Error("Invalid vehicle id");
     }
 
-    vehicle = await Vehicle.findById(normalizedPayload.vehicleId);
+    vehicle = await Vehicle.findOne({ _id: normalizedPayload.vehicleId, userId });
 
     if (!vehicle) {
       throw new Error("Vehicle not found");
@@ -176,14 +179,16 @@ const normalizeBoulderPayload = async (payload) => {
   } else if (hasVehicleNo) {
     const normalizedVehicleNo = normalizeVehicleNo(normalizedPayload.vehicleNo);
     vehicle = await Vehicle.findOne({
+      userId,
       vehicleNo: normalizedVehicleNo,
     });
 
     if (!vehicle) {
-      const resolvedPartyId = await resolveVehicleParty(normalizedPayload);
+      const resolvedPartyId = await resolveVehicleParty(normalizedPayload, userId);
       const tareWeight = Number(normalizedPayload.tareWeight);
 
       vehicle = await Vehicle.create({
+        userId,
         partyId: resolvedPartyId,
         vehicleNo: normalizedVehicleNo,
         unladenWeight: Number.isFinite(tareWeight) && tareWeight >= 0 ? tareWeight : 0,
@@ -199,7 +204,7 @@ const normalizeBoulderPayload = async (payload) => {
       partyId: normalizedPayload.partyId,
       partyName: normalizedPayload.partyName,
       fallbackPartyId: vehicle.partyId,
-    });
+    }, userId);
     normalizedPayload.partyId = partySnapshot.partyId;
     normalizedPayload.partyName = partySnapshot.partyName;
 
@@ -219,7 +224,7 @@ const normalizeBoulderPayload = async (payload) => {
     const partySnapshot = await resolvePartySnapshot({
       partyId: normalizedPayload.partyId,
       partyName: normalizedPayload.partyName,
-    });
+    }, userId);
     normalizedPayload.partyId = partySnapshot.partyId;
     normalizedPayload.partyName = partySnapshot.partyName;
   }
@@ -229,8 +234,9 @@ const normalizeBoulderPayload = async (payload) => {
 
 const createBoulder = async (req, res) => {
   try {
-    const payload = await normalizeBoulderPayload(req.body);
-    payload.boulderNumber = await createBoulderNumber(payload.boulderDate);
+    const payload = await normalizeBoulderPayload(req.body, req.userId);
+    payload.userId = req.userId;
+    payload.boulderNumber = await createBoulderNumber(req.userId, payload.boulderDate);
     const boulder = await Boulder.create(payload);
     return res.status(201).json(boulder);
   } catch (error) {
@@ -241,9 +247,14 @@ const createBoulder = async (req, res) => {
   }
 };
 
-const getAllBoulders = async (_req, res) => {
+const getAllBoulders = async (req, res) => {
   try {
-    const boulders = await Boulder.find()
+    const query = scopedFilter(req);
+    if (req.visibilityBoundary) {
+      query.boulderDate = { $gte: req.visibilityBoundary };
+    }
+
+    const boulders = await Boulder.find(query)
       .populate("vehicleId")
       .sort({ boulderDate: -1, createdAt: -1 });
     return res.json(boulders);
@@ -263,7 +274,12 @@ const getBoulderById = async (req, res) => {
   }
 
   try {
-    const boulder = await Boulder.findById(id).populate("vehicleId");
+    const query = scopedIdFilter(req, id);
+    if (req.visibilityBoundary) {
+      query.boulderDate = { $gte: req.visibilityBoundary };
+    }
+
+    const boulder = await Boulder.findOne(query).populate("vehicleId");
 
     if (!boulder) {
       return res.status(404).json({ message: "Boulder not found" });
@@ -286,12 +302,14 @@ const editBoulder = async (req, res) => {
   }
 
   try {
-    const payload = await normalizeBoulderPayload(req.body);
-    const existingBoulder = await Boulder.findById(id).select("boulderNumber");
+    const payload = await normalizeBoulderPayload(req.body, req.userId);
+    const existingBoulder = await Boulder.findOne(scopedIdFilter(req, id)).select("boulderNumber userId");
     if (existingBoulder?.boulderNumber) {
       payload.boulderNumber = existingBoulder.boulderNumber;
     }
-    const boulder = await Boulder.findByIdAndUpdate(id, payload, {
+    payload.userId = existingBoulder.userId;
+
+    const boulder = await Boulder.findOneAndUpdate(scopedIdFilter(req, id), payload, {
       new: true,
       runValidators: true,
     }).populate("vehicleId");
@@ -317,7 +335,7 @@ const deleteBoulder = async (req, res) => {
   }
 
   try {
-    const boulder = await Boulder.findByIdAndDelete(id);
+    const boulder = await Boulder.findOneAndDelete(scopedIdFilter(req, id));
 
     if (!boulder) {
       return res.status(404).json({ message: "Boulder not found" });

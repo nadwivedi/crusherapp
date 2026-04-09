@@ -2,6 +2,8 @@ const mongoose = require("mongoose");
 const Payment = require("../models/Payment");
 const Purchase = require("../models/Purchase");
 const Counter = require("../models/Counter");
+const Party = require("../models/Party");
+const { scopedFilter } = require("../utils/ownership");
 
 const toNumber = (value, fallback = 0) => {
   const parsed = Number(value);
@@ -16,11 +18,11 @@ const getPaymentYear = (paymentDateValue) => {
   return paymentDate.getFullYear();
 };
 
-const createPaymentNumber = async (paymentDateValue) => {
+const createPaymentNumber = async (userId, paymentDateValue) => {
   const paymentYear = getPaymentYear(paymentDateValue);
   const counterKey = `payments:${paymentYear}`;
   const counter = await Counter.findOneAndUpdate(
-    { key: counterKey },
+    { userId, key: counterKey },
     { $inc: { seq: 1 } },
     {
       new: true,
@@ -32,9 +34,9 @@ const createPaymentNumber = async (paymentDateValue) => {
   return `PAY-${paymentYear}-${String(counter.seq).padStart(2, "0")}`;
 };
 
-const getPurchasePaidTotal = async (purchaseId) => {
+const getPurchasePaidTotal = async (userId, purchaseId) => {
   const result = await Payment.aggregate([
-    { $match: { refType: "purchase", refId: new mongoose.Types.ObjectId(purchaseId) } },
+    { $match: { userId: new mongoose.Types.ObjectId(userId), refType: "purchase", refId: new mongoose.Types.ObjectId(purchaseId) } },
     { $group: { _id: null, total: { $sum: "$amount" } } },
   ]);
 
@@ -55,17 +57,25 @@ const createPayment = async (req, res) => {
     let resolvedRefId = null;
     let resolvedParty = req.body.party || null;
 
+    if (resolvedParty) {
+      const party = await Party.findOne({ _id: resolvedParty, userId: req.userId }).select("_id");
+      if (!party) {
+        return res.status(404).json({ message: "Party not found" });
+      }
+      resolvedParty = party._id;
+    }
+
     if (refType === "purchase") {
       if (!req.body.refId || !mongoose.Types.ObjectId.isValid(req.body.refId)) {
         return res.status(400).json({ message: "Valid purchase id is required" });
       }
 
-      const purchase = await Purchase.findById(req.body.refId);
+      const purchase = await Purchase.findOne({ _id: req.body.refId, userId: req.userId });
       if (!purchase) {
         return res.status(404).json({ message: "Purchase not found" });
       }
 
-      const paidAmount = await getPurchasePaidTotal(purchase._id);
+      const paidAmount = await getPurchasePaidTotal(req.userId, purchase._id);
       const pendingAmount = Math.max(0, toNumber(purchase.totalAmount) - paidAmount);
       if (amount > pendingAmount) {
         return res.status(400).json({ message: "Amount exceeds purchase pending amount" });
@@ -75,8 +85,9 @@ const createPayment = async (req, res) => {
       resolvedParty = resolvedParty || purchase.party || null;
     }
 
-    const paymentNumber = await createPaymentNumber(req.body.paymentDate);
+    const paymentNumber = await createPaymentNumber(req.userId, req.body.paymentDate);
     const payment = await Payment.create({
+      userId: req.userId,
       party: resolvedParty,
       refType,
       refId: resolvedRefId,
@@ -89,7 +100,7 @@ const createPayment = async (req, res) => {
       paymentSource: "manual",
     });
 
-    const savedPayment = await Payment.findById(payment._id).populate("party", "name");
+    const savedPayment = await Payment.findOne({ _id: payment._id, userId: req.userId }).populate("party", "name");
     return res.status(201).json({ data: savedPayment });
   } catch (error) {
     return res.status(400).json({
@@ -101,7 +112,7 @@ const createPayment = async (req, res) => {
 
 const getAllPayments = async (req, res) => {
   try {
-    const filter = {};
+    const filter = scopedFilter(req);
     const normalizedSearch = String(req.query.search || "").trim();
     const normalizedFromDate = String(req.query.fromDate || "").trim();
 

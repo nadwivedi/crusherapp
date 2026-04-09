@@ -2,6 +2,11 @@ const mongoose = require("mongoose");
 
 const materialUsedSchema = new mongoose.Schema(
   {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
     vehicle: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Vehicle",
@@ -47,5 +52,7 @@ const materialUsedSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+materialUsedSchema.index({ userId: 1, usedDate: -1, createdAt: -1 });
 
 module.exports = mongoose.models.MaterialUsed || mongoose.model("MaterialUsed", materialUsedSchema);

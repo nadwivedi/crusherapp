@@ -8,6 +8,11 @@ const normalizeNonNegativeNumber = (value) => {
 
 const stockSchema = new mongoose.Schema(
   {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
     name: {
       type: String,
       required: true,
@@ -43,6 +48,6 @@ const stockSchema = new mongoose.Schema(
   }
 );
 
-stockSchema.index({ name: 1 });
+stockSchema.index({ userId: 1, name: 1 });
 
 module.exports = mongoose.models.Stock || mongoose.model("Stock", stockSchema);

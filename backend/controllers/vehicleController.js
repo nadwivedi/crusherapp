@@ -1,9 +1,32 @@
 const mongoose = require("mongoose");
 const Vehicle = require("../models/Vehicle");
+const Party = require("../models/Party");
+const { scopedFilter, scopedIdFilter } = require("../utils/ownership");
+
+const resolvePartyId = async (userId, partyId) => {
+  if (!partyId) {
+    return null;
+  }
+
+  if (!mongoose.Types.ObjectId.isValid(partyId)) {
+    throw new Error("Invalid party id");
+  }
+
+  const party = await Party.findOne({ _id: partyId, userId }).select("_id");
+  if (!party) {
+    throw new Error("Party not found");
+  }
+
+  return party._id;
+};
 
 const createVehicle = async (req, res) => {
   try {
-    const vehicle = await Vehicle.create(req.body);
+    const vehicle = await Vehicle.create({
+      ...req.body,
+      userId: req.userId,
+      partyId: await resolvePartyId(req.userId, req.body.partyId),
+    });
     return res.status(201).json(vehicle);
   } catch (error) {
     return res.status(400).json({
@@ -16,7 +39,7 @@ const createVehicle = async (req, res) => {
 const getAllVehicles = async (req, res) => {
   try {
     const { vehicleType } = req.query;
-    const filter = vehicleType ? { vehicleType } : {};
+    const filter = scopedFilter(req, vehicleType ? { vehicleType } : {});
     const vehicles = await Vehicle.find(filter).sort({ createdAt: -1 });
     return res.json(vehicles);
   } catch (error) {
@@ -35,7 +58,7 @@ const getVehicleById = async (req, res) => {
   }
 
   try {
-    const vehicle = await Vehicle.findById(id);
+    const vehicle = await Vehicle.findOne(scopedIdFilter(req, id));
 
     if (!vehicle) {
       return res.status(404).json({ message: "Vehicle not found" });
@@ -58,7 +81,12 @@ const editVehicle = async (req, res) => {
   }
 
   try {
-    const vehicle = await Vehicle.findByIdAndUpdate(id, req.body, {
+    const updatePayload = { ...req.body };
+    if (Object.prototype.hasOwnProperty.call(req.body, "partyId")) {
+      updatePayload.partyId = await resolvePartyId(req.userId, req.body.partyId);
+    }
+
+    const vehicle = await Vehicle.findOneAndUpdate(scopedIdFilter(req, id), updatePayload, {
       new: true,
       runValidators: true,
     });
@@ -84,7 +112,7 @@ const deleteVehicle = async (req, res) => {
   }
 
   try {
-    const vehicle = await Vehicle.findByIdAndDelete(id);
+    const vehicle = await Vehicle.findOneAndDelete(scopedIdFilter(req, id));
 
     if (!vehicle) {
       return res.status(404).json({ message: "Vehicle not found" });

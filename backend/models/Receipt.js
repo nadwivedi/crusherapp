@@ -2,6 +2,11 @@ const mongoose = require("mongoose");
 
 const receiptSchema = new mongoose.Schema(
   {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
     party: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Party",
@@ -33,7 +38,6 @@ const receiptSchema = new mongoose.Schema(
       type: Number,
       min: 1,
       required: true,
-      unique: true,
     },
     method: {
       type: String,
@@ -61,5 +65,8 @@ const receiptSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+receiptSchema.index({ userId: 1, receiptNumber: 1 }, { unique: true });
+receiptSchema.index({ userId: 1, receiptDate: -1, createdAt: -1 });
 
 module.exports = mongoose.models.Receipt || mongoose.model("Receipt", receiptSchema);
