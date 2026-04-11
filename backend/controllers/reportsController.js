@@ -834,7 +834,7 @@ const getDayBook = async (req, res) => {
           method: `Vehicle ${item.vehicleNo || "-"} | Gross ${Number(item.grossWeight || 0)} | Tare ${Number(item.tareWeight || 0)} | Net ${Number(item.netWeight || 0)} | Rate ${Number(item.boulderRatePerTon || 0)}/Ton`,
           amount: Number(item.amount || 0),
           inAmount: 0,
-          outAmount: Number(item.amount || 0),
+          outAmount: 0,
         })),
       ...materialUsedEntries
         .filter((item) => withinRange(item.usedDate || item.createdAt, fromDate, toDate))
