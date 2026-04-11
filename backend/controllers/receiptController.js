@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 const Receipt = require("../models/Receipt");
 const Sales = require("../models/Sales");
 const Party = require("../models/Party");
-const { scopedFilter } = require("../utils/ownership");
+const { scopedFilter, scopedIdFilter } = require("../utils/ownership");
 
 const toNumber = (value, fallback = 0) => {
   const parsed = Number(value);
@@ -131,7 +131,26 @@ const getAllReceipts = async (req, res) => {
   }
 };
 
+const deleteReceipt = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const receipt = await Receipt.findOneAndDelete(scopedIdFilter(req, id));
+
+    if (!receipt) {
+      return res.status(404).json({ message: "Receipt not found" });
+    }
+
+    return res.json({ message: "Receipt deleted successfully" });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Failed to delete receipt",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   createReceipt,
   getAllReceipts,
+  deleteReceipt,
 };

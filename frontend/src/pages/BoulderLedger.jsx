@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CalendarDays, RefreshCw, Search, Truck } from 'lucide-react';
 import apiClient from '../utils/api';
+import { useAuth } from '../context/AuthContext';
 import BoulderEntry from './BoulderEntry/BoulderEntry';
 
 const formatNumber = (value) => Number(value || 0).toLocaleString('en-IN', {
@@ -75,6 +76,8 @@ const resolvePresetRange = (preset) => {
 };
 
 export default function BoulderLedger() {
+  const { user } = useAuth();
+  const canDeleteBoulders = user?.role !== 'employee' && (user?.role === 'owner' || user?.permissions?.edit);
   const [boulders, setBoulders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -163,6 +166,17 @@ export default function BoulderLedger() {
 
   const handleEdit = (entry) => {
     setEditingEntry(entry);
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this boulder entry?')) return;
+
+    try {
+      await apiClient.delete(`/boulders/${id}`);
+      await loadBoulders();
+    } catch (err) {
+      setError(err.message || 'Error deleting boulder entry');
+    }
   };
 
   const handleCloseEdit = () => {
@@ -308,6 +322,15 @@ export default function BoulderLedger() {
                           >
                             Edit
                           </button>
+                          {canDeleteBoulders && (
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(entry._id)}
+                              className="inline-flex items-center justify-center rounded-md border border-rose-200 bg-white px-3 py-1.5 text-[11px] font-medium text-rose-700 shadow-sm transition hover:border-rose-300 hover:bg-rose-50 lg:px-2.5 lg:py-1 lg:text-[10px] xl:px-3 xl:py-1.5 xl:text-[11px]"
+                            >
+                              Delete
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

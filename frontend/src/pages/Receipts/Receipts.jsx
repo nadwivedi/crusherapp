@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Receipt, IndianRupee, Search } from 'lucide-react';
 import { toast } from 'react-toastify';
 import apiClient from '../../utils/api';
+import { useAuth } from '../../context/AuthContext';
 import { getBankDisplayName, normalizeBankName } from '../../utils/bankAccounts';
 import AddReceiptPopup from './component/AddReceiptPopup';
 
@@ -85,6 +86,8 @@ const formatReceiptNumber = (value) => {
 export default function Receipts({ modalOnly = false, onModalFinish = null }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const canDeleteReceipts = user?.role !== 'employee' && (user?.role === 'owner' || user?.permissions?.edit);
   const [receipts, setReceipts] = useState([]);
   const [parties, setParties] = useState([]);
   const [sales, setSales] = useState([]);
@@ -701,6 +704,19 @@ export default function Receipts({ modalOnly = false, onModalFinish = null }) {
     }
   };
 
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this receipt?')) return;
+
+    try {
+      await apiClient.delete(`/receipts/${id}`);
+      toast.success('Receipt deleted successfully', TOAST_OPTIONS);
+      fetchReceipts();
+      fetchSales();
+    } catch (err) {
+      setError(err.message || 'Error deleting receipt');
+    }
+  };
+
   const totalReceipts = receipts.reduce((sum, r) => sum + Number(r.amount || 0), 0);
   const totalSalesAmount = sales.reduce((sum, sale) => sum + Number(sale.totalAmount || 0), 0);
   const totalReceivable = Math.max(0, totalSalesAmount - totalReceipts);
@@ -923,6 +939,18 @@ export default function Receipts({ modalOnly = false, onModalFinish = null }) {
                         <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Notes</p>
                         <p className="mt-1 break-words text-sm text-slate-700">{receipt.notes || '-'}</p>
                       </div>
+
+                      {canDeleteReceipts && (
+                        <div className="flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(receipt._id)}
+                            className="inline-flex items-center justify-center rounded-md border border-rose-200 bg-white px-3 py-1.5 text-[11px] font-medium text-rose-700 shadow-sm transition hover:border-rose-300 hover:bg-rose-50"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </article>
                 ))}
@@ -944,7 +972,10 @@ export default function Receipts({ modalOnly = false, onModalFinish = null }) {
                       <th className="border-y-2 border-r border-black px-4 py-3.5 text-sm font-semibold shadow-[inset_0_-1px_0_rgba(148,163,184,0.2)]">Amount</th>
                       <th className="border-y-2 border-r border-black px-4 py-3.5 text-sm font-semibold shadow-[inset_0_-1px_0_rgba(148,163,184,0.2)]">Receipt Account</th>
                       <th className="border-y-2 border-r border-black px-4 py-3.5 text-sm font-semibold shadow-[inset_0_-1px_0_rgba(148,163,184,0.2)]">Reference</th>
-                      <th className="border-y-2 border-r-2 border-black px-4 py-3.5 text-sm font-semibold shadow-[inset_0_-1px_0_rgba(148,163,184,0.2)]">Notes</th>
+                      <th className="border-y-2 border-r border-black px-4 py-3.5 text-sm font-semibold shadow-[inset_0_-1px_0_rgba(148,163,184,0.2)]">Notes</th>
+                      {canDeleteReceipts && (
+                        <th className="border-y-2 border-r-2 border-black px-4 py-3.5 text-center text-sm font-semibold shadow-[inset_0_-1px_0_rgba(148,163,184,0.2)]">Actions</th>
+                      )}
                     </tr>
                   </thead>
                   <tbody className="bg-[linear-gradient(180deg,rgba(255,255,255,0.94)_0%,rgba(248,250,252,0.98)_100%)] text-slate-600">
@@ -971,11 +1002,22 @@ export default function Receipts({ modalOnly = false, onModalFinish = null }) {
                         <td className="border border-slate-400 px-4 py-3">
                           <div className="max-w-[24rem] truncate">{receipt.notes || '-'}</div>
                         </td>
+                        {canDeleteReceipts && (
+                          <td className="border border-slate-400 px-4 py-3 text-center">
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(receipt._id)}
+                              className="inline-flex items-center justify-center rounded-md border border-rose-200 bg-white px-3 py-1.5 text-[11px] font-medium text-rose-700 shadow-sm transition hover:border-rose-300 hover:bg-rose-50"
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        )}
                       </tr>
                     ))}
                     {receipts.length === 0 && (
                       <tr>
-                        <td colSpan="6" className="border border-slate-400 px-6 py-10 text-center text-slate-500">
+                        <td colSpan={canDeleteReceipts ? 8 : 7} className="border border-slate-400 px-6 py-10 text-center text-slate-500">
                           No receipts found
                         </td>
                       </tr>

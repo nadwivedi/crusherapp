@@ -3,7 +3,7 @@ const Payment = require("../models/Payment");
 const Purchase = require("../models/Purchase");
 const Counter = require("../models/Counter");
 const Party = require("../models/Party");
-const { scopedFilter } = require("../utils/ownership");
+const { scopedFilter, scopedIdFilter } = require("../utils/ownership");
 
 const toNumber = (value, fallback = 0) => {
   const parsed = Number(value);
@@ -145,7 +145,26 @@ const getAllPayments = async (req, res) => {
   }
 };
 
+const deletePayment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const payment = await Payment.findOneAndDelete(scopedIdFilter(req, id));
+
+    if (!payment) {
+      return res.status(404).json({ message: "Payment not found" });
+    }
+
+    return res.json({ message: "Payment deleted successfully" });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Failed to delete payment",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   createPayment,
   getAllPayments,
+  deletePayment,
 };

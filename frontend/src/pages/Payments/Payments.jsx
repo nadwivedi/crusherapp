@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Wallet, IndianRupee, Search } from 'lucide-react';
 import { toast } from 'react-toastify';
 import apiClient from '../../utils/api';
+import { useAuth } from '../../context/AuthContext';
 import { getBankDisplayName, normalizeBankName } from '../../utils/bankAccounts';
 import AddPaymentPopup from './component/AddPaymentPopup';
 
@@ -101,6 +102,8 @@ const formatPaymentNumber = (value) => {
 export default function Payments({ modalOnly = false, onModalFinish = null }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const canDeletePayments = user?.role !== 'employee' && (user?.role === 'owner' || user?.permissions?.edit);
   const [payments, setPayments] = useState([]);
   const [parties, setParties] = useState([]);
   const [purchases, setPurchases] = useState([]);
@@ -739,6 +742,19 @@ export default function Payments({ modalOnly = false, onModalFinish = null }) {
     }
   };
 
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this payment?')) return;
+
+    try {
+      await apiClient.delete(`/payments/${id}`);
+      toast.success('Payment deleted successfully', TOAST_OPTIONS);
+      fetchPayments();
+      fetchPurchases();
+    } catch (err) {
+      setError(err.message || 'Error deleting payment');
+    }
+  };
+
   const totalPayments = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
   const totalPurchaseAmount = purchases.reduce((sum, p) => sum + Number(p.totalAmount || 0), 0);
   const totalPayable = Math.max(0, totalPurchaseAmount - totalPayments);
@@ -965,6 +981,18 @@ export default function Payments({ modalOnly = false, onModalFinish = null }) {
                         <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Notes</p>
                         <p className="mt-1 break-words text-sm text-slate-700">{payment.notes || '-'}</p>
                       </div>
+
+                      {canDeletePayments && (
+                        <div className="flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(payment._id)}
+                            className="inline-flex items-center justify-center rounded-md border border-rose-200 bg-white px-3 py-1.5 text-[11px] font-medium text-rose-700 shadow-sm transition hover:border-rose-300 hover:bg-rose-50"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </article>
                 ))}
@@ -986,7 +1014,10 @@ export default function Payments({ modalOnly = false, onModalFinish = null }) {
                       <th className="border-y-2 border-r border-black px-4 py-3.5 text-sm font-semibold shadow-[inset_0_-1px_0_rgba(148,163,184,0.2)]">Amount</th>
                       <th className="border-y-2 border-r border-black px-4 py-3.5 text-sm font-semibold shadow-[inset_0_-1px_0_rgba(148,163,184,0.2)]">Method</th>
                       <th className="border-y-2 border-r border-black px-4 py-3.5 text-sm font-semibold shadow-[inset_0_-1px_0_rgba(148,163,184,0.2)]">Reference</th>
-                      <th className="border-y-2 border-r-2 border-black px-4 py-3.5 text-sm font-semibold shadow-[inset_0_-1px_0_rgba(148,163,184,0.2)]">Notes</th>
+                      <th className="border-y-2 border-r border-black px-4 py-3.5 text-sm font-semibold shadow-[inset_0_-1px_0_rgba(148,163,184,0.2)]">Notes</th>
+                      {canDeletePayments && (
+                        <th className="border-y-2 border-r-2 border-black px-4 py-3.5 text-center text-sm font-semibold shadow-[inset_0_-1px_0_rgba(148,163,184,0.2)]">Actions</th>
+                      )}
                     </tr>
                   </thead>
                   <tbody className="bg-[linear-gradient(180deg,rgba(255,255,255,0.94)_0%,rgba(248,250,252,0.98)_100%)] text-slate-600">
@@ -1013,11 +1044,22 @@ export default function Payments({ modalOnly = false, onModalFinish = null }) {
                         <td className="border border-slate-400 px-4 py-3">
                           <div className="max-w-[24rem] truncate">{payment.notes || '-'}</div>
                         </td>
+                        {canDeletePayments && (
+                          <td className="border border-slate-400 px-4 py-3 text-center">
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(payment._id)}
+                              className="inline-flex items-center justify-center rounded-md border border-rose-200 bg-white px-3 py-1.5 text-[11px] font-medium text-rose-700 shadow-sm transition hover:border-rose-300 hover:bg-rose-50"
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        )}
                       </tr>
                     ))}
                     {payments.length === 0 && (
                       <tr>
-                        <td colSpan="6" className="border border-slate-400 px-6 py-10 text-center text-slate-500">
+                        <td colSpan={canDeletePayments ? 8 : 7} className="border border-slate-400 px-6 py-10 text-center text-slate-500">
                           No payments found
                         </td>
                       </tr>

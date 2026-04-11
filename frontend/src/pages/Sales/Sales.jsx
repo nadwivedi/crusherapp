@@ -238,6 +238,8 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const canManageSales = user?.role !== 'employee' && (user?.role === 'owner' || user?.permissions?.edit);
+  const canCreateSales = user?.role === 'owner' || user?.permissions?.add;
   const initialFormData = getInitialFormData();
   const initialCurrentItem = {
     product: '',
@@ -2287,7 +2289,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
                 </select>
               </div>
 
-              {(user?.role === 'owner' || user?.permissions?.add) && (
+              {canCreateSales && (
                 <button
                   onClick={handleOpenForm}
                   className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-slate-800 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-900"
@@ -2321,7 +2323,9 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
                   <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-center text-xs font-bold uppercase tracking-wider text-white lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Sale Type</th>
                   <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-right text-xs font-bold uppercase tracking-wider text-white lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Total</th>
                   <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-center text-xs font-bold uppercase tracking-wider text-white lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Slip</th>
-                  <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-center text-xs font-bold uppercase tracking-wider text-white lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Actions</th>
+                  {canManageSales && (
+                    <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-center text-xs font-bold uppercase tracking-wider text-white lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Actions</th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -2416,18 +2420,24 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
                         <span className="text-xs text-slate-400">-</span>
                       )}
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-center gap-2">
-                      {(user?.role === 'owner' || user?.permissions?.edit) && (
-                        <button
-                          onClick={() => handleEdit(sale)}
-                          className="inline-flex items-center justify-center rounded-md border border-blue-200 bg-white px-3 py-1.5 text-[11px] font-medium text-blue-700 shadow-sm transition hover:border-blue-300 hover:bg-blue-50"
-                        >
-                          Edit
-                        </button>
-                      )}
-                      </div>
-                    </td>
+                    {canManageSales && (
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => handleEdit(sale)}
+                            className="inline-flex items-center justify-center rounded-md border border-blue-200 bg-white px-3 py-1.5 text-[11px] font-medium text-blue-700 shadow-sm transition hover:border-blue-300 hover:bg-blue-50"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(sale._id)}
+                            className="inline-flex items-center justify-center rounded-md border border-rose-200 bg-white px-3 py-1.5 text-[11px] font-medium text-rose-700 shadow-sm transition hover:border-rose-300 hover:bg-rose-50"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                   );
                 })}

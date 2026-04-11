@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowDownCircle, ArrowUpCircle, Banknote, BookText, Package, TrendingUp, BarChart2 } from 'lucide-react';
 import apiClient from '../utils/api';
 import HomePartyLedger from './HomePartyLedger';
-import HomeBoulderLedger from './HomeBoulderLedger';
-import HomeSalesLedger from './HomeSalesLedger';
 import HomeExpenseLedger from './HomeExpenseLedger';
 import HomeMaterialUsedLedger from './HomeMaterialUsedLedger';
 import HomeStockLedger from './HomeStockLedger';
@@ -175,23 +173,15 @@ export default function HomeDayBookPanel() {
           </button>
             <button
               type="button"
-              onClick={() => setActiveView('boulder-ledger')}
-            className={`inline-flex shrink-0 items-center justify-center rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
-              activeView === 'boulder-ledger'
-                ? 'border-amber-300 bg-amber-100 text-amber-800'
-                : 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100'
-            }`}
+              onClick={() => navigate('/reports/boulder-ledger')}
+              className="inline-flex shrink-0 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-[11px] font-semibold text-amber-700 transition hover:bg-amber-100 lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs"
           >
             Boulder Ledger
           </button>
             <button
               type="button"
-              onClick={() => setActiveView('sales-ledger')}
-            className={`inline-flex shrink-0 items-center justify-center rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
-              activeView === 'sales-ledger'
-                ? 'border-violet-300 bg-violet-100 text-violet-800'
-                : 'border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100'
-            }`}
+              onClick={() => navigate('/reports/sales-report')}
+              className="inline-flex shrink-0 items-center justify-center rounded-lg border border-violet-200 bg-violet-50 px-2.5 py-1.5 text-[11px] font-semibold text-violet-700 transition hover:bg-violet-100 lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs"
           >
             Sales Ledger
           </button>
@@ -243,10 +233,6 @@ export default function HomeDayBookPanel() {
 
       {activeView === 'party-ledger' ? (
         <HomePartyLedger />
-      ) : activeView === 'boulder-ledger' ? (
-        <HomeBoulderLedger />
-      ) : activeView === 'sales-ledger' ? (
-        <HomeSalesLedger />
       ) : activeView === 'expense-ledger' ? (
         <HomeExpenseLedger />
       ) : activeView === 'material-used-ledger' ? (
