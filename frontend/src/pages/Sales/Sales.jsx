@@ -190,6 +190,14 @@ const getMaterialBadgeClass = (value) => {
   return 'border border-orange-200 bg-orange-50 text-orange-700';
 };
 
+const sortVehiclesByTypePreference = (vehicles, preferredType) => [...vehicles].sort((a, b) => {
+  const aPreferred = a?.vehicleType === preferredType ? 0 : 1;
+  const bPreferred = b?.vehicleType === preferredType ? 0 : 1;
+  if (aPreferred !== bPreferred) return aPreferred - bPreferred;
+
+  return String(a?.vehicleNo || '').localeCompare(String(b?.vehicleNo || ''));
+});
+
 const SALES_RANGE_OPTIONS = [
   { value: '3d', label: 'Last 3 Days' },
   { value: '7d', label: 'Last 7 Days' },
@@ -383,8 +391,9 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
 
   const fetchVehicles = async () => {
     try {
-      const response = await apiClient.get('/vehicles', { params: { vehicleType: 'sales' } });
-      setVehicles(Array.isArray(response) ? response : []);
+      const response = await apiClient.get('/vehicles');
+      const vehicleList = Array.isArray(response) ? response : [];
+      setVehicles(sortVehiclesByTypePreference(vehicleList, 'sales'));
     } catch (err) {
       console.error('Error fetching vehicles:', err);
     }
@@ -408,6 +417,11 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
 
   const getVehicleDisplayName = (vehicle) => String(vehicle?.vehicleNo || '').trim();
   const getMaterialDisplayName = (material) => String(material?.label || '').trim();
+  const getVehiclePartyId = (vehicle) => (
+    typeof vehicle?.partyId === 'object'
+      ? vehicle?.partyId?._id || ''
+      : vehicle?.partyId || ''
+  );
 
   const getMatchingLeadgers = (queryValue) => {
     const normalized = normalizeText(queryValue);
@@ -746,8 +760,9 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
     setOcrVehicleMismatch(null);
     const vehicleNumber = getVehicleDisplayName(vehicle);
     const unladenWeight = vehicle?.unladenWeight ?? '';
-    const linkedParty = vehicle?.partyId
-      ? partyOptions.find((party) => String(party._id) === String(vehicle.partyId))
+    const linkedPartyId = getVehiclePartyId(vehicle);
+    const linkedParty = linkedPartyId
+      ? partyOptions.find((party) => String(party._id) === String(linkedPartyId))
       : null;
 
     setVehicleQuery(vehicleNumber);
@@ -813,10 +828,10 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
     });
 
     if (createdVehicle?._id) {
-      setVehicles((prev) => [
+      setVehicles((prev) => sortVehiclesByTypePreference([
         createdVehicle,
         ...prev.filter((item) => String(item._id) !== String(createdVehicle._id))
-      ]);
+      ], 'sales'));
       selectVehicle(createdVehicle);
       return createdVehicle._id;
     }
@@ -2047,8 +2062,10 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
             onVehicleSaved={async (savedVehicle) => {
               if (!savedVehicle) return;
               setVehicles((prev) => [
-                savedVehicle,
-                ...prev.filter((item) => String(item._id) !== String(savedVehicle._id))
+                ...sortVehiclesByTypePreference([
+                  savedVehicle,
+                  ...prev.filter((item) => String(item._id) !== String(savedVehicle._id))
+                ], 'sales')
               ]);
               const latestLeadgers = await fetchLeadgers();
               selectVehicle(savedVehicle, latestLeadgers);
@@ -2173,8 +2190,10 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         onVehicleSaved={async (savedVehicle) => {
           if (!savedVehicle) return;
           setVehicles((prev) => [
-            savedVehicle,
-            ...prev.filter((item) => String(item._id) !== String(savedVehicle._id))
+            ...sortVehiclesByTypePreference([
+              savedVehicle,
+              ...prev.filter((item) => String(item._id) !== String(savedVehicle._id))
+            ], 'sales')
           ]);
           const latestLeadgers = await fetchLeadgers();
           selectVehicle(savedVehicle, latestLeadgers);

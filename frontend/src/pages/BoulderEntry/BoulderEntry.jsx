@@ -40,6 +40,14 @@ const initialFormData = {
   slipImg: ''
 };
 
+const sortVehiclesByTypePreference = (vehicles, preferredType) => [...vehicles].sort((a, b) => {
+  const aPreferred = a?.vehicleType === preferredType ? 0 : 1;
+  const bPreferred = b?.vehicleType === preferredType ? 0 : 1;
+  if (aPreferred !== bPreferred) return aPreferred - bPreferred;
+
+  return String(a?.vehicleNo || a?.vehicleNumber || '').localeCompare(String(b?.vehicleNo || b?.vehicleNumber || ''));
+});
+
 export default function BoulderEntry({ onModalFinish = null, editingEntry = null }) {
   const [formData, setFormData] = useState(initialFormData);
   const [vehicleQuery, setVehicleQuery] = useState('');
@@ -67,6 +75,12 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
   const inputClass = 'w-full rounded-lg border border-slate-400 bg-white px-2.5 py-1.5 text-[13px] text-gray-800 transition placeholder:text-slate-400 focus:border-transparent focus:outline-none focus:ring-2';
   const labelClass = 'mb-1 block text-[11px] font-semibold text-gray-700 md:text-xs';
   const getVehicleDisplayName = (vehicle) => String(vehicle?.vehicleNumber || vehicle?.vehicleNo || '').trim();
+  const getPartyDisplayName = (party) => String(party?.partyName || party?.name || '').trim();
+  const getVehiclePartyId = (vehicle) => (
+    typeof vehicle?.partyId === 'object'
+      ? vehicle?.partyId?._id || ''
+      : vehicle?.partyId || ''
+  );
   const isEditing = Boolean(editingEntry?._id);
 
   useEffect(() => {
@@ -125,17 +139,47 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
 
   const filteredParties = useMemo(() => {
     const search = partyQuery.trim().toLowerCase();
+    const selectedPartyName = String(formData.partyName || '').trim().toLowerCase();
+    if (isPartySectionActive && search && search === selectedPartyName) {
+      return parties;
+    }
     if (!search) return parties;
     return parties.filter((party) => String(party?.partyName || party?.name || '').trim().toLowerCase().includes(search));
-  }, [parties, partyQuery]);
+  }, [parties, partyQuery, formData.partyName, isPartySectionActive]);
 
   useEffect(() => {
     setVehicleListIndex(filteredVehicles.length > 0 ? 0 : -1);
   }, [filteredVehicles]);
 
   useEffect(() => {
-    setPartyListIndex(filteredParties.length > 0 ? 0 : -1);
-  }, [filteredParties]);
+    if (filteredParties.length === 0) {
+      setPartyListIndex(-1);
+      return;
+    }
+
+    const selectedPartyName = String(formData.partyName || '').trim().toLowerCase();
+    const typedPartyName = String(partyQuery || '').trim().toLowerCase();
+    const shouldHighlightSelectedParty = (
+      isPartySectionActive
+      && typedPartyName
+      && typedPartyName === selectedPartyName
+      && selectedPartyName
+    );
+
+    if (shouldHighlightSelectedParty) {
+      const selectedIndex = filteredParties.findIndex((party) => (
+        String(party?.partyName || party?.name || '').trim().toLowerCase() === selectedPartyName
+      ));
+      setPartyListIndex(selectedIndex >= 0 ? selectedIndex : 0);
+      return;
+    }
+
+    setPartyListIndex((prev) => {
+      if (prev < 0) return 0;
+      if (prev >= filteredParties.length) return filteredParties.length - 1;
+      return prev;
+    });
+  }, [filteredParties, formData.partyName, isPartySectionActive, partyQuery]);
 
   const vehicleDropdownStyle = useFloatingDropdownPosition(
     vehicleSectionRef,
@@ -151,8 +195,9 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
 
   const fetchVehicles = async () => {
     try {
-      const response = await apiClient.get('/vehicles', { params: { vehicleType: 'boulder' } });
-      setVehicles(Array.isArray(response) ? response : []);
+      const response = await apiClient.get('/vehicles');
+      const vehicleList = Array.isArray(response) ? response : [];
+      setVehicles(sortVehiclesByTypePreference(vehicleList, 'boulder'));
     } catch (error) {
       console.error('Error fetching vehicles:', error);
     }
@@ -182,13 +227,24 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
     if (!vehicle) return;
 
     const vehicleName = getVehicleDisplayName(vehicle);
+    const linkedPartyId = getVehiclePartyId(vehicle);
+    const linkedParty = linkedPartyId
+      ? parties.find((party) => String(party._id) === String(linkedPartyId))
+      : null;
+    const linkedPartyName = getPartyDisplayName(linkedParty);
     setFormData((prev) => updateWeights({
       ...prev,
       vehicleId: vehicle._id,
       vehicleNo: vehicleName,
-      tareWeight: vehicle?.unladenWeight ?? prev.tareWeight
+      tareWeight: vehicle?.unladenWeight ?? prev.tareWeight,
+      partyName: linkedPartyName || prev.partyName
     }));
     setVehicleQuery(vehicleName);
+    if (linkedPartyName) {
+      setPartyQuery(linkedPartyName);
+      const selectedPartyIndex = parties.findIndex((party) => String(party._id) === String(linkedPartyId));
+      setPartyListIndex(selectedPartyIndex >= 0 ? selectedPartyIndex : 0);
+    }
     setIsVehicleSectionActive(false);
     setOcrVehicleMismatch(null);
   };
@@ -321,10 +377,10 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
     });
 
     if (createdVehicle?._id) {
-      setVehicles((prev) => [
+      setVehicles((prev) => sortVehiclesByTypePreference([
         createdVehicle,
         ...prev.filter((item) => String(item._id) !== String(createdVehicle._id))
-      ]);
+      ], 'boulder'));
       selectVehicle(createdVehicle);
       return createdVehicle._id;
     }
@@ -334,7 +390,6 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
 
   const handlePartyFocus = () => {
     setIsPartySectionActive(true);
-    setPartyListIndex(filteredParties.length > 0 ? 0 : -1);
   };
 
   const handlePartyInputChange = (event) => {
@@ -1028,8 +1083,10 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
           onVehicleSaved={async (savedVehicle) => {
             if (!savedVehicle) return;
             setVehicles((prev) => [
-              savedVehicle,
-              ...prev.filter((item) => String(item._id) !== String(savedVehicle._id))
+              ...sortVehiclesByTypePreference([
+                savedVehicle,
+                ...prev.filter((item) => String(item._id) !== String(savedVehicle._id))
+              ], 'boulder')
             ]);
             selectVehicle(savedVehicle);
             closeInlineVehicleForm(true);
