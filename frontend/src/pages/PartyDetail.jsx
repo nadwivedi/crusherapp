@@ -392,6 +392,11 @@ export default function PartyDetail() {
         acc.totalPayments += amount;
       }
 
+      if (row.type === 'boulder') {
+        acc.totalBoulderPayable += amount;
+        acc.boulderQty += quantity;
+      }
+
       if (row.type === 'purchase return') {
         acc.totalPurchaseReturns += amount;
         acc.purchaseReturnQty += quantity;
@@ -408,10 +413,12 @@ export default function PartyDetail() {
       totalPurchases: 0,
       totalReceipts: 0,
       totalPayments: 0,
+      totalBoulderPayable: 0,
       totalPurchaseReturns: 0,
       totalSaleReturns: 0,
       saleQty: 0,
       purchaseQty: 0,
+      boulderQty: 0,
       purchaseReturnQty: 0
     });
   }, [ledger]);
@@ -526,7 +533,7 @@ export default function PartyDetail() {
         </div>
       ) : null}
 
-      <div className="mb-4 grid grid-cols-2 gap-2.5 md:grid-cols-4 md:gap-3">
+      <div className="mb-4 grid grid-cols-2 gap-2.5 md:grid-cols-5 md:gap-3">
         <div className="rounded-xl border border-blue-100 bg-blue-50 px-3 py-2.5 shadow-sm">
           <p className="text-[11px] font-medium uppercase tracking-wide text-blue-700">Closing Balance</p>
           <p className={`mt-1 text-lg font-bold md:text-xl ${closingBalance >= 0 ? 'text-blue-900' : 'text-rose-700'}`}>
@@ -548,6 +555,11 @@ export default function PartyDetail() {
           <p className="text-[11px] font-medium uppercase tracking-wide text-sky-700">Party Paid Me</p>
           <p className="mt-1 text-lg font-bold text-sky-900 md:text-xl">{formatCurrency(summary.totalReceipts)}</p>
           <p className="mt-1 text-[11px] text-sky-700">Receipt vouchers</p>
+        </div>
+        <div className="rounded-xl border border-rose-100 bg-rose-50 px-3 py-2.5 shadow-sm">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-rose-700">Crushed Boulder Payable</p>
+          <p className="mt-1 text-lg font-bold text-rose-900 md:text-xl">{formatCurrency(summary.totalBoulderPayable)}</p>
+          <p className="mt-1 text-[11px] text-rose-700">Qty {formatQuantity(summary.boulderQty)} kg</p>
         </div>
       </div>
 
@@ -624,7 +636,7 @@ export default function PartyDetail() {
           <div>
             <h2 className="text-base font-bold text-slate-900 md:text-lg">Party Ledger</h2>
             <p className="mt-1 text-xs text-slate-500 md:text-sm">
-              Sale, purchase, receipt, payment, and return history for this party.
+              Sale, purchase, receipt, payment, boulder, and return history for this party.
             </p>
           </div>
         </div>

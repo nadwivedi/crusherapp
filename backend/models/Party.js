@@ -98,6 +98,12 @@ const partySchema = new mongoose.Schema(
       min: 0,
       set: normalizeRate,
     },
+    boulderRatePerTon: {
+      type: Number,
+      default: 0,
+      min: 0,
+      set: normalizeRate,
+    },
   },
   {
     timestamps: true,

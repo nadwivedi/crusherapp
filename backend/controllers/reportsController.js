@@ -155,7 +155,7 @@ const buildSaleMaterialSummary = (sale) => {
     .join(" / ") || "-";
 };
 
-const buildLedgerRowsForParty = ({ party, sales, purchases, receipts, payments, fromDate, toDate }) => {
+const buildLedgerRowsForParty = ({ party, sales, purchases, receipts, payments, boulders, fromDate, toDate }) => {
   const openingImpact = getPartyOpeningImpact(party);
   const openingDate = party?.createdAt || new Date(0);
   const rows = [];
@@ -262,6 +262,28 @@ const buildLedgerRowsForParty = ({ party, sales, purchases, receipts, payments, 
         quantity: 0,
         amount: toNumber(item.amount),
         impact: toNumber(item.amount),
+      })),
+    ...boulders
+      .filter((item) => String(item.partyId?._id || item.partyId) === String(party._id))
+      .filter((item) => withinRange(item.boulderDate || item.createdAt, fromDate, toDate))
+      .map((item) => ({
+        type: "boulder",
+        displayType: getEntryDisplayType("boulder"),
+        refId: item._id,
+        partyId: party._id,
+        partyName: party.name || "-",
+        date: item.boulderDate || item.createdAt,
+        entryCreatedAt: item.createdAt,
+        refNumber: item.boulderNumber || item.vehicleNo || "-",
+        itemSummary: [
+          item.vehicleNo ? `Vehicle ${item.vehicleNo}` : "",
+          `Net ${toNumber(item.netWeight)} kg`,
+        ].filter(Boolean).join(" | "),
+        note: "",
+        method: `Rate ${formatAmount(item.boulderRatePerTon)}/Ton`,
+        quantity: toNumber(item.netWeight),
+        amount: toNumber(item.amount),
+        impact: -toNumber(item.amount),
       }))
   );
 
@@ -340,12 +362,13 @@ const buildSummary = (entries) => entries.reduce((acc, entry) => {
 const getPartyLedgerData = async ({ userId, partyId, fromDate, toDate }) => {
   const partyFilter = partyId ? { _id: partyId } : {};
 
-  const [parties, sales, purchases, receipts, payments] = await Promise.all([
+  const [parties, sales, purchases, receipts, payments, boulders] = await Promise.all([
     Party.find({ userId, ...partyFilter }).sort({ name: 1 }),
     Sales.find({ userId, ...(partyId ? { partyId } : {}) }).populate("partyId", "name").sort({ saleDate: 1, createdAt: 1 }),
     Purchase.find({ userId, ...(partyId ? { party: partyId } : {}) }).populate("party", "name").sort({ purchaseDate: 1, createdAt: 1 }),
     Receipt.find({ userId, ...(partyId ? { party: partyId } : {}) }).populate("party", "name").sort({ receiptDate: 1, createdAt: 1 }),
     Payment.find({ userId, ...(partyId ? { party: partyId } : {}) }).populate("party", "name").sort({ paymentDate: 1, createdAt: 1 }),
+    Boulder.find({ userId, ...(partyId ? { partyId } : {}) }).sort({ boulderDate: 1, createdAt: 1 }),
   ]);
 
   const ledgerRows = parties.flatMap((party) => buildLedgerRowsForParty({
@@ -354,6 +377,7 @@ const getPartyLedgerData = async ({ userId, partyId, fromDate, toDate }) => {
     purchases,
     receipts,
     payments,
+    boulders,
     fromDate,
     toDate,
   }));
@@ -652,6 +676,33 @@ const getPartyLedgerEntryDetail = async (req, res) => {
       });
     }
 
+    if (type === "boulder") {
+      const boulder = await Boulder.findOne(scopedIdFilter(req, refId));
+      if (!boulder) return res.status(404).json({ message: "Boulder not found" });
+
+      return res.json({
+        title: "Boulder Voucher",
+        refNumber: boulder.boulderNumber || boulder.vehicleNo || "-",
+        partyName: boulder.partyName || "-",
+        amount: toNumber(boulder.amount),
+        quantity: toNumber(boulder.netWeight),
+        method: boulder.vehicleNo || "-",
+        date: boulder.boulderDate || boulder.createdAt,
+        accountName: boulder.partyName || "-",
+        linkedReference: boulder.vehicleNo || "",
+        notes: "",
+        fields: [
+          { label: "Boulder Date", value: boulder.boulderDate || boulder.createdAt },
+          { label: "Vehicle No", value: boulder.vehicleNo || "-" },
+          { label: "Gross Weight", value: toNumber(boulder.grossWeight) || "-" },
+          { label: "Tare Weight", value: toNumber(boulder.tareWeight) || "-" },
+          { label: "Net Weight", value: toNumber(boulder.netWeight) || "-" },
+          { label: "Rate Per Ton", value: toNumber(boulder.boulderRatePerTon) || "-" },
+        ],
+        items: [],
+      });
+    }
+
     return res.status(400).json({ message: "Voucher detail is not supported for this type yet" });
   } catch (error) {
     return res.status(500).json({
@@ -779,11 +830,11 @@ const getDayBook = async (req, res) => {
           date: item.boulderDate || item.createdAt,
           entryCreatedAt: item.createdAt,
           voucherNumber: item.boulderNumber || item.vehicleNo || "-",
-          partyName: item.vehicleNo || "-",
-          method: `Gross ${Number(item.grossWeight || 0)} | Tare ${Number(item.tareWeight || 0)} | Net ${Number(item.netWeight || 0)}`,
-          amount: 0,
+          partyName: item.partyName || item.vehicleNo || "-",
+          method: `Vehicle ${item.vehicleNo || "-"} | Gross ${Number(item.grossWeight || 0)} | Tare ${Number(item.tareWeight || 0)} | Net ${Number(item.netWeight || 0)} | Rate ${Number(item.boulderRatePerTon || 0)}/Ton`,
+          amount: Number(item.amount || 0),
           inAmount: 0,
-          outAmount: 0,
+          outAmount: Number(item.amount || 0),
         })),
       ...materialUsedEntries
         .filter((item) => withinRange(item.usedDate || item.createdAt, fromDate, toDate))
@@ -839,7 +890,7 @@ const getDashboardAnalytics = async (req, res) => {
     const startOfYear = new Date(now.getFullYear(), 0, 1);
     
     const [boulders, expenses, sales, parties, purchases, receipts, payments] = await Promise.all([
-      Boulder.find(scopedFilter(req)).select("netWeight boulderDate createdAt").lean(),
+      Boulder.find(scopedFilter(req)).select("netWeight boulderDate createdAt partyId amount").lean(),
       Expense.find(scopedFilter(req)).select("amount expenseDate createdAt expenseGroup").populate("expenseGroup", "name").lean(),
       Sales.find(scopedFilter(req)).select("stoneSize netWeight materialWeight totalAmount saleDate createdAt partyId type").lean(),
       Party.find(scopedFilter(req)).select("name openingBalance openingBalanceType").lean(),
@@ -1051,6 +1102,9 @@ const getDashboardAnalytics = async (req, res) => {
     }
     for (const payment of payments) {
        addImpact(payment, "party", toNumber(payment.amount));
+    }
+    for (const boulder of boulders) {
+       addImpact(boulder, "partyId", -toNumber(boulder.amount));
     }
 
     let totalReceivables = 0;

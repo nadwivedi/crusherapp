@@ -29,6 +29,7 @@ const formatTimeForInput = (value = new Date()) => {
 
 const initialFormData = {
   vehicleId: '',
+  partyId: '',
   vehicleNo: '',
   partyName: '',
   boulderDate: formatDateForInput(),
@@ -83,6 +84,27 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
   );
   const isEditing = Boolean(editingEntry?._id);
 
+  const selectedParty = useMemo(() => {
+    const normalizedPartyName = String(formData.partyName || '').trim().toLowerCase();
+    if (!normalizedPartyName) return null;
+
+    return parties.find((party) => (
+      String(party?.partyName || party?.name || '').trim().toLowerCase() === normalizedPartyName
+    )) || null;
+  }, [formData.partyName, parties]);
+
+  const boulderRatePerTon = useMemo(() => {
+    if (selectedParty?.type !== 'supplier') return 0;
+    const rate = Number(selectedParty?.boulderRatePerTon || 0);
+    return Number.isFinite(rate) ? rate : 0;
+  }, [selectedParty]);
+
+  const boulderTotalAmount = useMemo(() => {
+    const netWeight = Number(formData.netWeight || 0);
+    if (!Number.isFinite(netWeight) || netWeight <= 0) return 0;
+    return (netWeight / 1000) * boulderRatePerTon;
+  }, [boulderRatePerTon, formData.netWeight]);
+
   useEffect(() => {
     fetchVehicles();
     fetchParties();
@@ -109,6 +131,7 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
 
     setFormData({
       vehicleId,
+      partyId: editingEntry.partyId || '',
       vehicleNo,
       partyName: editingEntry.partyName || '',
       boulderDate: formatDateForInput(editingEntry.boulderDate || editingEntry.createdAt),
@@ -235,6 +258,7 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
     setFormData((prev) => updateWeights({
       ...prev,
       vehicleId: vehicle._id,
+      partyId: linkedPartyId || prev.partyId,
       vehicleNo: vehicleName,
       tareWeight: vehicle?.unladenWeight ?? prev.tareWeight,
       partyName: linkedPartyName || prev.partyName
@@ -331,7 +355,7 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
     if (!partyName) return;
 
     setPartyQuery(partyName);
-    setFormData((prev) => ({ ...prev, partyName }));
+    setFormData((prev) => ({ ...prev, partyId: party._id || '', partyName }));
     setIsPartySectionActive(false);
   };
 
@@ -396,7 +420,7 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
     const value = event.target.value;
     setPartyQuery(value);
     setIsPartySectionActive(true);
-    setFormData((prev) => ({ ...prev, partyName: value }));
+    setFormData((prev) => ({ ...prev, partyId: '', partyName: value }));
   };
 
   const handlePartyInputKeyDown = (event) => {
@@ -444,6 +468,7 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
       const ensuredVehicleId = await ensureVehicleExists();
       const payload = {
         vehicleId: ensuredVehicleId || formData.vehicleId || undefined,
+        partyId: selectedParty?._id || formData.partyId || undefined,
         vehicleNo: formData.vehicleNo.toUpperCase(),
         partyName: String(formData.partyName || '').trim(),
         boulderDate: formData.boulderDate,
@@ -1043,6 +1068,30 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
                         readOnly
                         className={`${inputClass} bg-slate-100 pl-9 font-semibold text-emerald-700 focus:ring-indigo-500`}
                         placeholder="0"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <div className="space-y-1">
+                      <label className={labelClass}>Boulder Rate Per Ton (Rs)</label>
+                      <input
+                        type="text"
+                        value={boulderRatePerTon > 0 ? `${boulderRatePerTon.toFixed(2)} Rs/Ton` : '0.00 Rs/Ton'}
+                        readOnly
+                        className={`${inputClass} bg-slate-100 font-semibold text-blue-700 focus:ring-indigo-500`}
+                        placeholder="0.00 Rs/Ton"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className={labelClass}>Total Amount (Rs)</label>
+                      <input
+                        type="text"
+                        value={boulderTotalAmount > 0 ? `Rs ${boulderTotalAmount.toFixed(2)}` : 'Rs 0.00'}
+                        readOnly
+                        className={`${inputClass} bg-slate-100 font-semibold text-emerald-700 focus:ring-indigo-500`}
+                        placeholder="Rs 0.00"
                       />
                     </div>
                   </div>

@@ -38,6 +38,17 @@ const createBoulderNumber = async (userId, boulderDateValue) => {
 
 const normalizeVehicleNo = (value) => `${value || ""}`.trim().toUpperCase();
 
+const calculateBoulderAmount = (netWeight, ratePerTon) => {
+  const normalizedNetWeight = Number(netWeight || 0);
+  const normalizedRatePerTon = Number(ratePerTon || 0);
+
+  if (!Number.isFinite(normalizedNetWeight) || !Number.isFinite(normalizedRatePerTon)) {
+    return 0;
+  }
+
+  return Math.max(0, (normalizedNetWeight / 1000) * normalizedRatePerTon);
+};
+
 const resolveVehicleParty = async (payload, userId) => {
   if (payload.partyId && mongoose.Types.ObjectId.isValid(payload.partyId)) {
     const existingParty = await Party.findOne({ _id: payload.partyId, userId });
@@ -83,7 +94,16 @@ const resolvePartySnapshot = async ({ partyId, partyName, fallbackPartyId = null
 
   const trimmedPartyName = typeof partyName === "string" ? partyName.trim() : "";
   if (trimmedPartyName) {
-    return { partyId: primaryPartyId || null, partyName: trimmedPartyName };
+    const matchedParty = await Party.findOne({
+      userId,
+      name: { $regex: `^${trimmedPartyName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, $options: "i" },
+    }).select("name");
+
+    if (matchedParty?.name) {
+      return { partyId: matchedParty._id, partyName: matchedParty.name };
+    }
+
+    return { partyId: primaryPartyId || fallbackId || null, partyName: trimmedPartyName };
   }
 
   if (fallbackId) {
@@ -94,6 +114,20 @@ const resolvePartySnapshot = async ({ partyId, partyName, fallbackPartyId = null
   }
 
   return { partyId: null, partyName: "" };
+};
+
+const resolveBoulderRateSnapshot = async (partyId, userId) => {
+  if (!partyId || !mongoose.Types.ObjectId.isValid(partyId)) {
+    return 0;
+  }
+
+  const party = await Party.findOne({ _id: partyId, userId }).select("type boulderRatePerTon");
+  if (!party || party.type !== "supplier") {
+    return 0;
+  }
+
+  const rate = Number(party.boulderRatePerTon || 0);
+  return Number.isFinite(rate) && rate > 0 ? rate : 0;
 };
 
 const normalizeBoulderPayload = async (payload, userId) => {
@@ -228,6 +262,10 @@ const normalizeBoulderPayload = async (payload, userId) => {
     normalizedPayload.partyId = partySnapshot.partyId;
     normalizedPayload.partyName = partySnapshot.partyName;
   }
+
+  const boulderRatePerTon = await resolveBoulderRateSnapshot(normalizedPayload.partyId, userId);
+  normalizedPayload.boulderRatePerTon = boulderRatePerTon;
+  normalizedPayload.amount = calculateBoulderAmount(normalizedPayload.netWeight, boulderRatePerTon);
 
   return normalizedPayload;
 };

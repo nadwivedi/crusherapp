@@ -129,7 +129,8 @@ const getInitialPartyFormData = (type = 'customer') => ({
   fortyMmRate: '',
   wmmRate: '',
   gsbRate: '',
-  dustRate: ''
+  dustRate: '',
+  boulderRatePerTon: ''
 });
 
 const toTitleCase = (value) => String(value || '')
@@ -1002,7 +1003,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
       setPartyFormData((prev) => ({ ...prev, [name]: value }));
       return;
     }
-    if (['tenMmRate', 'twentyMmRate', 'fortyMmRate', 'wmmRate', 'gsbRate', 'dustRate'].includes(name)) {
+    if (['tenMmRate', 'twentyMmRate', 'fortyMmRate', 'wmmRate', 'gsbRate', 'dustRate', 'boulderRatePerTon'].includes(name)) {
       setPartyFormData((prev) => ({ ...prev, [name]: value }));
       return;
     }
@@ -1562,7 +1563,8 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
           fortyMmRate: Number(partyFormData.fortyMmRate || 0),
           wmmRate: Number(partyFormData.wmmRate || 0),
           gsbRate: Number(partyFormData.gsbRate || 0),
-          dustRate: Number(partyFormData.dustRate || 0)
+          dustRate: Number(partyFormData.dustRate || 0),
+          boulderRatePerTon: Number(partyFormData.boulderRatePerTon || 0)
         };
 
       const response = await apiClient.post('/parties', payload);

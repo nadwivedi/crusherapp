@@ -16,7 +16,8 @@ const getInitialForm = () => ({
   fortyMmRate: '',
   wmmRate: '',
   gsbRate: '',
-  dustRate: ''
+  dustRate: '',
+  boulderRatePerTon: ''
 });
 
 const TOAST_OPTIONS = { autoClose: 1200 };
@@ -117,7 +118,7 @@ export default function Party() {
       setFormData((prev) => ({ ...prev, [name]: value }));
       return;
     }
-    if (['tenMmRate', 'twentyMmRate', 'fortyMmRate', 'wmmRate', 'gsbRate', 'dustRate'].includes(name)) {
+    if (['tenMmRate', 'twentyMmRate', 'fortyMmRate', 'wmmRate', 'gsbRate', 'dustRate', 'boulderRatePerTon'].includes(name)) {
       setFormData((prev) => ({ ...prev, [name]: value }));
       return;
     }
@@ -158,7 +159,8 @@ export default function Party() {
       fortyMmRate: Number(party.fortyMmRate || 0) || '',
       wmmRate: Number(party.wmmRate || 0) || '',
       gsbRate: Number(party.gsbRate || 0) || '',
-      dustRate: Number(party.dustRate || 0) || ''
+      dustRate: Number(party.dustRate || 0) || '',
+      boulderRatePerTon: Number(party.boulderRatePerTon || 0) || ''
     });
     setError('');
     setShowForm(true);
@@ -195,7 +197,8 @@ export default function Party() {
         fortyMmRate: Number(formData.fortyMmRate || 0),
         wmmRate: Number(formData.wmmRate || 0),
         gsbRate: Number(formData.gsbRate || 0),
-        dustRate: Number(formData.dustRate || 0)
+        dustRate: Number(formData.dustRate || 0),
+        boulderRatePerTon: Number(formData.boulderRatePerTon || 0)
       };
 
       if (editingId) {

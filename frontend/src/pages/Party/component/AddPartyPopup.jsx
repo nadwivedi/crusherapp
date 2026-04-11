@@ -22,12 +22,16 @@ const OPENING_BALANCE_OPTIONS = [
 ];
 
 const SALE_RATE_FIELDS = [
-  { name: 'tenMmRate', label: '10mm Rate' },
-  { name: 'twentyMmRate', label: '20mm Rate' },
-  { name: 'fortyMmRate', label: '40mm Rate' },
-  { name: 'wmmRate', label: 'WMM Rate' },
-  { name: 'gsbRate', label: 'GSB Rate' },
-  { name: 'dustRate', label: 'Dust Rate' }
+  { name: 'tenMmRate', label: '10mm Rate (Rs/Ton)' },
+  { name: 'twentyMmRate', label: '20mm Rate (Rs/Ton)' },
+  { name: 'fortyMmRate', label: '40mm Rate (Rs/Ton)' },
+  { name: 'wmmRate', label: 'WMM Rate (Rs/Ton)' },
+  { name: 'gsbRate', label: 'GSB Rate (Rs/Ton)' },
+  { name: 'dustRate', label: 'Dust Rate (Rs/Ton)' }
+];
+
+const SUPPLIER_RATE_FIELDS = [
+  { name: 'boulderRatePerTon', label: 'Boulder Rate (Rs/Ton)' }
 ];
 
 const FIELD_SELECTOR = [
@@ -705,7 +709,7 @@ export default function AddPartyPopup({
               <div className="rounded-xl border-2 border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-2.5 md:p-4">
                 <h3 className="text-base md:text-lg font-bold text-gray-800 mb-3 md:mb-4 flex items-center gap-2">
                   <span className="bg-amber-600 text-white w-6 h-6 md:w-8 md:h-8 rounded-full flex items-center justify-center text-xs md:text-sm">3</span>
-                  Sale Rate Per Ton
+                  Sale Rate Per Ton (Rs)
                 </h3>
 
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -723,7 +727,7 @@ export default function AddPartyPopup({
                         min="0"
                         step="0.01"
                         className={getInlineFieldClass('emerald')}
-                        placeholder="0.00"
+                        placeholder="30 Rs/Ton"
                       />
                     </div>
                   ))}
@@ -732,6 +736,39 @@ export default function AddPartyPopup({
                   Set party-wise selling rate in Rs per ton for each material.
                 </p>
               </div>
+
+              {formData.type === 'supplier' ? (
+                <div className="rounded-xl border-2 border-stone-200 bg-gradient-to-r from-stone-50 to-orange-50 p-2.5 md:p-4">
+                  <h3 className="text-base md:text-lg font-bold text-gray-800 mb-3 md:mb-4 flex items-center gap-2">
+                    <span className="bg-stone-700 text-white w-6 h-6 md:w-8 md:h-8 rounded-full flex items-center justify-center text-xs md:text-sm">4</span>
+                    Boulder Rate Per Ton (Rs)
+                  </h3>
+
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    {SUPPLIER_RATE_FIELDS.map((field) => (
+                      <div key={field.name} className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
+                        <label htmlFor={field.name} className="shrink-0 text-xs font-semibold text-gray-700 sm:w-28 sm:text-sm">
+                          {field.label}
+                        </label>
+                        <input
+                          id={field.name}
+                          type="number"
+                          name={field.name}
+                          value={formData[field.name] ?? ''}
+                          onChange={handleChange}
+                          min="0"
+                          step="0.01"
+                          className={getInlineFieldClass('emerald')}
+                          placeholder="30 Rs/Ton"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <p className="mt-3 text-xs font-medium text-stone-700">
+                    Set supplier-wise boulder inward rate in Rs per ton.
+                  </p>
+                </div>
+              ) : null}
             </div>
           </div>
 

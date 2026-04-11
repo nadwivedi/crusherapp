@@ -55,6 +55,16 @@ const boulderSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
+    boulderRatePerTon: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    amount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
     boulderDate: {
       type: Date,
       default: Date.now,

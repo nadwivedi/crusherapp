@@ -91,7 +91,8 @@ const getInitialPartyFormData = () => ({
   fortyMmRate: '',
   wmmRate: '',
   gsbRate: '',
-  dustRate: ''
+  dustRate: '',
+  boulderRatePerTon: ''
 });
 
 const toTitleCase = (value) => String(value || '')
@@ -320,7 +321,7 @@ export default function AddVehiclePopup({ vehicle, onClose, onSave, onVehicleSav
       return;
     }
 
-    if (['tenMmRate', 'twentyMmRate', 'fortyMmRate', 'wmmRate', 'gsbRate', 'dustRate'].includes(name)) {
+    if (['tenMmRate', 'twentyMmRate', 'fortyMmRate', 'wmmRate', 'gsbRate', 'dustRate', 'boulderRatePerTon'].includes(name)) {
       setPartyFormData((prev) => ({ ...prev, [name]: value }));
       return;
     }
@@ -367,7 +368,8 @@ export default function AddVehiclePopup({ vehicle, onClose, onSave, onVehicleSav
         fortyMmRate: Number(partyFormData.fortyMmRate || 0),
         wmmRate: Number(partyFormData.wmmRate || 0),
         gsbRate: Number(partyFormData.gsbRate || 0),
-        dustRate: Number(partyFormData.dustRate || 0)
+        dustRate: Number(partyFormData.dustRate || 0),
+        boulderRatePerTon: Number(partyFormData.boulderRatePerTon || 0)
       };
 
       const createdParty = await apiClient.post('/parties', payload);

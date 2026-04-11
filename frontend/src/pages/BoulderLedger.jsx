@@ -9,6 +9,11 @@ const formatNumber = (value) => Number(value || 0).toLocaleString('en-IN', {
   maximumFractionDigits: 2
 });
 
+const formatCurrency = (value) => `Rs ${Number(value || 0).toLocaleString('en-IN', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
+})}`;
+
 const formatDate = (value) => {
   const date = value ? new Date(value) : null;
   if (!date || Number.isNaN(date.getTime())) return '-';
@@ -26,9 +31,13 @@ const normalizeFallbackEntry = (entry) => ({
   createdAt: entry.entryCreatedAt || entry.date,
   vehicleNo: entry.voucherNumber || entry.partyName || '-',
   partyName: entry.partyName || '',
+  entryTime: entry.entryTime || '',
+  exitTime: entry.exitTime || '',
   grossWeight: parseWeightFromMethod(entry.method, 'Gross'),
   tareWeight: parseWeightFromMethod(entry.method, 'Tare'),
   netWeight: parseWeightFromMethod(entry.method, 'Net'),
+  boulderRatePerTon: Number(entry.boulderRatePerTon || 0),
+  amount: Number(entry.amount || 0),
   slipImg: ''
 });
 
@@ -144,12 +153,14 @@ export default function BoulderLedger() {
       count: acc.count + 1,
       grossWeight: acc.grossWeight + Number(entry.grossWeight || 0),
       tareWeight: acc.tareWeight + Number(entry.tareWeight || 0),
-      netWeight: acc.netWeight + Number(entry.netWeight || 0)
+      netWeight: acc.netWeight + Number(entry.netWeight || 0),
+      amount: acc.amount + Number(entry.amount || 0)
     }), {
       count: 0,
       grossWeight: 0,
       tareWeight: 0,
-      netWeight: 0
+      netWeight: 0,
+      amount: 0
     });
   }, [filteredBoulders]);
 
@@ -216,11 +227,12 @@ export default function BoulderLedger() {
           </div>
         )}
 
-        <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-4">
+        <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-5">
           <StatCard title="Entries" value={formatNumber(summary.count)} subtitle="filtered boulder entries" />
           <StatCard title="Gross Weight" value={formatNumber(summary.grossWeight)} subtitle="total gross kg" />
           <StatCard title="Tare Weight" value={formatNumber(summary.tareWeight)} subtitle="total tare kg" />
           <StatCard title="Net Weight" value={formatNumber(summary.netWeight)} subtitle="total net kg" />
+          <StatCard title="Total Amount" value={formatCurrency(summary.amount)} subtitle="total payable amount" />
         </div>
 
         <div className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-xl">
@@ -272,7 +284,7 @@ export default function BoulderLedger() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[820px]">
+            <table className="w-full min-w-[1120px]">
               <thead>
                 <tr className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 text-white">
                   <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Date</th>
@@ -282,6 +294,8 @@ export default function BoulderLedger() {
                   <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Gross Wt</th>
                   <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Tare Wt</th>
                   <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Net Wt</th>
+                  <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Rate (Rs/Ton)</th>
+                  <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Amount</th>
                   <th className="px-6 py-4 text-center text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Slip</th>
                   <th className="px-6 py-4 text-center text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Actions</th>
                 </tr>
@@ -307,6 +321,8 @@ export default function BoulderLedger() {
                       <td className="px-6 py-4 text-right text-sm font-semibold text-slate-700 lg:px-4 lg:py-3 lg:text-[12px] xl:px-6 xl:py-4 xl:text-sm">{formatNumber(entry.grossWeight)}</td>
                       <td className="px-6 py-4 text-right text-sm font-semibold text-slate-700 lg:px-4 lg:py-3 lg:text-[12px] xl:px-6 xl:py-4 xl:text-sm">{formatNumber(entry.tareWeight)}</td>
                       <td className="px-6 py-4 text-right text-sm font-black text-emerald-600 lg:px-4 lg:py-3 lg:text-[12px] xl:px-6 xl:py-4 xl:text-sm">{formatNumber(entry.netWeight)}</td>
+                      <td className="px-6 py-4 text-right text-sm font-semibold text-blue-700 lg:px-4 lg:py-3 lg:text-[12px] xl:px-6 xl:py-4 xl:text-sm">{formatNumber(entry.boulderRatePerTon)}</td>
+                      <td className="px-6 py-4 text-right text-sm font-black text-rose-700 lg:px-4 lg:py-3 lg:text-[12px] xl:px-6 xl:py-4 xl:text-sm">{formatCurrency(entry.amount)}</td>
                       <td className="px-6 py-4 text-center lg:px-4 lg:py-3 xl:px-6 xl:py-4">
                         {entry.slipImg ? (
                           <a
@@ -345,7 +361,7 @@ export default function BoulderLedger() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={9} className="px-6 py-16 text-center">
+                    <td colSpan={11} className="px-6 py-16 text-center">
                       <div className="flex flex-col items-center">
                         <div className="mb-4 rounded-full bg-slate-100 p-4">
                           <Truck className="h-8 w-8 text-slate-400" />
