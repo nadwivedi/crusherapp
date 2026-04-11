@@ -71,7 +71,7 @@ export default function Sidebar({
                 }
               >
                 {shortcut.imageSrc ? (
-                  <div className="relative overflow-hidden pl-1 sm:pl-0">
+                  <div className="relative overflow-hidden pl-0">
                     <img
                       src={shortcut.imageSrc}
                       alt={shortcut.hint || shortcut.label}
