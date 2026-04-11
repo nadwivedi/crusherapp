@@ -221,7 +221,7 @@ export default function BoulderEntry({ onModalFinish = null, editingEntry = null
   };
 
   const handleVehicleInputChange = (event) => {
-    const value = event.target.value;
+    const value = String(event.target.value || '').toUpperCase();
     setVehicleQuery(value);
     setIsVehicleSectionActive(true);
     setOcrVehicleMismatch(null);
