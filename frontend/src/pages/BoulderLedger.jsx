@@ -25,6 +25,7 @@ const normalizeFallbackEntry = (entry) => ({
   boulderDate: entry.date || entry.entryCreatedAt,
   createdAt: entry.entryCreatedAt || entry.date,
   vehicleNo: entry.voucherNumber || entry.partyName || '-',
+  partyName: entry.partyName || '',
   grossWeight: parseWeightFromMethod(entry.method, 'Gross'),
   tareWeight: parseWeightFromMethod(entry.method, 'Tare'),
   netWeight: parseWeightFromMethod(entry.method, 'Net'),
@@ -122,7 +123,9 @@ export default function BoulderLedger() {
     const normalizedSearch = String(searchTerm || '').trim().toLowerCase();
 
     return boulders.filter((entry) => {
-      const matchesSearch = !normalizedSearch || String(entry.vehicleNo || '').toLowerCase().includes(normalizedSearch);
+      const vehicleText = String(entry.vehicleNo || '').toLowerCase();
+      const partyText = String(entry.partyName || '').toLowerCase();
+      const matchesSearch = !normalizedSearch || vehicleText.includes(normalizedSearch) || partyText.includes(normalizedSearch);
       if (!matchesSearch) return false;
 
       const entryDate = new Date(entry.boulderDate || entry.createdAt);
@@ -184,6 +187,8 @@ export default function BoulderLedger() {
     loadBoulders();
   };
 
+  const getPartyDisplayName = (entry) => String(entry?.partyName || '').trim() || '-';
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-100 via-slate-50 to-stone-100">
@@ -233,7 +238,7 @@ export default function BoulderLedger() {
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search vehicle no..."
+                    placeholder="Search vehicle or party..."
                     className="w-full rounded-xl border-2 border-slate-400 bg-white py-2.5 pl-10 pr-4 text-sm font-medium text-slate-700 transition-all focus:border-sky-500 focus:outline-none focus:ring-4 focus:ring-sky-100 sm:w-64"
                   />
                 </div>
@@ -271,7 +276,7 @@ export default function BoulderLedger() {
               <thead>
                 <tr className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 text-white">
                   <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Date</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Vehicle No</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Vehicle/Party</th>
                   <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Entry Time</th>
                   <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Exit Time</th>
                   <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Gross Wt</th>
@@ -291,7 +296,10 @@ export default function BoulderLedger() {
                           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-cyan-500 text-white">
                             <Truck className="h-4 w-4" />
                           </div>
-                          <span className="text-sm font-bold text-slate-800 lg:text-[12px] xl:text-sm">{entry.vehicleNo || '-'}</span>
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold text-slate-800 lg:text-[12px] xl:text-sm">{entry.vehicleNo || '-'}</p>
+                            <p className="mt-0.5 truncate text-xs font-medium text-slate-500">{getPartyDisplayName(entry)}</p>
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-sm font-semibold text-slate-700 lg:px-4 lg:py-3 lg:text-[12px] xl:px-6 xl:py-4 xl:text-sm">{entry.entryTime || ''}</td>
