@@ -160,6 +160,24 @@ const getCrusherMaterialRate = (user, materialType) => {
   return 0;
 };
 
+const getPartyMaterialRate = (party, materialType) => {
+  if (!party || !materialType) return 0;
+
+  if (materialType === '10mm') return Number(party.tenMmRate || 0);
+  if (materialType === '20mm') return Number(party.twentyMmRate || 0);
+  if (materialType === '40mm') return Number(party.fortyMmRate || 0);
+  if (materialType === 'wmm') return Number(party.wmmRate || 0);
+  if (materialType === 'gsb') return Number(party.gsbRate || 0);
+  if (materialType === 'dust') return Number(party.dustRate || 0);
+  return 0;
+};
+
+const getSaleRateForParty = (user, party, materialType) => {
+  const partyRate = getPartyMaterialRate(party, materialType);
+  if (partyRate > 0) return partyRate;
+  return getCrusherMaterialRate(user, materialType);
+};
+
 const deriveSaleType = (totalAmountValue, paidAmountValue) => {
   const totalAmount = Math.max(0, Number(totalAmountValue || 0));
   const paidAmount = Math.max(0, Number(paidAmountValue || 0));
@@ -687,7 +705,16 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         party: '',
         customerName: '',
         customerPhone: '',
-        customerAddress: ''
+        customerAddress: '',
+        rate: prev.materialType
+          ? (() => {
+            const fallbackRate = getCrusherMaterialRate(user, prev.materialType);
+            return fallbackRate > 0 ? String(fallbackRate) : '';
+          })()
+          : '',
+        totalAmount: prev.materialType
+          ? calculateSaleTotalAmount(prev.netWeight, getCrusherMaterialRate(user, prev.materialType))
+          : prev.totalAmount
       }));
       setLeadgerListIndex(-1);
       return;
@@ -695,13 +722,19 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
 
     const leadgerName = getLeadgerDisplayName(leadger);
     setLeadgerQuery(leadgerName);
-    setFormData((prev) => ({
-      ...prev,
-      party: leadger._id,
-      customerName: leadgerName,
-      customerPhone: '',
-      customerAddress: ''
-    }));
+    setFormData((prev) => {
+      const resolvedRate = prev.materialType ? getSaleRateForParty(user, leadger, prev.materialType) : 0;
+
+      return {
+        ...prev,
+        party: leadger._id,
+        customerName: leadgerName,
+        customerPhone: '',
+        customerAddress: '',
+        rate: prev.materialType ? (resolvedRate > 0 ? String(resolvedRate) : '') : prev.rate,
+        totalAmount: prev.materialType ? calculateSaleTotalAmount(prev.netWeight, resolvedRate) : prev.totalAmount
+      };
+    });
 
     const selectedIndex = filteredLeadgers.findIndex((item) => String(item._id) === String(leadger._id));
     setLeadgerListIndex(selectedIndex >= 0 ? selectedIndex : 0);
@@ -718,13 +751,19 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
 
     const exactLeadger = findExactLeadger(value);
     if (exactLeadger) {
-      setFormData((prev) => ({
-        ...prev,
-        party: exactLeadger._id,
-        customerName: getLeadgerDisplayName(exactLeadger),
-        customerPhone: '',
-        customerAddress: ''
-      }));
+      setFormData((prev) => {
+        const resolvedRate = prev.materialType ? getSaleRateForParty(user, exactLeadger, prev.materialType) : 0;
+
+        return {
+          ...prev,
+          party: exactLeadger._id,
+          customerName: getLeadgerDisplayName(exactLeadger),
+          customerPhone: '',
+          customerAddress: '',
+          rate: prev.materialType ? (resolvedRate > 0 ? String(resolvedRate) : '') : prev.rate,
+          totalAmount: prev.materialType ? calculateSaleTotalAmount(prev.netWeight, resolvedRate) : prev.totalAmount
+        };
+      });
       const exactIndex = getMatchingLeadgers(value).findIndex((item) => String(item._id) === String(exactLeadger._id));
       setLeadgerListIndex(exactIndex >= 0 ? exactIndex : 0);
       return;
@@ -732,13 +771,25 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
 
     const matches = getMatchingLeadgers(value);
     const firstMatch = matches[0] || null;
-    setFormData((prev) => ({
-      ...prev,
-      party: firstMatch?._id || '',
-      customerName: firstMatch ? getLeadgerDisplayName(firstMatch) : '',
-      customerPhone: '',
-      customerAddress: ''
-    }));
+    setFormData((prev) => {
+      const resolvedRate = prev.materialType
+        ? getSaleRateForParty(user, firstMatch, prev.materialType)
+        : 0;
+
+      return {
+        ...prev,
+        party: firstMatch?._id || '',
+        customerName: firstMatch ? getLeadgerDisplayName(firstMatch) : '',
+        customerPhone: '',
+        customerAddress: '',
+        rate: prev.materialType
+          ? (resolvedRate > 0 ? String(resolvedRate) : '')
+          : prev.rate,
+        totalAmount: prev.materialType
+          ? calculateSaleTotalAmount(prev.netWeight, resolvedRate)
+          : prev.totalAmount
+      };
+    });
     setLeadgerListIndex(firstMatch ? 0 : -1);
   };
 
@@ -782,10 +833,15 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
 
       if (linkedParty) {
         const partyName = getLeadgerDisplayName(linkedParty);
+        const resolvedRate = nextState.materialType ? getSaleRateForParty(user, linkedParty, nextState.materialType) : 0;
         nextState.party = linkedParty._id;
         nextState.customerName = partyName;
         nextState.customerPhone = '';
         nextState.customerAddress = '';
+        if (nextState.materialType) {
+          nextState.rate = resolvedRate > 0 ? String(resolvedRate) : '';
+          nextState.totalAmount = calculateSaleTotalAmount(nextState.netWeight, resolvedRate);
+        }
       }
 
       return nextState;
@@ -879,7 +935,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
     }
 
     setMaterialQuery(getMaterialDisplayName(material));
-    const configuredRate = getCrusherMaterialRate(user, material.value);
+    const configuredRate = getSaleRateForParty(user, selectedLeadger, material.value);
     setFormData((prev) => ({
       ...prev,
       materialType: material.value,
@@ -902,7 +958,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
 
     const exactMaterial = findExactMaterialType(value);
     if (exactMaterial) {
-      const configuredRate = getCrusherMaterialRate(user, exactMaterial.value);
+      const configuredRate = getSaleRateForParty(user, selectedLeadger, exactMaterial.value);
       setFormData((prev) => ({
         ...prev,
         materialType: exactMaterial.value,
@@ -915,7 +971,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
     }
 
     const firstMatch = findBestMaterialTypeMatch(value);
-    const configuredRate = firstMatch ? getCrusherMaterialRate(user, firstMatch.value) : 0;
+    const configuredRate = firstMatch ? getSaleRateForParty(user, selectedLeadger, firstMatch.value) : 0;
     setFormData((prev) => ({
       ...prev,
       materialType: firstMatch?.value || '',
@@ -1478,10 +1534,10 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
       if (name === 'vehicleNo') {
         setFormData({ ...formData, vehicleId: '', vehicleNo: String(value || '').toUpperCase() });
         return;
-      }
+    }
     if (name === 'materialType') {
       const selectedMaterial = MATERIAL_TYPE_OPTIONS.find((item) => item.value === value) || null;
-      const configuredRate = getCrusherMaterialRate(user, value);
+      const configuredRate = getSaleRateForParty(user, selectedLeadger, value);
       setFormData({
         ...formData,
         materialType: value,
