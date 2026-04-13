@@ -54,6 +54,32 @@ const formatDate = (value) => {
   });
 };
 
+const getSaleQtyValue = (sale) => {
+  if (sale?.pricingMode === 'per_cubic_meter') {
+    return Number(sale?.cubicMeterQty || 0);
+  }
+
+  return Number(sale?.netWeight || sale?.materialWeight || 0) / 1000;
+};
+
+const getSaleQtyLabel = (sale) => {
+  const qtyValue = getSaleQtyValue(sale);
+  if (sale?.pricingMode === 'per_cubic_meter') {
+    return `${Number(qtyValue || 0).toLocaleString('en-IN', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 3
+    })} m³`;
+  }
+
+  const netWeight = Number(sale?.netWeight || sale?.materialWeight || 0);
+  const tonQty = Number(qtyValue || 0).toLocaleString('en-IN', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 3
+  });
+
+  return `${netWeight.toLocaleString('en-IN')} kg (${tonQty} ton)`;
+};
+
 const getErrorMessage = (error, fallback) => {
   if (typeof error === 'string') return error;
   return error?.message || fallback;
@@ -224,14 +250,19 @@ export default function ReportsDashboard({ initialReport = 'partyLedger', showPi
   const salesSummary = useMemo(() => {
     const totals = sortedSales.reduce((acc, sale) => {
       acc.amount += Number(sale.totalAmount || 0);
-      acc.items += Array.isArray(sale.items) ? sale.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0) : 0;
+      if (sale?.pricingMode === 'per_cubic_meter') {
+        acc.totalCubicMeterQty += Number(sale.cubicMeterQty || 0);
+      } else {
+        acc.totalTonQty += Number(sale.netWeight || sale.materialWeight || 0) / 1000;
+      }
       return acc;
-    }, { amount: 0, items: 0 });
+    }, { amount: 0, totalTonQty: 0, totalCubicMeterQty: 0 });
 
     return {
       count: sortedSales.length,
       totalAmount: totals.amount,
-      totalItems: totals.items,
+      totalTonQty: totals.totalTonQty,
+      totalCubicMeterQty: totals.totalCubicMeterQty,
       averageValue: sortedSales.length > 0 ? totals.amount / sortedSales.length : 0
     };
   }, [sortedSales]);
@@ -533,7 +564,7 @@ export default function ReportsDashboard({ initialReport = 'partyLedger', showPi
       return (
         <SectionShell
           title="Sale Report"
-          description="Review sales invoice history with party details, items, quantity, and value."
+          description="Review sales invoice history with party details, qty basis, and invoice value."
           actions={(
             <button
               type="button"
@@ -545,10 +576,11 @@ export default function ReportsDashboard({ initialReport = 'partyLedger', showPi
             </button>
           )}
         >
-          <div className="mb-5 grid grid-cols-1 gap-4 md:grid-cols-4">
+          <div className="mb-5 grid grid-cols-1 gap-4 md:grid-cols-5">
             <SummaryCard label="Invoices" value={formatNumber(salesSummary.count)} hint="Total sales entries" tone="amber" />
             <SummaryCard label="Sale Value" value={formatCurrency(salesSummary.totalAmount)} hint="Combined invoice amount" tone="emerald" />
-            <SummaryCard label="Items Sold" value={formatNumber(salesSummary.totalItems)} hint="Quantity across invoices" tone="sky" />
+            <SummaryCard label="Ton Qty" value={`${formatNumber(salesSummary.totalTonQty)} ton`} hint="Per ton sales quantity" tone="sky" />
+            <SummaryCard label="M³ Qty" value={`${formatNumber(salesSummary.totalCubicMeterQty)} m³`} hint="Per cubic meter sales quantity" tone="violet" />
             <SummaryCard label="Average Invoice" value={formatCurrency(salesSummary.averageValue)} hint="Average sale value" tone="slate" />
           </div>
 
@@ -574,7 +606,7 @@ export default function ReportsDashboard({ initialReport = 'partyLedger', showPi
                       <ItemPreview items={sale.items} />
                     </td>
                     <td className="border border-slate-300 px-4 py-3 text-center">
-                      {formatNumber((sale.items || []).reduce((sum, item) => sum + Number(item.quantity || 0), 0))}
+                      {getSaleQtyLabel(sale)}
                     </td>
                     <td className="border border-slate-300 px-4 py-3 text-center font-semibold text-emerald-700">{formatCurrency(sale.totalAmount)}</td>
                   </tr>

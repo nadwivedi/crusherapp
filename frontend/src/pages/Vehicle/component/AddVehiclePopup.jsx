@@ -9,6 +9,7 @@ const initialFormData = {
   partyId: '',
   vehicleNo: '',
   unladenWeight: '',
+  capacityCubicMeter: '',
   vehicleType: 'sales'
 };
 
@@ -534,6 +535,7 @@ export default function AddVehiclePopup({ vehicle, onClose, onSave, onVehicleSav
     if (!formData.partyId) newErrors.partyId = 'Please select an owner / party';
     if (!String(formData.vehicleNo || '').trim()) newErrors.vehicleNo = 'Vehicle number is required';
     if (!String(formData.unladenWeight || '').trim()) newErrors.unladenWeight = 'Unladen weight is required';
+    if (!String(formData.capacityCubicMeter || '').trim()) newErrors.capacityCubicMeter = 'Truck cubic meter is required';
     if (!formData.vehicleType) newErrors.vehicleType = 'Please select vehicle type';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -553,6 +555,7 @@ export default function AddVehiclePopup({ vehicle, onClose, onSave, onVehicleSav
         partyId: formData.partyId,
         vehicleNo: String(formData.vehicleNo || '').toUpperCase(),
         unladenWeight: parseFloat(formData.unladenWeight),
+        capacityCubicMeter: parseFloat(formData.capacityCubicMeter),
         vehicleType: formData.vehicleType || 'sales'
       };
 
@@ -617,7 +620,7 @@ export default function AddVehiclePopup({ vehicle, onClose, onSave, onVehicleSav
         >
           <div className="flex-1 overflow-y-auto p-2.5 md:p-4">
             <div className="flex flex-col gap-3 md:gap-4">
-              {(errors.partyId || errors.vehicleNo || errors.unladenWeight || errors.vehicleType) ? (
+              {(errors.partyId || errors.vehicleNo || errors.unladenWeight || errors.capacityCubicMeter || errors.vehicleType) ? (
                 <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
                   Please fix the highlighted vehicle fields.
                 </div>
@@ -841,13 +844,35 @@ export default function AddVehiclePopup({ vehicle, onClose, onSave, onVehicleSav
                     </div>
                   </div>
 
-                  <div className="flex min-w-0 flex-col justify-center gap-1 rounded-lg bg-white/60 px-3 py-2">
+                  <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
+                    <label htmlFor="vehicle-capacity-cubic-meter-input" className="shrink-0 text-xs font-semibold text-gray-700 sm:w-32 sm:text-sm">Truck Cubic Meter</label>
+                    <div className="relative flex-1">
+                      <input
+                        id="vehicle-capacity-cubic-meter-input"
+                        type="number"
+                        name="capacityCubicMeter"
+                        value={formData.capacityCubicMeter}
+                        onChange={handleChange}
+                        min="0"
+                        step="0.01"
+                        className={`${getInlineFieldClass('emerald')} pr-14`}
+                        placeholder="0.00"
+                        required
+                      />
+                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold uppercase tracking-wide text-amber-600">
+                        m3
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex min-w-0 flex-col justify-center gap-1 rounded-lg bg-white/60 px-3 py-2 md:col-span-2">
                     <p className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-700">Unit</p>
-                    <p className="text-sm font-bold text-slate-800">Kilogram (kg)</p>
-                    <p className="text-xs text-slate-500">Store the empty vehicle weight used in weighbridge calculations.</p>
+                    <p className="text-sm font-bold text-slate-800">Kilogram (kg) and Cubic Meter (m3)</p>
+                    <p className="text-xs text-slate-500">Store both the empty vehicle weight and the truck load capacity in cubic meters while saving the vehicle.</p>
                   </div>
                 </div>
                 {errors.unladenWeight ? <p className="mt-2 text-xs text-red-500">{errors.unladenWeight}</p> : null}
+                {errors.capacityCubicMeter ? <p className="mt-2 text-xs text-red-500">{errors.capacityCubicMeter}</p> : null}
               </div>
             </div>
           </div>

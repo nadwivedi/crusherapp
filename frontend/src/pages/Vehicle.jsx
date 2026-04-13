@@ -245,6 +245,7 @@ export default function Vehicle() {
                     <th className="px-6 py-4">Vehicle Number</th>
                     <th className="px-6 py-4">Owner / Party</th>
                     <th className="px-6 py-4">Unladen Weight</th>
+                    <th className="px-6 py-4">Truck Capacity</th>
                     <th className="px-6 py-4">Type</th>
                     <th className="px-6 py-4 text-right">Actions</th>
                   </tr>
@@ -268,6 +269,9 @@ export default function Vehicle() {
                       </td>
                       <td className="px-6 py-4">
                         <span className="text-slate-600">{vehicle.unladenWeight} kg</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-slate-600">{Number(vehicle.capacityCubicMeter || 0)} m3</span>
                       </td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold border ${getTypeBadgeClass(vehicle.vehicleType)}`}>

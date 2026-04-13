@@ -25,6 +25,11 @@ const MATERIAL_TYPE_OPTIONS = [
   { value: 'dust', label: 'Dust' }
 ];
 
+const SALE_BASIS_OPTIONS = [
+  { value: 'per_ton', label: 'Per Ton' },
+  { value: 'per_cubic_meter', label: 'Per Cubic Meter' }
+];
+
 const formatDateForInput = (value = new Date()) => {
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return '';
@@ -106,6 +111,8 @@ const getInitialFormData = () => ({
   tareWeight: '',
   grossWeight: '',
   netWeight: '',
+  pricingMode: 'per_ton',
+  cubicMeterQty: '',
   rate: '',
   totalAmount: 0,
   paidAmount: '',
@@ -138,11 +145,29 @@ const toTitleCase = (value) => String(value || '')
   .replace(/\b[a-z]/g, (char) => char.toUpperCase());
 
 const getSalePriceInputValue = (product) => String(Number(product?.salePrice || 0));
-const calculateSaleTotalAmount = (netWeight, ratePerTon) => {
+const getSaleQuantityValue = (pricingMode, netWeight, cubicMeterQty) => {
+  if (pricingMode === 'per_cubic_meter') {
+    const numericCubicMeterQty = Number(cubicMeterQty || 0);
+    return Number.isFinite(numericCubicMeterQty) ? numericCubicMeterQty : 0;
+  }
+
   const numericNetWeight = Number(netWeight || 0);
-  const numericRate = Number(ratePerTon || 0);
-  if (!Number.isFinite(numericNetWeight) || !Number.isFinite(numericRate)) return 0;
-  return (numericNetWeight / 1000) * numericRate;
+  return Number.isFinite(numericNetWeight) ? numericNetWeight / 1000 : 0;
+};
+
+const calculateSaleTotalAmount = ({ pricingMode, netWeight, cubicMeterQty, rate }) => {
+  const numericRate = Number(rate || 0);
+  const quantity = getSaleQuantityValue(pricingMode, netWeight, cubicMeterQty);
+  if (!Number.isFinite(quantity) || !Number.isFinite(numericRate)) return 0;
+  return quantity * numericRate;
+};
+
+const getSafeNetWeight = (grossWeight, tareWeight) => {
+  const gross = Number(grossWeight || 0);
+  const tare = Number(tareWeight || 0);
+  const derived = gross - tare;
+  if (!Number.isFinite(derived)) return 0;
+  return Math.max(0, derived);
 };
 
 const getCrusherMaterialRate = (user, materialType) => {
@@ -178,6 +203,13 @@ const getSaleRateForParty = (user, party, materialType) => {
   return getCrusherMaterialRate(user, materialType);
 };
 
+const recalculateSaleAmount = (payload = {}) => calculateSaleTotalAmount({
+  pricingMode: payload.pricingMode,
+  netWeight: payload.netWeight,
+  cubicMeterQty: payload.cubicMeterQty,
+  rate: payload.rate,
+});
+
 const deriveSaleType = (totalAmountValue, paidAmountValue) => {
   const totalAmount = Math.max(0, Number(totalAmountValue || 0));
   const paidAmount = Math.max(0, Number(paidAmountValue || 0));
@@ -192,6 +224,46 @@ const formatSaleTypeLabel = (value) => {
   if (value === 'cash sale') return 'Cash Sale';
   return 'Credit Sale';
 };
+
+const getSaleQtyLabel = (sale) => {
+  if (sale?.pricingMode === 'per_cubic_meter') {
+    return `${Number(sale?.cubicMeterQty || 0).toLocaleString('en-IN', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2
+    })} m³`;
+  }
+
+  const netWeight = Number(sale?.netWeight || sale?.materialWeight || 0);
+  const tonQty = (netWeight / 1000).toLocaleString('en-IN', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 3
+  });
+
+  return `${netWeight.toLocaleString('en-IN')} kg (${tonQty} ton)`;
+};
+
+const getSaleRateLabel = (sale) => {
+  const rate = Number(sale?.rate || 0);
+  const unit = sale?.pricingMode === 'per_cubic_meter' ? 'm³' : 'ton';
+  return `${rate.toLocaleString('en-IN', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
+  })} Rs/${unit}`;
+};
+
+const getNetWeightWithTonLabel = (sale) => {
+  const netWeight = Number(sale?.netWeight || sale?.materialWeight || 0);
+  const tonQty = (netWeight / 1000).toLocaleString('en-IN', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 3
+  });
+
+  return `${netWeight.toLocaleString('en-IN')} kg (${tonQty} ton)`;
+};
+
+const getSaleBasisDisplayName = (value) => (
+  SALE_BASIS_OPTIONS.find((option) => option.value === value)?.label || 'Per Ton'
+);
 
 const getMaterialBadgeClass = (value) => {
   const normalized = String(value || '').trim().toLowerCase();
@@ -314,6 +386,8 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
   const [materialQuery, setMaterialQuery] = useState('');
   const [materialListIndex, setMaterialListIndex] = useState(-1);
   const [isMaterialSectionActive, setIsMaterialSectionActive] = useState(false);
+  const [basisListIndex, setBasisListIndex] = useState(-1);
+  const [isBasisSectionActive, setIsBasisSectionActive] = useState(false);
   const [productQuery, setProductQuery] = useState('');
   const [productListIndex, setProductListIndex] = useState(-1);
   const [isProductSectionActive, setIsProductSectionActive] = useState(false);
@@ -324,6 +398,8 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
   const vehicleInputRef = useRef(null);
   const materialSectionRef = useRef(null);
   const materialInputRef = useRef(null);
+  const basisSectionRef = useRef(null);
+  const basisInputRef = useRef(null);
   const productSectionRef = useRef(null);
   const productInputRef = useRef(null);
 
@@ -634,6 +710,12 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
     setIsMaterialSectionActive(true);
   };
 
+  const handleBasisFocus = () => {
+    setIsBasisSectionActive(true);
+    const selectedIndex = SALE_BASIS_OPTIONS.findIndex((option) => option.value === (formData.pricingMode || 'per_ton'));
+    setBasisListIndex(selectedIndex >= 0 ? selectedIndex : 0);
+  };
+
   useEffect(() => {
     if (!showForm || editingId || !isCashParty) return;
 
@@ -700,22 +782,25 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
   const selectLeadger = (leadger) => {
     if (!leadger) {
       setLeadgerQuery('');
-      setFormData((prev) => ({
-        ...prev,
-        party: '',
-        customerName: '',
-        customerPhone: '',
-        customerAddress: '',
-        rate: prev.materialType
-          ? (() => {
-            const fallbackRate = getCrusherMaterialRate(user, prev.materialType);
-            return fallbackRate > 0 ? String(fallbackRate) : '';
-          })()
-          : '',
-        totalAmount: prev.materialType
-          ? calculateSaleTotalAmount(prev.netWeight, getCrusherMaterialRate(user, prev.materialType))
-          : prev.totalAmount
-      }));
+        setFormData((prev) => ({
+          ...prev,
+          party: '',
+          customerName: '',
+          customerPhone: '',
+          customerAddress: '',
+          rate: prev.materialType
+            ? (() => {
+              const fallbackRate = getCrusherMaterialRate(user, prev.materialType);
+              return fallbackRate > 0 ? String(fallbackRate) : '';
+            })()
+            : '',
+          totalAmount: prev.materialType
+            ? recalculateSaleAmount({
+              ...prev,
+              rate: getCrusherMaterialRate(user, prev.materialType),
+            })
+            : prev.totalAmount
+        }));
       setLeadgerListIndex(-1);
       return;
     }
@@ -728,13 +813,13 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
       return {
         ...prev,
         party: leadger._id,
-        customerName: leadgerName,
-        customerPhone: '',
-        customerAddress: '',
-        rate: prev.materialType ? (resolvedRate > 0 ? String(resolvedRate) : '') : prev.rate,
-        totalAmount: prev.materialType ? calculateSaleTotalAmount(prev.netWeight, resolvedRate) : prev.totalAmount
-      };
-    });
+          customerName: leadgerName,
+          customerPhone: '',
+          customerAddress: '',
+          rate: prev.materialType ? (resolvedRate > 0 ? String(resolvedRate) : '') : prev.rate,
+          totalAmount: prev.materialType ? recalculateSaleAmount({ ...prev, rate: resolvedRate }) : prev.totalAmount
+        };
+      });
 
     const selectedIndex = filteredLeadgers.findIndex((item) => String(item._id) === String(leadger._id));
     setLeadgerListIndex(selectedIndex >= 0 ? selectedIndex : 0);
@@ -757,13 +842,13 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         return {
           ...prev,
           party: exactLeadger._id,
-          customerName: getLeadgerDisplayName(exactLeadger),
-          customerPhone: '',
-          customerAddress: '',
-          rate: prev.materialType ? (resolvedRate > 0 ? String(resolvedRate) : '') : prev.rate,
-          totalAmount: prev.materialType ? calculateSaleTotalAmount(prev.netWeight, resolvedRate) : prev.totalAmount
-        };
-      });
+            customerName: getLeadgerDisplayName(exactLeadger),
+            customerPhone: '',
+            customerAddress: '',
+            rate: prev.materialType ? (resolvedRate > 0 ? String(resolvedRate) : '') : prev.rate,
+            totalAmount: prev.materialType ? recalculateSaleAmount({ ...prev, rate: resolvedRate }) : prev.totalAmount
+          };
+        });
       const exactIndex = getMatchingLeadgers(value).findIndex((item) => String(item._id) === String(exactLeadger._id));
       setLeadgerListIndex(exactIndex >= 0 ? exactIndex : 0);
       return;
@@ -780,16 +865,16 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         ...prev,
         party: firstMatch?._id || '',
         customerName: firstMatch ? getLeadgerDisplayName(firstMatch) : '',
-        customerPhone: '',
-        customerAddress: '',
-        rate: prev.materialType
-          ? (resolvedRate > 0 ? String(resolvedRate) : '')
-          : prev.rate,
-        totalAmount: prev.materialType
-          ? calculateSaleTotalAmount(prev.netWeight, resolvedRate)
-          : prev.totalAmount
-      };
-    });
+          customerPhone: '',
+          customerAddress: '',
+          rate: prev.materialType
+            ? (resolvedRate > 0 ? String(resolvedRate) : '')
+            : prev.rate,
+          totalAmount: prev.materialType
+            ? recalculateSaleAmount({ ...prev, rate: resolvedRate })
+            : prev.totalAmount
+        };
+      });
     setLeadgerListIndex(firstMatch ? 0 : -1);
   };
 
@@ -802,8 +887,17 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         vehicleId: '',
         vehicleNo: '',
         tareWeight: '',
-        netWeight: prev.grossWeight ? Number(prev.grossWeight || 0) : '',
-        totalAmount: calculateSaleTotalAmount(prev.netWeight ? Number(prev.netWeight || 0) : '', prev.rate)
+        netWeight: prev.pricingMode === 'per_ton'
+          ? getSafeNetWeight(prev.grossWeight, 0)
+          : '',
+        cubicMeterQty: prev.pricingMode === 'per_cubic_meter' ? '' : prev.cubicMeterQty,
+        totalAmount: recalculateSaleAmount({
+          ...prev,
+          netWeight: prev.pricingMode === 'per_ton'
+            ? getSafeNetWeight(prev.grossWeight, 0)
+            : '',
+          cubicMeterQty: prev.pricingMode === 'per_cubic_meter' ? '' : prev.cubicMeterQty,
+        })
       }));
       setVehicleListIndex(-1);
       return;
@@ -823,13 +917,18 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         ...prev,
         vehicleId: vehicle._id,
         vehicleNo: vehicleNumber,
-        tareWeight: unladenWeight
+        tareWeight: unladenWeight,
+        cubicMeterQty: prev.pricingMode === 'per_cubic_meter'
+          ? (vehicle?.capacityCubicMeter ?? prev.cubicMeterQty ?? '')
+          : prev.cubicMeterQty
       };
 
       const numericTareWeight = Number(unladenWeight || 0);
       const numericGrossWeight = Number(prev.grossWeight || 0);
-      nextState.netWeight = numericGrossWeight - numericTareWeight;
-      nextState.totalAmount = calculateSaleTotalAmount(nextState.netWeight, prev.rate);
+      nextState.netWeight = nextState.pricingMode === 'per_ton'
+        ? getSafeNetWeight(numericGrossWeight, numericTareWeight)
+        : '';
+      nextState.totalAmount = recalculateSaleAmount(nextState);
 
       if (linkedParty) {
         const partyName = getLeadgerDisplayName(linkedParty);
@@ -840,7 +939,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         nextState.customerAddress = '';
         if (nextState.materialType) {
           nextState.rate = resolvedRate > 0 ? String(resolvedRate) : '';
-          nextState.totalAmount = calculateSaleTotalAmount(nextState.netWeight, resolvedRate);
+          nextState.totalAmount = recalculateSaleAmount({ ...nextState, rate: resolvedRate });
         }
       }
 
@@ -877,12 +976,13 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
       return matchedVehicle._id;
     }
 
-    const createdVehicle = await apiClient.post('/vehicles', {
-      partyId,
-      vehicleNo: String(formData.vehicleNo || '').trim().toUpperCase(),
-      unladenWeight: Number(formData.tareWeight || 0),
-      vehicleType: 'sales'
-    });
+      const createdVehicle = await apiClient.post('/vehicles', {
+        partyId,
+        vehicleNo: String(formData.vehicleNo || '').trim().toUpperCase(),
+        unladenWeight: Number(formData.tareWeight || 0),
+        capacityCubicMeter: Number(formData.cubicMeterQty || 0),
+        vehicleType: 'sales'
+      });
 
     if (createdVehicle?._id) {
       setVehicles((prev) => sortVehiclesByTypePreference([
@@ -928,7 +1028,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         ...prev,
         materialType: '',
         rate: '',
-        totalAmount: calculateSaleTotalAmount(prev.netWeight, '')
+        totalAmount: recalculateSaleAmount({ ...prev, rate: '' })
       }));
       setMaterialListIndex(-1);
       return;
@@ -936,12 +1036,12 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
 
     setMaterialQuery(getMaterialDisplayName(material));
     const configuredRate = getSaleRateForParty(user, selectedLeadger, material.value);
-    setFormData((prev) => ({
-      ...prev,
-      materialType: material.value,
-      rate: configuredRate > 0 ? String(configuredRate) : '',
-      totalAmount: calculateSaleTotalAmount(prev.netWeight, configuredRate)
-    }));
+      setFormData((prev) => ({
+        ...prev,
+        materialType: material.value,
+        rate: configuredRate > 0 ? String(configuredRate) : '',
+        totalAmount: recalculateSaleAmount({ ...prev, rate: configuredRate })
+      }));
 
     const selectedIndex = filteredMaterialTypes.findIndex((item) => String(item.value) === String(material.value));
     setMaterialListIndex(selectedIndex >= 0 ? selectedIndex : 0);
@@ -959,12 +1059,12 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
     const exactMaterial = findExactMaterialType(value);
     if (exactMaterial) {
       const configuredRate = getSaleRateForParty(user, selectedLeadger, exactMaterial.value);
-      setFormData((prev) => ({
-        ...prev,
-        materialType: exactMaterial.value,
-        rate: configuredRate > 0 ? String(configuredRate) : '',
-        totalAmount: calculateSaleTotalAmount(prev.netWeight, configuredRate)
-      }));
+        setFormData((prev) => ({
+          ...prev,
+          materialType: exactMaterial.value,
+          rate: configuredRate > 0 ? String(configuredRate) : '',
+          totalAmount: recalculateSaleAmount({ ...prev, rate: configuredRate })
+        }));
       const exactIndex = filteredMaterialTypes.findIndex((item) => String(item.value) === String(exactMaterial.value));
       setMaterialListIndex(exactIndex >= 0 ? exactIndex : 0);
       return;
@@ -972,12 +1072,12 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
 
     const firstMatch = findBestMaterialTypeMatch(value);
     const configuredRate = firstMatch ? getSaleRateForParty(user, selectedLeadger, firstMatch.value) : 0;
-    setFormData((prev) => ({
-      ...prev,
-      materialType: firstMatch?.value || '',
-      rate: firstMatch ? (configuredRate > 0 ? String(configuredRate) : '') : prev.rate,
-      totalAmount: firstMatch ? calculateSaleTotalAmount(prev.netWeight, configuredRate) : prev.totalAmount
-    }));
+      setFormData((prev) => ({
+        ...prev,
+        materialType: firstMatch?.value || '',
+        rate: firstMatch ? (configuredRate > 0 ? String(configuredRate) : '') : prev.rate,
+        totalAmount: firstMatch ? recalculateSaleAmount({ ...prev, rate: configuredRate }) : prev.totalAmount
+      }));
     setMaterialListIndex(firstMatch ? 0 : -1);
   };
 
@@ -1242,7 +1342,12 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         selectMaterialType(matchedMaterial);
       }
       setIsMaterialSectionActive(false);
-      focusNextPopupField(e.currentTarget);
+      const selectedPricingMode = formData.pricingMode || 'per_ton';
+      setBasisListIndex(SALE_BASIS_OPTIONS.findIndex((option) => option.value === selectedPricingMode));
+      setIsBasisSectionActive(true);
+      requestAnimationFrame(() => {
+        basisInputRef.current?.focus();
+      });
       return;
     }
 
@@ -1252,6 +1357,69 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
       const selectedMaterial = MATERIAL_TYPE_OPTIONS.find((item) => item.value === formData.materialType) || null;
       setMaterialQuery(getMaterialDisplayName(selectedMaterial));
       setIsMaterialSectionActive(false);
+    }
+  };
+
+  const selectPricingMode = (value) => {
+    const selectedVehicle = vehicles.find((vehicle) => String(vehicle._id) === String(formData.vehicleId || ''));
+    const cubicMeterQty = value === 'per_cubic_meter'
+      ? (formData.cubicMeterQty || selectedVehicle?.capacityCubicMeter || '')
+      : formData.cubicMeterQty;
+    const nextState = {
+      ...formData,
+      pricingMode: value,
+      cubicMeterQty,
+      grossWeight: value === 'per_cubic_meter' ? '' : formData.grossWeight,
+      tareWeight: value === 'per_cubic_meter' ? '' : formData.tareWeight,
+      netWeight: value === 'per_cubic_meter'
+        ? ''
+        : getSafeNetWeight(formData.grossWeight, formData.tareWeight),
+    };
+    setFormData({ ...nextState, totalAmount: recalculateSaleAmount(nextState) });
+    setBasisListIndex(SALE_BASIS_OPTIONS.findIndex((option) => option.value === value));
+  };
+
+  const handleBasisInputKeyDown = (e) => {
+    const key = e.key?.toLowerCase();
+
+    if (key === 'arrowdown') {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsBasisSectionActive(true);
+      setBasisListIndex((prev) => {
+        if (prev < 0) return 0;
+        return Math.min(prev + 1, SALE_BASIS_OPTIONS.length - 1);
+      });
+      return;
+    }
+
+    if (key === 'arrowup') {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsBasisSectionActive(true);
+      setBasisListIndex((prev) => {
+        if (prev < 0) return 0;
+        return Math.max(prev - 1, 0);
+      });
+      return;
+    }
+
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+      const activeOption = basisListIndex >= 0 ? SALE_BASIS_OPTIONS[basisListIndex] : null;
+      if (activeOption) {
+        selectPricingMode(activeOption.value);
+      }
+      setIsBasisSectionActive(false);
+      focusNextPopupField(e.currentTarget);
+      return;
+    }
+
+    if (e.key === 'Escape' && isBasisSectionActive) {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsBasisSectionActive(false);
     }
   };
 
@@ -1542,7 +1710,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         ...formData,
         materialType: value,
         rate: configuredRate > 0 ? String(configuredRate) : '',
-        totalAmount: calculateSaleTotalAmount(formData.netWeight, configuredRate)
+        totalAmount: recalculateSaleAmount({ ...formData, materialType: value, rate: configuredRate })
       });
       setMaterialQuery(getMaterialDisplayName(selectedMaterial));
       return;
@@ -1558,13 +1726,22 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
     if (name === 'tareWeight' || name === 'grossWeight') {
       const tareWeight = name === 'tareWeight' ? Number(value || 0) : Number(formData.tareWeight || 0);
       const grossWeight = name === 'grossWeight' ? Number(value || 0) : Number(formData.grossWeight || 0);
-      const netWeight = grossWeight - tareWeight;
-      const totalAmount = calculateSaleTotalAmount(netWeight, formData.rate);
+      const netWeight = getSafeNetWeight(grossWeight, tareWeight);
+      const totalAmount = recalculateSaleAmount({ ...formData, [name]: value, netWeight });
       setFormData({ ...formData, [name]: value, netWeight, totalAmount });
       return;
     }
+    if (name === 'pricingMode') {
+      selectPricingMode(value);
+      return;
+    }
+    if (name === 'cubicMeterQty') {
+      const nextState = { ...formData, cubicMeterQty: value };
+      setFormData({ ...nextState, totalAmount: recalculateSaleAmount(nextState) });
+      return;
+    }
     if (name === 'rate') {
-      const totalAmount = calculateSaleTotalAmount(formData.netWeight, value);
+      const totalAmount = recalculateSaleAmount({ ...formData, rate: value });
       setFormData({ ...formData, rate: value, totalAmount });
       return;
     }
@@ -1676,8 +1853,8 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         setFormData((prev) => {
           const tare = Number(tareWeight || prev.tareWeight || 0);
           const gross = Number(grossWeight || prev.grossWeight || 0);
-          const net = Number(netWeight || gross - tare || 0);
-          const total = calculateSaleTotalAmount(net, prev.rate);
+          const net = Number(netWeight || getSafeNetWeight(gross, tare) || 0);
+          const total = recalculateSaleAmount({ ...prev, netWeight: net });
           return {
             ...prev,
             vehicleId: '',
@@ -1698,15 +1875,16 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
       if (matched) {
         setMaterialQuery(getMaterialDisplayName(matched));
         const configuredRate = getCrusherMaterialRate(user, matched.value);
-        setFormData((prev) => ({
-          ...prev,
-          materialType: matched.value,
-          rate: configuredRate > 0 ? String(configuredRate) : prev.rate,
-          totalAmount: calculateSaleTotalAmount(
-            Number(prev.netWeight || 0),
-            configuredRate > 0 ? configuredRate : prev.rate
-          )
-        }));
+          setFormData((prev) => ({
+            ...prev,
+            materialType: matched.value,
+            rate: configuredRate > 0 ? String(configuredRate) : prev.rate,
+            totalAmount: recalculateSaleAmount({
+              ...prev,
+              materialType: matched.value,
+              rate: configuredRate > 0 ? configuredRate : prev.rate
+            })
+          }));
       }
     }
 
@@ -1718,15 +1896,15 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
       return vNo === ocrShort || (ocrShort.length >= 4 && vNo.endsWith(ocrShort.slice(-4)));
     });
 
-    if (!isMatchedInDb) {
-      const tare = Number(tareWeight || 0);
-      const gross = Number(grossWeight || 0);
-      const net = Number(netWeight || 0) || (gross - tare);
-      setFormData((prev) => {
-        const total = calculateSaleTotalAmount(net, prev.rate);
-        return {
-          ...prev,
-          tareWeight: tare > 0 ? tare : prev.tareWeight,
+      if (!isMatchedInDb) {
+        const tare = Number(tareWeight || 0);
+        const gross = Number(grossWeight || 0);
+        const net = Number(netWeight || 0) || getSafeNetWeight(gross, tare);
+        setFormData((prev) => {
+          const total = recalculateSaleAmount({ ...prev, netWeight: net });
+          return {
+            ...prev,
+            tareWeight: tare > 0 ? tare : prev.tareWeight,
           grossWeight: gross > 0 ? gross : prev.grossWeight,
           netWeight: net > 0 ? net : prev.netWeight,
           totalAmount: total,
@@ -1767,6 +1945,10 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
       setError('Material type is required');
       return;
     }
+    if (formData.pricingMode === 'per_cubic_meter' && Number(formData.cubicMeterQty || 0) <= 0) {
+      setError('Please enter cubic meter quantity for per m³ sale');
+      return;
+    }
     if (Number(formData.paidAmount || 0) < 0) {
       setError('Paid amount cannot be negative');
       return;
@@ -1792,9 +1974,11 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         stoneSize: formData.materialType,
         entryTime: String(formData.entryTime || '').trim(),
         exitTime: String(formData.exitTime || '').trim(),
-        tareWeight: Number(formData.tareWeight || 0),
-        grossWeight: Number(formData.grossWeight || 0),
-        netWeight: Number(formData.netWeight || 0),
+        tareWeight: formData.pricingMode === 'per_ton' ? Number(formData.tareWeight || 0) : 0,
+        grossWeight: formData.pricingMode === 'per_ton' ? Number(formData.grossWeight || 0) : 0,
+        netWeight: formData.pricingMode === 'per_ton' ? Number(formData.netWeight || 0) : 0,
+        pricingMode: formData.pricingMode || 'per_ton',
+        cubicMeterQty: Number(formData.cubicMeterQty || 0),
         rate: Number(formData.rate || 0),
         totalAmount: Number(formData.totalAmount || 0),
         paidAmount: Number(formData.paidAmount || 0),
@@ -1856,12 +2040,14 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
       customerName: resolvedLeadgerName,
       customerPhone: String(sale.customerPhone || '').replace(/\D/g, '').slice(0, 10),
       customerAddress: sale.customerAddress || '',
-        materialType: sale.materialType || sale.stoneSize || '',
-        vehicleNo: sale.vehicleNo || '',
-        tareWeight: sale.tareWeight || sale.vehicleWeight || '',
-        grossWeight: sale.grossWeight || sale.netWeight || '',
-        netWeight: sale.netWeight || sale.materialWeight || '',
-        rate: sale.rate || '',
+          materialType: sale.materialType || sale.stoneSize || '',
+          vehicleNo: sale.vehicleNo || '',
+          tareWeight: sale.tareWeight || sale.vehicleWeight || '',
+          grossWeight: sale.grossWeight || sale.netWeight || '',
+          netWeight: sale.netWeight || sale.materialWeight || '',
+          pricingMode: sale.pricingMode || 'per_ton',
+          cubicMeterQty: sale.cubicMeterQty || '',
+          rate: sale.rate || '',
         totalAmount: sale.totalAmount || 0,
         paidAmount: sale.paidAmount ?? '',
         slipImg: sale.slipImg || ''
@@ -2034,6 +2220,8 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
             vehicleInputRef={vehicleInputRef}
             materialSectionRef={materialSectionRef}
             materialInputRef={materialInputRef}
+            basisSectionRef={basisSectionRef}
+            basisInputRef={basisInputRef}
             productSectionRef={productSectionRef}
             productInputRef={productInputRef}
             leadgerQuery={leadgerQuery}
@@ -2043,6 +2231,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
             leadgerListIndex={leadgerListIndex}
             vehicleListIndex={vehicleListIndex}
             materialListIndex={materialListIndex}
+            basisListIndex={basisListIndex}
             productListIndex={productListIndex}
             filteredLeadgers={filteredLeadgers}
             filteredVehicles={filteredVehicles}
@@ -2051,15 +2240,18 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
             isLeadgerSectionActive={isLeadgerSectionActive}
             isVehicleSectionActive={isVehicleSectionActive}
             isMaterialSectionActive={isMaterialSectionActive}
+            isBasisSectionActive={isBasisSectionActive}
             isProductSectionActive={isProductSectionActive}
             setCurrentItem={setCurrentItem}
             setIsLeadgerSectionActive={setIsLeadgerSectionActive}
             setIsVehicleSectionActive={setIsVehicleSectionActive}
             setIsMaterialSectionActive={setIsMaterialSectionActive}
+            setIsBasisSectionActive={setIsBasisSectionActive}
             setIsProductSectionActive={setIsProductSectionActive}
             setLeadgerListIndex={setLeadgerListIndex}
             setVehicleListIndex={setVehicleListIndex}
             setMaterialListIndex={setMaterialListIndex}
+            setBasisListIndex={setBasisListIndex}
             setProductListIndex={setProductListIndex}
             getLeadgerDisplayName={getLeadgerDisplayName}
             getVehicleDisplayName={getVehicleDisplayName}
@@ -2080,6 +2272,10 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
               handleMaterialFocus={handleMaterialFocus}
               handleMaterialInputChange={handleMaterialInputChange}
               handleMaterialInputKeyDown={handleMaterialInputKeyDown}
+            handleBasisFocus={handleBasisFocus}
+            handleBasisInputKeyDown={handleBasisInputKeyDown}
+            getSaleBasisDisplayName={getSaleBasisDisplayName}
+            selectPricingMode={selectPricingMode}
             onOpenNewVehicle={openInlineVehicleForm}
             onOpenNewParty={openInlinePartyForm}
           handleProductFocus={handleProductFocus}
@@ -2162,6 +2358,8 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         vehicleInputRef={vehicleInputRef}
         materialSectionRef={materialSectionRef}
         materialInputRef={materialInputRef}
+        basisSectionRef={basisSectionRef}
+        basisInputRef={basisInputRef}
         productSectionRef={productSectionRef}
         productInputRef={productInputRef}
         leadgerQuery={leadgerQuery}
@@ -2171,6 +2369,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         leadgerListIndex={leadgerListIndex}
         vehicleListIndex={vehicleListIndex}
         materialListIndex={materialListIndex}
+        basisListIndex={basisListIndex}
         productListIndex={productListIndex}
         filteredLeadgers={filteredLeadgers}
         filteredVehicles={filteredVehicles}
@@ -2179,15 +2378,18 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         isLeadgerSectionActive={isLeadgerSectionActive}
         isVehicleSectionActive={isVehicleSectionActive}
         isMaterialSectionActive={isMaterialSectionActive}
+        isBasisSectionActive={isBasisSectionActive}
         isProductSectionActive={isProductSectionActive}
         setCurrentItem={setCurrentItem}
         setIsLeadgerSectionActive={setIsLeadgerSectionActive}
         setIsVehicleSectionActive={setIsVehicleSectionActive}
         setIsMaterialSectionActive={setIsMaterialSectionActive}
+        setIsBasisSectionActive={setIsBasisSectionActive}
         setIsProductSectionActive={setIsProductSectionActive}
         setLeadgerListIndex={setLeadgerListIndex}
         setVehicleListIndex={setVehicleListIndex}
         setMaterialListIndex={setMaterialListIndex}
+        setBasisListIndex={setBasisListIndex}
         setProductListIndex={setProductListIndex}
         getLeadgerDisplayName={getLeadgerDisplayName}
         getVehicleDisplayName={getVehicleDisplayName}
@@ -2208,6 +2410,10 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
         handleMaterialFocus={handleMaterialFocus}
         handleMaterialInputChange={handleMaterialInputChange}
         handleMaterialInputKeyDown={handleMaterialInputKeyDown}
+        handleBasisFocus={handleBasisFocus}
+        handleBasisInputKeyDown={handleBasisInputKeyDown}
+        getSaleBasisDisplayName={getSaleBasisDisplayName}
+        selectPricingMode={selectPricingMode}
         onOpenNewVehicle={openInlineVehicleForm}
         onOpenNewParty={openInlinePartyForm}
         handleProductFocus={handleProductFocus}
@@ -2396,7 +2602,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
                   <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Vehicle/Party</th>
                   <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Material</th>
                   <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Entry/Exit</th>
-                  <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Gross/Tare/Net</th>
+                  <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Qty</th>
                   <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-center text-xs font-bold uppercase tracking-wider text-white lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Sale Type</th>
                   <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-right text-xs font-bold uppercase tracking-wider text-white lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Total</th>
                   <th className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 text-center text-xs font-bold uppercase tracking-wider text-white lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Slip</th>
@@ -2438,9 +2644,12 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
                     </td>
                     <td className="px-6 py-4">
                       {(sale.materialType || sale.stoneSize) ? (
-                        <span className={`rounded-full px-2 py-1 text-xs font-medium ${getMaterialBadgeClass(sale.materialType || sale.stoneSize)}`}>
-                          {String(sale.materialType || sale.stoneSize).toUpperCase()}
-                        </span>
+                        <div className="space-y-2">
+                          <span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${getMaterialBadgeClass(sale.materialType || sale.stoneSize)}`}>
+                            {String(sale.materialType || sale.stoneSize).toUpperCase()}
+                          </span>
+                          <p className="text-xs font-semibold text-slate-600">{getSaleRateLabel(sale)}</p>
+                        </div>
                       ) : '-'}
                     </td>
                     <td className="px-6 py-4">
@@ -2451,22 +2660,20 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
                     </td>
                     <td className="px-6 py-4">
                       <div className="space-y-2 text-xs">
-                        <div>
-                          <p className="font-semibold text-slate-700">{sale.grossWeight ? `Gross : ${sale.grossWeight} kg` : '-'}</p>
-                        </div>
-                        <div>
-                          <p className="font-semibold text-slate-700">{sale.tareWeight ? `Tare : ${sale.tareWeight} kg` : '-'}</p>
-                        </div>
-                        <div>
-                          {sale.netWeight ? (
+                        {sale.pricingMode === 'per_cubic_meter' ? (
+                          <div>
+                            <p className="font-semibold text-emerald-700">{getSaleQtyLabel(sale)}</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            <p className="font-semibold text-slate-700">{sale.grossWeight ? `Gross : ${Number(sale.grossWeight).toLocaleString('en-IN')} kg` : '-'}</p>
+                            <p className="font-semibold text-slate-700">{sale.tareWeight ? `Tare : ${Number(sale.tareWeight).toLocaleString('en-IN')} kg` : '-'}</p>
                             <p className="font-semibold">
                               <span className="text-slate-900">Net : </span>
-                              <span className="text-emerald-600">{sale.netWeight} kg</span>
+                              <span className="text-emerald-600">{sale.netWeight ? getNetWeightWithTonLabel(sale) : '-'}</span>
                             </p>
-                          ) : (
-                            <p className="font-semibold text-slate-700">-</p>
-                          )}
-                        </div>
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4 text-center">

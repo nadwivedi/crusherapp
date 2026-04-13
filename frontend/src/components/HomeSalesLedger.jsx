@@ -31,6 +31,15 @@ const formatSaleTypeLabel = (value) => {
   return 'Sale';
 };
 
+const getSaleQtyLabel = (sale) => {
+  if (sale?.pricingMode === 'per_cubic_meter') {
+    return `${formatNumber(sale?.cubicMeterQty || 0)} m³`;
+  }
+
+  const netWeight = Number(sale?.netWeight || sale?.materialWeight || 0);
+  return `${formatNumber(netWeight)} kg (${formatNumber(netWeight / 1000)} ton)`;
+};
+
 const getMaterialBadgeClass = (value) => {
   const normalized = String(value || '').trim().toLowerCase();
   if (normalized === '10mm') return 'border border-sky-200 bg-sky-50 text-sky-700';
@@ -133,9 +142,6 @@ export default function HomeSalesLedger() {
               {recentSales.map((sale) => {
                 const partyName = partyMap.get(String(sale.partyId || sale.party)) || sale.customerName || '-';
                 const materialName = sale.materialType || sale.stoneSize || '-';
-                const grossWeight = Number(sale.grossWeight || sale.netWeight || 0);
-                const tareWeight = Number(sale.tareWeight || sale.vehicleWeight || 0);
-                const netWeight = Number(sale.netWeight || sale.materialWeight || 0);
                 return (
                   <div key={sale._id} className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_12px_30px_rgba(15,23,42,0.08)]">
                     <div className="flex items-start justify-between gap-3 bg-gradient-to-r from-sky-50 via-cyan-50 to-blue-50 p-3">
@@ -153,10 +159,8 @@ export default function HomeSalesLedger() {
                       <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Entry Time</p><p className="mt-1 text-sm text-slate-800">{formatTime(sale.entryTime)}</p></div>
                       <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Exit Time</p><p className="mt-1 text-sm text-slate-800">{formatTime(sale.exitTime)}</p></div>
                     </div>
-                    <div className="grid grid-cols-3 gap-3 border-t border-slate-100 p-3">
-                      <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Gross</p><p className="mt-1 text-sm text-slate-800">{formatNumber(grossWeight)}</p></div>
-                      <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Tare</p><p className="mt-1 text-sm text-slate-800">{formatNumber(tareWeight)}</p></div>
-                      <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Net</p><p className="mt-1 text-sm font-bold text-sky-700">{formatNumber(netWeight)}</p></div>
+                    <div className="border-t border-slate-100 p-3">
+                      <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Qty</p><p className="mt-1 text-sm font-bold text-sky-700">{getSaleQtyLabel(sale)}</p></div>
                     </div>
                     <div className="border-t border-slate-100 p-3">
                       <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Total</p>
@@ -178,9 +182,7 @@ export default function HomeSalesLedger() {
                   <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] lg:px-2 lg:py-1 lg:text-[8px] xl:px-4 xl:py-3 xl:text-xs">Material</th>
                   <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] lg:px-2 lg:py-1 lg:text-[8px] xl:px-4 xl:py-3 xl:text-xs">Entry</th>
                   <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] lg:px-2 lg:py-1 lg:text-[8px] xl:px-4 xl:py-3 xl:text-xs">Exit</th>
-                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-[0.14em] lg:px-2 lg:py-1 lg:text-[8px] xl:px-4 xl:py-3 xl:text-xs">Gross</th>
-                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-[0.14em] lg:px-2 lg:py-1 lg:text-[8px] xl:px-4 xl:py-3 xl:text-xs">Tare</th>
-                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-[0.14em] lg:px-2 lg:py-1 lg:text-[8px] xl:px-4 xl:py-3 xl:text-xs">Net</th>
+                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-[0.14em] lg:px-2 lg:py-1 lg:text-[8px] xl:px-4 xl:py-3 xl:text-xs">Qty</th>
                   <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-[0.14em] lg:px-2 lg:py-1 lg:text-[8px] xl:px-4 xl:py-3 xl:text-xs">Total</th>
                 </tr>
               </thead>
@@ -188,10 +190,6 @@ export default function HomeSalesLedger() {
                 {recentSales.map((sale) => {
                   const partyName = partyMap.get(String(sale.partyId || sale.party)) || sale.customerName || '-';
                   const materialName = sale.materialType || sale.stoneSize || '-';
-                  const grossWeight = Number(sale.grossWeight || sale.netWeight || 0);
-                  const tareWeight = Number(sale.tareWeight || sale.vehicleWeight || 0);
-                  const netWeight = Number(sale.netWeight || sale.materialWeight || 0);
-
                   return (
                     <tr key={sale._id} className="hover:bg-slate-50">
                       <td className="px-4 py-3 text-sm text-slate-700 lg:px-2 lg:py-1.5 lg:text-[9px] xl:px-4 xl:py-3 xl:text-[12px]">{formatDate(sale.saleDate || sale.createdAt)}</td>
@@ -209,9 +207,7 @@ export default function HomeSalesLedger() {
                       </td>
                       <td className="px-4 py-3 text-sm text-slate-700 lg:px-2 lg:py-1.5 lg:text-[9px] xl:px-4 xl:py-3 xl:text-[12px]">{formatTime(sale.entryTime)}</td>
                       <td className="px-4 py-3 text-sm text-slate-700 lg:px-2 lg:py-1.5 lg:text-[9px] xl:px-4 xl:py-3 xl:text-[12px]">{formatTime(sale.exitTime)}</td>
-                      <td className="px-4 py-3 text-right text-sm font-semibold text-slate-700 lg:px-2 lg:py-1.5 lg:text-[9px] xl:px-4 xl:py-3 xl:text-[12px]">{formatNumber(grossWeight)}</td>
-                      <td className="px-4 py-3 text-right text-sm font-semibold text-slate-700 lg:px-2 lg:py-1.5 lg:text-[9px] xl:px-4 xl:py-3 xl:text-[12px]">{formatNumber(tareWeight)}</td>
-                      <td className="px-4 py-3 text-right text-sm font-semibold text-sky-700 lg:px-2 lg:py-1.5 lg:text-[9px] xl:px-4 xl:py-3 xl:text-[12px]">{formatNumber(netWeight)}</td>
+                      <td className="px-4 py-3 text-right text-sm font-semibold text-sky-700 lg:px-2 lg:py-1.5 lg:text-[9px] xl:px-4 xl:py-3 xl:text-[12px]">{getSaleQtyLabel(sale)}</td>
                       <td className="px-4 py-3 text-right text-sm font-semibold text-emerald-600 lg:px-2 lg:py-1.5 lg:text-[9px] xl:px-4 xl:py-3 xl:text-[12px]">{formatCurrency(sale.totalAmount)}</td>
                     </tr>
                   );

@@ -147,8 +147,17 @@ const buildPurchaseSummary = (purchase) => (
 
 const buildSaleMaterialSummary = (sale) => {
   const materialType = String(sale?.stoneSize || "").trim().toLowerCase();
-  const quantity = toNumber(sale?.netWeight, toNumber(sale?.materialWeight));
-  const quantityLabel = quantity > 0 ? `${quantity} kg` : "";
+  const pricingMode = String(sale?.pricingMode || "").trim().toLowerCase();
+  const quantity = pricingMode === "per_cubic_meter"
+    ? toNumber(sale?.cubicMeterQty)
+    : toNumber(sale?.netWeight, toNumber(sale?.materialWeight));
+  const quantityLabel = quantity > 0
+    ? (
+      pricingMode === "per_cubic_meter"
+        ? `${quantity} m³`
+        : `${quantity} kg (${toNumber(sale?.netWeight, toNumber(sale?.materialWeight)) / 1000} ton)`
+    )
+    : "";
 
   return [materialType, quantityLabel]
     .filter(Boolean)
@@ -199,7 +208,9 @@ const buildLedgerRowsForParty = ({ party, sales, purchases, receipts, payments, 
           itemSummary: buildSaleSummary(item),
           note: item.type === "cash sale" ? "Cash sale does not create receivable." : "",
           method: item.vehicleNo || "-",
-          quantity: toNumber(item.netWeight, toNumber(item.materialWeight)),
+          quantity: item.pricingMode === "per_cubic_meter"
+            ? toNumber(item.cubicMeterQty)
+            : toNumber(item.netWeight, toNumber(item.materialWeight)),
           amount: saleAmounts.totalAmount,
           impact: saleImpact,
         };
@@ -755,6 +766,9 @@ const getDayBook = async (req, res) => {
               getSaleTypeLabel(item.type),
               item.vehicleNo ? `Vehicle ${item.vehicleNo}` : "",
               item.stoneSize ? `Material ${String(item.stoneSize).toUpperCase()}` : "",
+              item.pricingMode === "per_cubic_meter"
+                ? `Qty ${toNumber(item.cubicMeterQty)} m³`
+                : `Qty ${toNumber(item.netWeight)} kg (${toNumber(item.netWeight) / 1000} ton)`,
             ].filter(Boolean).join(" | ") || "-",
             amount: saleAmounts.totalAmount,
             inAmount: saleCashIn,

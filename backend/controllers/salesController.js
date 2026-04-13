@@ -71,6 +71,11 @@ const normalizeSalesPayload = (payload = {}) => {
     nextPayload.exitTime = `${nextPayload.exitTime || ""}`.trim().slice(0, 5);
   }
 
+  nextPayload.pricingMode = nextPayload.pricingMode === "per_cubic_meter"
+    ? "per_cubic_meter"
+    : "per_ton";
+  nextPayload.cubicMeterQty = Math.max(0, toNumber(nextPayload.cubicMeterQty));
+
   delete nextPayload.party;
   delete nextPayload.materialType;
   delete nextPayload.invoice;
@@ -117,6 +122,7 @@ const resolveSalesVehicle = async (payload = {}, userId) => {
         partyId: payload.partyId,
         vehicleNo: normalizedVehicleNo,
         unladenWeight: Math.max(0, toNumber(payload.tareWeight)),
+        capacityCubicMeter: Math.max(0, toNumber(payload.cubicMeterQty)),
         vehicleType: "sales",
       });
     }
@@ -151,6 +157,8 @@ const serializeSale = (saleDoc) => {
     tareWeight,
     grossWeight,
     netWeight,
+    pricingMode: sale.pricingMode || "per_ton",
+    cubicMeterQty: toNumber(sale.cubicMeterQty),
   };
 };
 

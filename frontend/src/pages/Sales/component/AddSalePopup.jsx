@@ -21,6 +21,8 @@ export default function AddSalePopup({
   vehicleInputRef,
   materialSectionRef,
   materialInputRef,
+  basisSectionRef,
+  basisInputRef,
   productSectionRef,
   productInputRef,
   leadgerQuery,
@@ -30,6 +32,7 @@ export default function AddSalePopup({
   leadgerListIndex,
   vehicleListIndex,
   materialListIndex,
+  basisListIndex,
   productListIndex,
   filteredLeadgers,
   filteredVehicles,
@@ -38,15 +41,18 @@ export default function AddSalePopup({
   isLeadgerSectionActive,
   isVehicleSectionActive,
   isMaterialSectionActive,
+  isBasisSectionActive,
   isProductSectionActive,
   setCurrentItem,
   setIsLeadgerSectionActive,
   setIsVehicleSectionActive,
   setIsMaterialSectionActive,
+  setIsBasisSectionActive,
   setIsProductSectionActive,
   setLeadgerListIndex,
   setVehicleListIndex,
   setMaterialListIndex,
+  setBasisListIndex,
   setProductListIndex,
   getLeadgerDisplayName,
   getVehicleDisplayName,
@@ -67,6 +73,10 @@ export default function AddSalePopup({
   handleMaterialFocus,
   handleMaterialInputChange,
   handleMaterialInputKeyDown,
+  handleBasisFocus,
+  handleBasisInputKeyDown,
+  getSaleBasisDisplayName,
+  selectPricingMode,
   onOpenNewVehicle,
   onOpenNewParty,
   handleProductFocus,
@@ -216,7 +226,7 @@ export default function AddSalePopup({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/55 p-0 backdrop-blur-[2px] md:items-center md:p-6" onClick={handleCancel}>
-      <div className="relative flex h-[100dvh] max-h-[100dvh] w-full max-w-[30rem] md:max-w-[40rem] flex-col overflow-hidden rounded-none border border-slate-200 bg-white shadow-[0_30px_80px_rgba(15,23,42,0.28)] md:h-auto md:max-h-[88vh] md:rounded-2xl" onClick={(e) => e.stopPropagation()}>
+      <div className="relative flex h-[100dvh] max-h-[100dvh] w-full max-w-[30rem] md:max-w-[50rem] flex-col overflow-hidden rounded-none border border-slate-200 bg-white shadow-[0_30px_80px_rgba(15,23,42,0.28)] md:h-auto md:max-h-[88vh] md:rounded-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="bg-[linear-gradient(135deg,#2563eb_0%,#4338ca_55%,#7c3aed_100%)] px-4 py-3 text-white">
           <div className="flex justify-between items-center">
             <h2 className="text-base font-bold md:text-lg">
@@ -317,7 +327,7 @@ export default function AddSalePopup({
                     Sale Details
                   </h3>
                   <div className="grid grid-cols-1 gap-3">
-                  <div className={`grid grid-cols-1 gap-3 ${formData?.slipImg ? 'sm:grid-cols-3' : 'sm:grid-cols-1'}`}>
+                  <div className={`grid grid-cols-1 gap-3 ${formData?.slipImg ? 'md:grid-cols-2 xl:grid-cols-5' : 'md:grid-cols-3'}`}>
                     <div className="space-y-1">
                       <label className={labelClass}>Invoice Date</label>
                       <div className="relative">
@@ -335,7 +345,7 @@ export default function AddSalePopup({
                     </div>
 
                     {formData?.slipImg && (
-                      <div className="grid grid-cols-2 gap-3 sm:col-span-2">
+                      <>
                         <div className="space-y-1">
                           <label className={labelClass}>Entry Time</label>
                           <input
@@ -359,8 +369,168 @@ export default function AddSalePopup({
                             className={`${inputClass} focus:ring-indigo-500`}
                           />
                         </div>
-                      </div>
+                      </>
                     )}
+
+                    <div className="space-y-1">
+                      <label className={labelClass}>Material Type</label>
+                      <div
+                        ref={materialSectionRef}
+                        className="relative"
+                        onFocusCapture={handleMaterialFocus}
+                        onBlurCapture={(event) => {
+                          const nextFocused = event.relatedTarget;
+                          if (materialSectionRef.current && nextFocused instanceof Node && materialSectionRef.current.contains(nextFocused)) return;
+                          const selectedMaterial = filteredMaterialTypes.find((item) => String(item.value) === String(formData.materialType))
+                            || (formData.materialType ? { value: formData.materialType, label: materialQuery } : null);
+                          setIsMaterialSectionActive(false);
+                          if (selectedMaterial) {
+                            handleMaterialInputChange({ target: { value: getMaterialDisplayName(selectedMaterial) } });
+                          }
+                        }}
+                      >
+                        <div className="relative">
+                          <input
+                            ref={materialInputRef}
+                            type="text"
+                            value={materialQuery}
+                            onChange={handleMaterialInputChange}
+                            onKeyDown={handleMaterialInputKeyDown}
+                            className={`${inputClass} pr-10 focus:ring-indigo-500`}
+                            placeholder="Type to search material..."
+                            autoComplete="off"
+                          />
+                        </div>
+
+                        {isMaterialSectionActive && materialDropdownStyle && (
+                          <div
+                            className="fixed z-[80] overflow-hidden rounded-xl border border-amber-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.18)]"
+                            style={materialDropdownStyle}
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            <div className="flex items-center justify-between border-b border-amber-100 bg-gradient-to-r from-amber-50 to-yellow-50 px-3 py-2">
+                              <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-amber-700">Material List</span>
+                              <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-amber-700 shadow-sm">
+                                {filteredMaterialTypes.length}
+                              </span>
+                            </div>
+                            <div className="overflow-y-auto py-1" style={{ maxHeight: materialDropdownStyle.maxHeight }}>
+                              {filteredMaterialTypes.length === 0 ? (
+                                <div className="px-3 py-3 text-center text-[13px] text-slate-500">
+                                  No matching materials found.
+                                </div>
+                              ) : (
+                                filteredMaterialTypes.map((material, index) => {
+                                  const isActive = index === materialListIndex;
+                                  const isSelected = String(formData.materialType || '') === String(material.value);
+
+                                  return (
+                                    <button
+                                      key={material.value}
+                                      type="button"
+                                      onMouseDown={(event) => event.preventDefault()}
+                                      onMouseEnter={() => setMaterialListIndex(index)}
+                                      onClick={() => {
+                                        handleMaterialInputChange({ target: { value: getMaterialDisplayName(material) } });
+                                        setIsMaterialSectionActive(false);
+                                      }}
+                                      className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-[13px] transition ${
+                                        isActive
+                                          ? 'bg-yellow-200 text-amber-950'
+                                          : isSelected
+                                          ? 'bg-yellow-50 text-amber-800'
+                                          : 'text-slate-700 hover:bg-amber-50'
+                                      }`}
+                                    >
+                                      <span className="truncate font-medium">{getMaterialDisplayName(material)}</span>
+                                      {isSelected && (
+                                        <span className="shrink-0 rounded-full border border-amber-200 bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+                                          Selected
+                                        </span>
+                                      )}
+                                    </button>
+                                  );
+                                })
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="relative mb-1 min-h-[16px]">
+                        <label className={`${labelClass} absolute left-0 top-0`}>Sale Basis</label>
+                      </div>
+                      <div
+                        ref={basisSectionRef}
+                        className="relative"
+                        onBlurCapture={(event) => {
+                          const nextFocused = event.relatedTarget;
+                          if (basisSectionRef.current && nextFocused instanceof Node && basisSectionRef.current.contains(nextFocused)) return;
+                          setIsBasisSectionActive(false);
+                        }}
+                      >
+                        <div className="relative">
+                          <input
+                            ref={basisInputRef}
+                            type="text"
+                            value={getSaleBasisDisplayName(formData.pricingMode || 'per_ton')}
+                            onFocus={handleBasisFocus}
+                            onClick={handleBasisFocus}
+                            onKeyDown={handleBasisInputKeyDown}
+                            readOnly
+                            className={`${inputClass} cursor-pointer pr-10 focus:ring-indigo-500`}
+                          />
+                          <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400">
+                            <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                              <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 1 1 1.08 1.04l-4.25 4.51a.75.75 0 0 1-1.08 0l-4.25-4.51a.75.75 0 0 1 .02-1.06Z" clipRule="evenodd" />
+                            </svg>
+                          </span>
+                        </div>
+
+                        {isBasisSectionActive && (
+                          <div className="absolute z-50 mt-2 w-full overflow-hidden rounded-xl border border-indigo-100 bg-white shadow-[0_20px_45px_rgba(15,23,42,0.16)]">
+                            <div className="max-h-48 overflow-y-auto py-1.5">
+                              {[
+                                { value: 'per_ton', label: 'Per Ton' },
+                                { value: 'per_cubic_meter', label: 'Per Cubic Meter' }
+                              ].map((option, index) => {
+                                const isActive = index === basisListIndex;
+                                const isSelected = String(formData.pricingMode || 'per_ton') === String(option.value);
+
+                                return (
+                                  <button
+                                    key={option.value}
+                                    type="button"
+                                    onMouseDown={(event) => event.preventDefault()}
+                                    onMouseEnter={() => setBasisListIndex(index)}
+                                    onClick={() => {
+                                      selectPricingMode(option.value);
+                                      setIsBasisSectionActive(false);
+                                    }}
+                                    className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-[13px] transition ${
+                                      isActive
+                                        ? 'bg-yellow-200 text-amber-950'
+                                        : isSelected
+                                        ? 'bg-yellow-50 text-amber-800'
+                                        : 'text-slate-700 hover:bg-amber-50'
+                                    }`}
+                                  >
+                                    <span className="truncate font-medium">{option.label}</span>
+                                    {isSelected && (
+                                      <span className="shrink-0 rounded-full border border-amber-200 bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+                                        Selected
+                                      </span>
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -605,167 +775,137 @@ export default function AddSalePopup({
                       )}
                     </div>
                   </div>
+
                   </div>
 
-                  <div className="space-y-1">
-                    <label className={labelClass}>Material Type</label>
-                    <div
-                      ref={materialSectionRef}
-                      className="relative"
-                      onFocusCapture={handleMaterialFocus}
-                      onBlurCapture={(event) => {
-                        const nextFocused = event.relatedTarget;
-                        if (materialSectionRef.current && nextFocused instanceof Node && materialSectionRef.current.contains(nextFocused)) return;
-                        const selectedMaterial = filteredMaterialTypes.find((item) => String(item.value) === String(formData.materialType))
-                          || (formData.materialType ? { value: formData.materialType, label: materialQuery } : null);
-                        setIsMaterialSectionActive(false);
-                        if (selectedMaterial) {
-                          handleMaterialInputChange({ target: { value: getMaterialDisplayName(selectedMaterial) } });
-                        }
-                      }}
-                    >
-                      <div className="relative">
-                        <input
-                          ref={materialInputRef}
-                          type="text"
-                          value={materialQuery}
-                          onChange={handleMaterialInputChange}
-                          onKeyDown={handleMaterialInputKeyDown}
-                          className={`${inputClass} pr-10 focus:ring-indigo-500`}
-                          placeholder="Type to search material..."
-                          autoComplete="off"
-                        />
+                  {formData.pricingMode === 'per_ton' ? (
+                    <>
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                        <div className="space-y-1">
+                          <label className={labelClass}>Gross Weight (KG)</label>
+                          <input
+                            type="number"
+                            name="grossWeight"
+                            value={formData.grossWeight || ''}
+                            onChange={handleInputChange}
+                            onKeyDown={handleSelectEnterMoveNext}
+                            className={`${inputClass} focus:ring-indigo-500`}
+                            placeholder="0"
+                            step="0.01"
+                            min="0"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className={labelClass}>Tare Weight (KG)</label>
+                          <input
+                            type="number"
+                            name="tareWeight"
+                            value={formData.tareWeight || ''}
+                            onChange={handleInputChange}
+                            onKeyDown={handleSelectEnterMoveNext}
+                            className={`${inputClass} focus:ring-indigo-500`}
+                            placeholder="0"
+                            step="0.01"
+                            min="0"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className={labelClass}>Net Weight (KG)</label>
+                          <input
+                            type="number"
+                            name="netWeight"
+                            value={formData.netWeight || ''}
+                            onChange={handleInputChange}
+                            onKeyDown={handleSelectEnterMoveNext}
+                            className={`${inputClass} bg-gray-50 font-semibold text-emerald-700 focus:ring-indigo-500`}
+                            placeholder="0"
+                            step="0.01"
+                            min="0"
+                            readOnly
+                          />
+                        </div>
                       </div>
 
-                      {isMaterialSectionActive && materialDropdownStyle && (
-                        <div
-                          className="fixed z-[80] overflow-hidden rounded-xl border border-amber-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.18)]"
-                          style={materialDropdownStyle}
-                          onClick={(event) => event.stopPropagation()}
-                        >
-                          <div className="flex items-center justify-between border-b border-amber-100 bg-gradient-to-r from-amber-50 to-yellow-50 px-3 py-2">
-                            <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-amber-700">Material List</span>
-                            <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-amber-700 shadow-sm">
-                              {filteredMaterialTypes.length}
-                            </span>
-                          </div>
-                          <div className="overflow-y-auto py-1" style={{ maxHeight: materialDropdownStyle.maxHeight }}>
-                            {filteredMaterialTypes.length === 0 ? (
-                              <div className="px-3 py-3 text-center text-[13px] text-slate-500">
-                                No matching materials found.
-                              </div>
-                            ) : (
-                              filteredMaterialTypes.map((material, index) => {
-                                const isActive = index === materialListIndex;
-                                const isSelected = String(formData.materialType || '') === String(material.value);
-
-                                return (
-                                  <button
-                                    key={material.value}
-                                    type="button"
-                                    onMouseDown={(event) => event.preventDefault()}
-                                    onMouseEnter={() => setMaterialListIndex(index)}
-                                    onClick={() => {
-                                      handleMaterialInputChange({ target: { value: getMaterialDisplayName(material) } });
-                                      setIsMaterialSectionActive(false);
-                                    }}
-                                    className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-[13px] transition ${
-                                      isActive
-                                        ? 'bg-yellow-200 text-amber-950'
-                                        : isSelected
-                                        ? 'bg-yellow-50 text-amber-800'
-                                        : 'text-slate-700 hover:bg-amber-50'
-                                    }`}
-                                  >
-                                    <span className="truncate font-medium">{getMaterialDisplayName(material)}</span>
-                                    {isSelected && (
-                                      <span className="shrink-0 rounded-full border border-amber-200 bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
-                                        Selected
-                                      </span>
-                                    )}
-                                  </button>
-                                );
-                              })
-                            )}
-                          </div>
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                        <div className="space-y-1">
+                          <label className={labelClass}>Rate Per Ton</label>
+                          <input
+                            type="number"
+                            name="rate"
+                            value={formData.rate || ''}
+                            onChange={handleInputChange}
+                            onKeyDown={handleSelectEnterMoveNext}
+                            className={`${inputClass} focus:ring-indigo-500`}
+                            placeholder="0.00"
+                            step="0.01"
+                            min="0"
+                          />
                         </div>
-                      )}
-                    </div>
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className={labelClass}>Gross Weight (KG)</label>
-                      <input
-                        type="number"
-                        name="grossWeight"
-                        value={formData.grossWeight || ''}
-                        onChange={handleInputChange}
-                        onKeyDown={handleSelectEnterMoveNext}
-                        className={`${inputClass} focus:ring-indigo-500`}
-                        placeholder="0"
-                        step="0.01"
-                        min="0"
-                      />
-                    </div>
+                        <div className="space-y-1">
+                          <label className={labelClass}>Total Amount</label>
+                          <input
+                            type="number"
+                            name="totalAmount"
+                            value={formData.totalAmount || 0}
+                            readOnly
+                            className={`${inputClass} bg-slate-100 font-semibold text-emerald-700 focus:ring-indigo-500`}
+                          />
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                        <div className="space-y-1">
+                          <label className={labelClass}>Cubic Meter Qty (M3)</label>
+                          <input
+                            type="number"
+                            name="cubicMeterQty"
+                            value={formData.cubicMeterQty || ''}
+                            onChange={handleInputChange}
+                            onKeyDown={handleSelectEnterMoveNext}
+                            className={`${inputClass} focus:ring-indigo-500`}
+                            placeholder="0.00"
+                            step="0.01"
+                            min="0"
+                          />
+                        </div>
 
-                    <div className="space-y-1">
-                      <label className={labelClass}>Tare Weight (KG)</label>
-                      <input
-                        type="number"
-                        name="tareWeight"
-                        value={formData.tareWeight || ''}
-                        onChange={handleInputChange}
-                        onKeyDown={handleSelectEnterMoveNext}
-                        className={`${inputClass} focus:ring-indigo-500`}
-                        placeholder="0"
-                        step="0.01"
-                        min="0"
-                      />
-                    </div>
-                  </div>
+                        <div className="space-y-1">
+                          <label className={labelClass}>Rate Per M3</label>
+                          <input
+                            type="number"
+                            name="rate"
+                            value={formData.rate || ''}
+                            onChange={handleInputChange}
+                            onKeyDown={handleSelectEnterMoveNext}
+                            className={`${inputClass} focus:ring-indigo-500`}
+                            placeholder="0.00"
+                            step="0.01"
+                            min="0"
+                          />
+                        </div>
 
-                  <div className="space-y-1">
-                    <label className={labelClass}>Net Weight (KG)</label>
-                    <input
-                      type="number"
-                      name="netWeight"
-                      value={formData.netWeight || ''}
-                      onChange={handleInputChange}
-                      onKeyDown={handleSelectEnterMoveNext}
-                      className={`${inputClass} focus:ring-indigo-500 bg-gray-50`}
-                      placeholder="0"
-                      step="0.01"
-                      min="0"
-                      readOnly
-                    />
-                  </div>
+                        <div className="space-y-1">
+                          <label className={labelClass}>Total Amount</label>
+                          <input
+                            type="number"
+                            name="totalAmount"
+                            value={formData.totalAmount || 0}
+                            readOnly
+                            className={`${inputClass} bg-slate-100 font-semibold text-emerald-700 focus:ring-indigo-500`}
+                          />
+                        </div>
+                      </div>
 
-                  <div className="space-y-1">
-                    <label className={labelClass}>Rate Per Ton</label>
-                    <input
-                      type="number"
-                      name="rate"
-                      value={formData.rate || ''}
-                      onChange={handleInputChange}
-                      onKeyDown={handleSelectEnterMoveNext}
-                      className={`${inputClass} focus:ring-indigo-500`}
-                      placeholder="0.00"
-                      step="0.01"
-                      min="0"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className={labelClass}>Total Amount</label>
-                    <input
-                      type="number"
-                      name="totalAmount"
-                      value={formData.totalAmount || 0}
-                      readOnly
-                      className={`${inputClass} bg-slate-100 font-semibold text-emerald-700 focus:ring-indigo-500`}
-                    />
-                  </div>
+                      <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-[12px] text-emerald-800">
+                        Total amount is calculated from `cubic meter qty x rate per m3`. Weight fields are not needed for per cubic meter sales.
+                      </div>
+                    </>
+                  )}
 
                   <div className="space-y-1">
                     <label className={labelClass}>Paid Amount</label>

@@ -68,6 +68,17 @@ const salesSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
+    pricingMode: {
+      type: String,
+      enum: ["per_ton", "per_cubic_meter"],
+      default: "per_ton",
+      trim: true,
+    },
+    cubicMeterQty: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
     rate: {
       type: Number,
       default: 0,
