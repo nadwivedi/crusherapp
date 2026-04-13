@@ -43,6 +43,43 @@ const formatQuantity = (value) => Number(value || 0).toLocaleString('en-IN', {
   maximumFractionDigits: 2
 });
 
+const isPerCubicMeter = (value) => ['per_cubic_meter', 'per cubic meter'].includes(String(value || '').trim().toLowerCase());
+
+const formatWeightWithTon = (value) => {
+  const quantity = Number(value || 0);
+  if (!Number.isFinite(quantity) || quantity <= 0) return '-';
+  return `${formatQuantity(quantity)} kg (${formatQuantity(quantity / 1000)} ton)`;
+};
+
+const formatLedgerQuantity = (row) => {
+  const quantity = Number(row?.quantity || 0);
+  if (!Number.isFinite(quantity) || quantity <= 0) return '-';
+
+  if (row?.type === 'sale') {
+    return isPerCubicMeter(row?.pricingMode) ? `${formatQuantity(quantity)} m3` : formatWeightWithTon(quantity);
+  }
+
+  if (row?.type === 'boulder') {
+    return formatWeightWithTon(quantity);
+  }
+
+  return formatQuantity(quantity);
+};
+
+const formatSaleSummaryQuantity = (summary) => {
+  const parts = [];
+
+  if (Number(summary?.saleQtyKg || 0) > 0) {
+    parts.push(formatWeightWithTon(summary.saleQtyKg));
+  }
+
+  if (Number(summary?.saleQtyM3 || 0) > 0) {
+    parts.push(`${formatQuantity(summary.saleQtyM3)} m3`);
+  }
+
+  return parts.length > 0 ? parts.join(' / ') : '-';
+};
+
 const formatLabel = (value) => {
   const normalized = String(value || '').trim();
   if (!normalized) return '-';
@@ -104,22 +141,17 @@ const getBalanceHint = (value) => {
   return 'Settled';
 };
 
-const getLedgerDetails = (row) => {
-  const details = [];
+const getLedgerMaterialType = (row) => {
+  const materialType = String(row?.materialType || '').trim();
+  if (materialType) return materialType;
+  if (row?.type === 'sale') return 'Material';
+  if (row?.type === 'boulder') return 'Boulder';
+  return '-';
+};
 
-  if (row.itemSummary) {
-    details.push(row.itemSummary);
-  }
-
-  if (row.method) {
-    details.push(`Method: ${formatLabel(row.method)}`);
-  }
-
-  if (row.note) {
-    details.push(row.note);
-  }
-
-  return details;
+const getLedgerVehicleNumber = (row) => {
+  const vehicleNo = String(row?.vehicleNo || row?.method || '').trim();
+  return vehicleNo || '-';
 };
 
 const getEntryTypeLabel = (row) => String(row?.displayType || row?.type || '-');
@@ -180,10 +212,11 @@ function VoucherDetailModal({ detail, loading, error, onClose }) {
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Date</p>
                   <p className="mt-1 text-sm font-semibold text-slate-900">{formatDate(detail.date)}</p>
+                  <p className="mt-1 text-xs font-medium text-slate-500">{detail.refNumber || '-'}</p>
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Qty</p>
-                  <p className="mt-1 text-sm font-semibold text-slate-900">{detail.quantity ? formatQuantity(detail.quantity) : '-'}</p>
+                  <p className="mt-1 text-sm font-semibold text-slate-900">{formatLedgerQuantity(detail)}</p>
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Method</p>
@@ -376,7 +409,11 @@ export default function PartyDetail() {
 
       if (row.type === 'sale') {
         acc.totalSales += amount;
-        acc.saleQty += quantity;
+        if (isPerCubicMeter(row.pricingMode)) {
+          acc.saleQtyM3 += quantity;
+        } else {
+          acc.saleQtyKg += quantity;
+        }
       }
 
       if (row.type === 'purchase') {
@@ -417,6 +454,8 @@ export default function PartyDetail() {
       totalPurchaseReturns: 0,
       totalSaleReturns: 0,
       saleQty: 0,
+      saleQtyKg: 0,
+      saleQtyM3: 0,
       purchaseQty: 0,
       boulderQty: 0,
       purchaseReturnQty: 0
@@ -544,7 +583,7 @@ export default function PartyDetail() {
         <div className="rounded-xl border border-amber-100 bg-amber-50 px-3 py-2.5 shadow-sm">
           <p className="text-[11px] font-medium uppercase tracking-wide text-amber-700">Sale To Party</p>
           <p className="mt-1 text-lg font-bold text-amber-900 md:text-xl">{formatCurrency(summary.totalSales)}</p>
-          <p className="mt-1 text-[11px] text-amber-700">Qty {formatQuantity(summary.saleQty)}</p>
+          <p className="mt-1 text-[11px] text-amber-700">Qty {formatSaleSummaryQuantity(summary)}</p>
         </div>
         <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2.5 shadow-sm">
           <p className="text-[11px] font-medium uppercase tracking-wide text-emerald-700">Purchase From Party</p>
@@ -559,7 +598,7 @@ export default function PartyDetail() {
         <div className="rounded-xl border border-rose-100 bg-rose-50 px-3 py-2.5 shadow-sm">
           <p className="text-[11px] font-medium uppercase tracking-wide text-rose-700">Crushed Boulder Payable</p>
           <p className="mt-1 text-lg font-bold text-rose-900 md:text-xl">{formatCurrency(summary.totalBoulderPayable)}</p>
-          <p className="mt-1 text-[11px] text-rose-700">Qty {formatQuantity(summary.boulderQty)} kg</p>
+          <p className="mt-1 text-[11px] text-rose-700">Qty {formatWeightWithTon(summary.boulderQty)}</p>
         </div>
       </div>
 
@@ -648,7 +687,6 @@ export default function PartyDetail() {
             <div className="space-y-3 md:hidden">
               {sortedLedgerRows.map((row, index) => {
                 const typeMeta = getTypeMeta(row.type);
-                const detailRows = getLedgerDetails(row);
 
                 return (
                   <article
@@ -683,21 +721,18 @@ export default function PartyDetail() {
 
                     <div className="mt-3 space-y-2">
                       <div className="flex items-center justify-between rounded-xl bg-white px-3 py-2 text-xs">
-                        <span className="font-medium uppercase tracking-[0.16em] text-slate-500">Qty</span>
-                        <span className="font-semibold text-slate-800">{row.quantity ? formatQuantity(row.quantity) : '-'}</span>
-                      </div>
-                      {detailRows.length > 0 ? (
-                        <div className="rounded-xl bg-white px-3 py-2.5">
-                          <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-slate-500">Details</p>
-                          <div className="mt-1.5 space-y-1">
-                            {detailRows.map((detail, detailIndex) => (
-                              <p key={`${row.refId || index}-detail-${detailIndex}`} className="text-xs text-slate-700">
-                                {detail}
-                              </p>
-                            ))}
-                          </div>
+                        <div className="min-w-0">
+                          <p className="font-medium uppercase tracking-[0.16em] text-slate-500">{getLedgerMaterialType(row)}</p>
+                          <p className="mt-1 font-semibold text-slate-800">{formatLedgerQuantity(row)}</p>
                         </div>
-                      ) : null}
+                      </div>
+                      <div className="rounded-xl bg-white px-3 py-2.5">
+                        <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-slate-500">Details</p>
+                        <div className="mt-1.5 space-y-1">
+                          <p className="text-xs font-semibold text-slate-800">{row.partyName || '-'}</p>
+                          <p className="text-xs text-slate-700">{getLedgerVehicleNumber(row)}</p>
+                        </div>
+                      </div>
                     </div>
                   </article>
                 );
@@ -716,7 +751,6 @@ export default function PartyDetail() {
                   <tr>
                     <th className="border-y-2 border-l-2 border-r border-black px-4 py-3 text-center font-semibold">Date</th>
                     <th className="border-y-2 border-r border-black px-4 py-3 text-center font-semibold">Type</th>
-                    <th className="border-y-2 border-r border-black px-4 py-3 text-center font-semibold">Ref No</th>
                     <th className="border-y-2 border-r border-black px-4 py-3 font-semibold">Details</th>
                     <th className="border-y-2 border-r border-black px-4 py-3 text-center font-semibold">Qty</th>
                     <th className="border-y-2 border-r border-black px-4 py-3 text-center font-semibold">Amount</th>
@@ -726,44 +760,41 @@ export default function PartyDetail() {
                 <tbody className="bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(248,250,252,0.98)_100%)] text-slate-700">
                   {sortedLedgerRows.map((row, index) => {
                     const typeMeta = getTypeMeta(row.type);
-                    const detailRows = getLedgerDetails(row);
 
                     return (
                       <tr key={`${row.refId || 'party-ledger'}-${index}`} className="transition-colors hover:bg-slate-200/45">
-                        <td className="border border-slate-300 px-4 py-3 text-center">{formatDate(row.date)}</td>
+                        <td className="border border-slate-300 px-4 py-3 text-center">
+                          <div className="space-y-1">
+                            <p>{formatDate(row.date)}</p>
+                            {isLedgerDetailSupported(row) ? (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenVoucherDetail(row)}
+                                className="text-xs font-semibold text-cyan-700 underline decoration-cyan-300 underline-offset-2 transition hover:text-cyan-900"
+                              >
+                                {row.refNumber && row.refNumber !== '-' ? row.refNumber : 'View details'}
+                              </button>
+                            ) : (
+                              <p className="text-xs text-slate-500">{row.refNumber || '-'}</p>
+                            )}
+                          </div>
+                        </td>
                         <td className="border border-slate-300 px-4 py-3 text-center">
                           <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${typeMeta.className}`}>
                             {getEntryTypeLabel(row)}
                           </span>
                         </td>
-                        <td className="border border-slate-300 px-4 py-3 text-center font-medium text-slate-800">
-                          {isLedgerDetailSupported(row) ? (
-                            <button
-                              type="button"
-                              onClick={() => handleOpenVoucherDetail(row)}
-                              className="font-semibold text-cyan-700 underline decoration-cyan-300 underline-offset-2 transition hover:text-cyan-900"
-                            >
-                              {row.refNumber && row.refNumber !== '-' ? row.refNumber : 'View details'}
-                            </button>
-                          ) : (
-                            row.refNumber || '-'
-                          )}
-                        </td>
                         <td className="border border-slate-300 px-4 py-3">
-                          {detailRows.length > 0 ? (
-                            <div className="space-y-1">
-                              {detailRows.map((detail, detailIndex) => (
-                                <p key={`${row.refId || index}-detail-${detailIndex}`} className="text-sm text-slate-700">
-                                  {detail}
-                                </p>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-slate-400">-</span>
-                          )}
+                          <div className="space-y-1">
+                            <p className="text-sm font-semibold text-slate-800">{row.partyName || '-'}</p>
+                            <p className="text-sm text-slate-700">{getLedgerVehicleNumber(row)}</p>
+                          </div>
                         </td>
                         <td className="border border-slate-300 px-4 py-3 text-center font-semibold text-slate-800">
-                          {row.quantity ? formatQuantity(row.quantity) : '-'}
+                          <div className="space-y-1">
+                            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{getLedgerMaterialType(row)}</p>
+                            <p>{formatLedgerQuantity(row)}</p>
+                          </div>
                         </td>
                         <td className="border border-slate-300 px-4 py-3 text-center font-semibold text-slate-900">
                           {formatCurrency(row.amount)}
@@ -777,7 +808,7 @@ export default function PartyDetail() {
 
                   {sortedLedgerRows.length === 0 ? (
                     <tr>
-                      <td colSpan="7" className="border border-slate-300 px-4 py-10 text-center text-slate-500">
+                      <td colSpan="6" className="border border-slate-300 px-4 py-10 text-center text-slate-500">
                         No ledger data found.
                       </td>
                     </tr>

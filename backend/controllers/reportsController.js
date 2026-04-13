@@ -195,6 +195,7 @@ const buildLedgerRowsForParty = ({ party, sales, purchases, receipts, payments, 
       .map((item) => {
         const saleAmounts = getSaleAmounts(item);
         const saleImpact = item.type === "cash sale" ? 0 : saleAmounts.totalAmount;
+        const pricingMode = String(item.pricingMode || "").trim().toLowerCase();
 
         return {
           type: "sale",
@@ -202,13 +203,16 @@ const buildLedgerRowsForParty = ({ party, sales, purchases, receipts, payments, 
           refId: item._id,
           partyId: party._id,
           partyName: party.name || "-",
+          materialType: item.stoneSize || "-",
+          vehicleNo: item.vehicleNo || "-",
           date: item.saleDate || item.createdAt,
           entryCreatedAt: item.createdAt,
           refNumber: item.invoiceNumber || "-",
           itemSummary: buildSaleSummary(item),
           note: item.type === "cash sale" ? "Cash sale does not create receivable." : "",
           method: item.vehicleNo || "-",
-          quantity: item.pricingMode === "per_cubic_meter"
+          pricingMode,
+          quantity: pricingMode === "per_cubic_meter"
             ? toNumber(item.cubicMeterQty)
             : toNumber(item.netWeight, toNumber(item.materialWeight)),
           amount: saleAmounts.totalAmount,
@@ -283,6 +287,8 @@ const buildLedgerRowsForParty = ({ party, sales, purchases, receipts, payments, 
         refId: item._id,
         partyId: party._id,
         partyName: party.name || "-",
+        materialType: "Boulder",
+        vehicleNo: item.vehicleNo || "-",
         date: item.boulderDate || item.createdAt,
         entryCreatedAt: item.createdAt,
         refNumber: item.boulderNumber || item.vehicleNo || "-",
@@ -565,13 +571,19 @@ const getPartyLedgerEntryDetail = async (req, res) => {
     if (type === "sale") {
       const sale = await Sales.findOne(scopedIdFilter(req, refId)).populate("partyId", "name");
       if (!sale) return res.status(404).json({ message: "Sale not found" });
+      const pricingMode = String(sale.pricingMode || "").trim().toLowerCase();
+      const quantity = pricingMode === "per_cubic_meter"
+        ? toNumber(sale.cubicMeterQty)
+        : toNumber(sale.netWeight, toNumber(sale.materialWeight));
 
       return res.json({
+        type: "sale",
         title: "Sale Voucher",
         refNumber: sale.invoiceNumber || "-",
         partyName: sale.partyId?.name || "-",
         amount: toNumber(sale.totalAmount),
-        quantity: toNumber(sale.netWeight, toNumber(sale.materialWeight)),
+        quantity,
+        pricingMode,
         method: sale.vehicleNo || "-",
         date: sale.saleDate || sale.createdAt,
         accountName: sale.partyId?.name || "-",
@@ -584,10 +596,17 @@ const getPartyLedgerEntryDetail = async (req, res) => {
           { label: "Pending Amount", value: formatAmount(getSaleAmounts(sale).pendingAmount) },
           { label: "Vehicle No", value: sale.vehicleNo || "-" },
           { label: "Material Type", value: sale.stoneSize || "-" },
-          { label: "Gross Weight", value: toNumber(sale.grossWeight, toNumber(sale.netWeight)) || "-" },
-          { label: "Tare Weight", value: toNumber(sale.tareWeight, toNumber(sale.vehicleWeight)) || "-" },
-          { label: "Net Weight", value: toNumber(sale.netWeight, toNumber(sale.materialWeight)) || "-" },
-          { label: "Rate Per Ton", value: toNumber(sale.rate) || "-" },
+          ...(pricingMode === "per_cubic_meter"
+            ? [
+                { label: "Cubic Meter Qty", value: toNumber(sale.cubicMeterQty) || "-" },
+                { label: "Rate Per M3", value: toNumber(sale.rate) || "-" },
+              ]
+            : [
+                { label: "Gross Weight", value: toNumber(sale.grossWeight, toNumber(sale.netWeight)) || "-" },
+                { label: "Tare Weight", value: toNumber(sale.tareWeight, toNumber(sale.vehicleWeight)) || "-" },
+                { label: "Net Weight", value: toNumber(sale.netWeight, toNumber(sale.materialWeight)) || "-" },
+                { label: "Rate Per Ton", value: toNumber(sale.rate) || "-" },
+              ]),
         ],
         items: [],
       });
@@ -601,6 +620,7 @@ const getPartyLedgerEntryDetail = async (req, res) => {
       if (!purchase) return res.status(404).json({ message: "Purchase not found" });
 
       return res.json({
+        type: "purchase",
         title: "Purchase Voucher",
         refNumber: formatPurchaseNumber(purchase.purchaseNumber),
         partyName: purchase.party?.name || "-",
@@ -640,6 +660,7 @@ const getPartyLedgerEntryDetail = async (req, res) => {
         : null;
 
       return res.json({
+        type: "receipt",
         title: "Receipt Voucher",
         refNumber: formatReceiptNumber(receipt.receiptNumber),
         partyName: receipt.party?.name || "-",
@@ -668,6 +689,7 @@ const getPartyLedgerEntryDetail = async (req, res) => {
         : null;
 
       return res.json({
+        type: "payment",
         title: "Payment Voucher",
         refNumber: formatPaymentNumber(payment.paymentNumber),
         partyName: payment.party?.name || "-",
@@ -692,6 +714,7 @@ const getPartyLedgerEntryDetail = async (req, res) => {
       if (!boulder) return res.status(404).json({ message: "Boulder not found" });
 
       return res.json({
+        type: "boulder",
         title: "Boulder Voucher",
         refNumber: boulder.boulderNumber || boulder.vehicleNo || "-",
         partyName: boulder.partyName || "-",

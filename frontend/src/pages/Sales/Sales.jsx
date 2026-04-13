@@ -1417,11 +1417,13 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
       e.preventDefault();
       e.stopPropagation();
       const activeOption = basisListIndex >= 0 ? SALE_BASIS_OPTIONS[basisListIndex] : null;
-      if (activeOption) {
-        selectPricingMode(activeOption.value);
-      }
+      const selectedMode = activeOption?.value || formData.pricingMode || 'per_ton';
+      selectPricingMode(selectedMode);
       setIsBasisSectionActive(false);
-      focusNextPopupField(e.currentTarget);
+      requestAnimationFrame(() => {
+        vehicleInputRef.current?.focus();
+        vehicleInputRef.current?.select?.();
+      });
       return;
     }
 
