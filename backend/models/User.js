@@ -34,6 +34,10 @@ const userSchema = new mongoose.Schema(
       trim: true,
       default: "",
     },
+    lastLoginAt: {
+      type: Date,
+      default: null,
+    },
     featureAccess: {
       saleReturn: {
         type: Boolean,

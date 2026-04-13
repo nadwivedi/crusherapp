@@ -21,6 +21,7 @@ const sanitizeUser = (user) => ({
   mobile: user.mobile,
   state: user.state,
   district: user.district,
+  lastLoginAt: user.lastLoginAt,
   featureAccess: {
     saleReturn: Boolean(user.featureAccess?.saleReturn),
     stockAdjustment: Boolean(user.featureAccess?.stockAdjustment),
@@ -103,6 +104,7 @@ const signupUser = async (req, res) => {
       name: name.trim(),
       mobile: mobile.trim(),
       password: hashedPassword,
+      lastLoginAt: new Date(),
     });
 
     const token = generateToken(user._id);
@@ -141,6 +143,9 @@ const loginUser = async (req, res) => {
     if (!user || !(await verifyPassword(password, user.password))) {
       return res.status(401).json({ message: "Invalid mobile number or password" });
     }
+
+    user.lastLoginAt = new Date();
+    await user.save();
 
     const token = generateToken(user._id);
     setAuthCookie(res, token);

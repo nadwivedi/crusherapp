@@ -6,6 +6,8 @@ const path = require("path");
 const connectDB = require("./config/mongodb");
 const syncOwnershipIndexes = require("./config/syncIndexes");
 const authRoutes = require("./routes/authRoutes");
+const adminAuthRoutes = require("./routes/adminAuthRoutes");
+const adminUserRoutes = require("./routes/adminUserRoutes");
 const bankRoutes = require("./routes/bankRoutes");
 const boulderRoutes = require("./routes/boulderRoutes");
 const employeeRoutes = require("./routes/employeeRoutes");
@@ -44,6 +46,8 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/users", authRoutes);
+app.use("/api/admin/auth", adminAuthRoutes);
+app.use("/api/admin/users", adminUserRoutes);
 app.use("/api/banks", bankRoutes);
 app.use("/api/boulders", boulderRoutes);
 app.use("/api/employees", employeeRoutes);
