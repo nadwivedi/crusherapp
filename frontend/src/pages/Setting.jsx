@@ -102,15 +102,15 @@ const readUserMaterialRates = (user) => ({
 });
 
 const materialRateFields = [
-  { tonKey: 'tenMmRate', cubicKey: 'tenMmRatePerCubicMeter', label: '10mm Rate' },
-  { tonKey: 'twentyMmRate', cubicKey: 'twentyMmRatePerCubicMeter', label: '20mm Rate' },
-  { tonKey: 'fortyMmRate', cubicKey: 'fortyMmRatePerCubicMeter', label: '40mm Rate' },
-  { tonKey: 'sixtyMmRate', cubicKey: 'sixtyMmRatePerCubicMeter', label: '60mm Rate' },
-  { tonKey: 'sixMmRate', cubicKey: 'sixMmRatePerCubicMeter', label: '6mm Rate' },
-  { tonKey: 'fourMmRate', cubicKey: 'fourMmRatePerCubicMeter', label: '4mm Rate' },
-  { tonKey: 'wmmRate', cubicKey: 'wmmRatePerCubicMeter', label: 'WMM Rate' },
-  { tonKey: 'gsbRate', cubicKey: 'gsbRatePerCubicMeter', label: 'GSB Rate' },
-  { tonKey: 'dustRate', cubicKey: 'dustRatePerCubicMeter', label: 'Dust Rate' }
+  { tonKey: 'tenMmRate', cubicKey: 'tenMmRatePerCubicMeter', label: '10mm Rate', cardClass: 'border-sky-200 bg-sky-50/80', accentClass: 'text-sky-700', inputClass: 'focus:border-sky-500 focus:ring-sky-100' },
+  { tonKey: 'twentyMmRate', cubicKey: 'twentyMmRatePerCubicMeter', label: '20mm Rate', cardClass: 'border-emerald-200 bg-emerald-50/80', accentClass: 'text-emerald-700', inputClass: 'focus:border-emerald-500 focus:ring-emerald-100' },
+  { tonKey: 'fortyMmRate', cubicKey: 'fortyMmRatePerCubicMeter', label: '40mm Rate', cardClass: 'border-violet-200 bg-violet-50/80', accentClass: 'text-violet-700', inputClass: 'focus:border-violet-500 focus:ring-violet-100' },
+  { tonKey: 'sixtyMmRate', cubicKey: 'sixtyMmRatePerCubicMeter', label: '60mm Rate', cardClass: 'border-rose-200 bg-rose-50/80', accentClass: 'text-rose-700', inputClass: 'focus:border-rose-500 focus:ring-rose-100' },
+  { tonKey: 'sixMmRate', cubicKey: 'sixMmRatePerCubicMeter', label: '6mm Rate', cardClass: 'border-cyan-200 bg-cyan-50/80', accentClass: 'text-cyan-700', inputClass: 'focus:border-cyan-500 focus:ring-cyan-100' },
+  { tonKey: 'fourMmRate', cubicKey: 'fourMmRatePerCubicMeter', label: '4mm Rate', cardClass: 'border-fuchsia-200 bg-fuchsia-50/80', accentClass: 'text-fuchsia-700', inputClass: 'focus:border-fuchsia-500 focus:ring-fuchsia-100' },
+  { tonKey: 'wmmRate', cubicKey: 'wmmRatePerCubicMeter', label: 'WMM Rate', cardClass: 'border-amber-200 bg-amber-50/80', accentClass: 'text-amber-700', inputClass: 'focus:border-amber-500 focus:ring-amber-100' },
+  { tonKey: 'gsbRate', cubicKey: 'gsbRatePerCubicMeter', label: 'GSB Rate', cardClass: 'border-lime-200 bg-lime-50/80', accentClass: 'text-lime-700', inputClass: 'focus:border-lime-500 focus:ring-lime-100' },
+  { tonKey: 'dustRate', cubicKey: 'dustRatePerCubicMeter', label: 'Dust Rate', cardClass: 'border-slate-200 bg-slate-100/80', accentClass: 'text-slate-700', inputClass: 'focus:border-slate-500 focus:ring-slate-100' }
 ];
 
 function SettingCard({ icon, title, description, children, className = '' }) {
@@ -309,14 +309,7 @@ export default function Setting() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100">
       <div className="mx-auto max-w-[1600px] px-4 py-8 md:px-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 md:text-[2rem]">Settings</h1>
-          <p className="mt-2 max-w-2xl text-base text-slate-600">
-            Manage your application preferences and account settings from one place.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[0.7fr_1.3fr]">
           <div className="space-y-6">
             <SettingCard
               title="Account"
@@ -324,7 +317,7 @@ export default function Setting() {
               icon={<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>}
             >
               <div className="space-y-2.5">
-                <div className="grid grid-cols-1 gap-2.5 xl:grid-cols-5">
+                <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
                   <div className="rounded-xl bg-slate-50 px-3 py-3">
                     <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">Company</p>
                     <p className="mt-1 text-sm font-semibold text-slate-800">{displayName}</p>
@@ -333,6 +326,8 @@ export default function Setting() {
                     <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">Email</p>
                     <p className="mt-1 text-sm font-semibold text-slate-800">{user?.email || '-'}</p>
                   </div>
+                </div>
+                <div className="grid grid-cols-1 gap-2.5 md:grid-cols-3">
                   <div className="rounded-xl bg-slate-50 px-3 py-3">
                     <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">Phone</p>
                     <p className="mt-1 text-sm font-semibold text-slate-800">{user?.mobile || user?.phone || '-'}</p>
@@ -341,11 +336,11 @@ export default function Setting() {
                     <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">State</p>
                     <p className="mt-1 text-sm font-semibold text-slate-800">{user?.state || user?.address?.state || '-'}</p>
                   </div>
-                <div className="rounded-xl bg-slate-50 px-3 py-3">
-                  <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">District</p>
-                  <p className="mt-1 text-sm font-semibold text-slate-800">{user?.district || '-'}</p>
+                  <div className="rounded-xl bg-slate-50 px-3 py-3">
+                    <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">District</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-800">{user?.district || '-'}</p>
+                  </div>
                 </div>
-              </div>
               </div>
             </SettingCard>
 
@@ -373,13 +368,13 @@ export default function Setting() {
               title="Crusher Material Rates"
               icon={<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-12V4m0 16v-2m8-6a8 8 0 11-16 0 8 8 0 0116 0z" /></svg>}
             >
-              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 xl:grid-cols-2 2xl:grid-cols-3">
                 {materialRateFields.map((field) => (
-                  <div key={field.tonKey} className="rounded-xl border border-slate-200 bg-slate-50/60 p-3">
-                    <span className="mb-2 block text-[13px] font-medium text-slate-700">{field.label}</span>
+                  <div key={field.tonKey} className={`rounded-xl border p-3 ${field.cardClass}`}>
+                    <span className={`mb-2 block text-[13px] font-medium ${field.accentClass}`}>{field.label}</span>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <label className="block">
-                        <span className="mb-1 block text-[12px] font-medium text-slate-600">Per Ton</span>
+                        <span className={`mb-1 block text-[12px] font-medium ${field.accentClass}`}>Per Ton</span>
                         <div className="relative">
                           <input
                             type="number"
@@ -388,14 +383,14 @@ export default function Setting() {
                             name={field.tonKey}
                             value={materialRates[field.tonKey]}
                             onChange={handleMaterialRateChange}
-                            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 pr-16 text-[13px] font-semibold text-slate-800 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                            className={`w-full rounded-lg border border-white/80 bg-white px-3 py-2.5 pr-16 text-[13px] font-semibold text-slate-800 outline-none transition focus:ring-2 ${field.inputClass}`}
                             placeholder="0"
                           />
-                          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Rs / Ton</span>
+                          <span className={`pointer-events-none absolute inset-y-0 right-3 flex items-center text-[10px] font-semibold uppercase tracking-[0.12em] ${field.accentClass}`}>Rs / Ton</span>
                         </div>
                       </label>
                       <label className="block">
-                        <span className="mb-1 block text-[12px] font-medium text-slate-600">Per M³</span>
+                        <span className={`mb-1 block text-[12px] font-medium ${field.accentClass}`}>Per M³</span>
                         <div className="relative">
                           <input
                             type="number"
@@ -404,10 +399,10 @@ export default function Setting() {
                             name={field.cubicKey}
                             value={materialRates[field.cubicKey]}
                             onChange={handleMaterialRateChange}
-                            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 pr-16 text-[13px] font-semibold text-slate-800 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                            className={`w-full rounded-lg border border-white/80 bg-white px-3 py-2.5 pr-16 text-[13px] font-semibold text-slate-800 outline-none transition focus:ring-2 ${field.inputClass}`}
                             placeholder="0"
                           />
-                          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Rs / M³</span>
+                          <span className={`pointer-events-none absolute inset-y-0 right-3 flex items-center text-[10px] font-semibold uppercase tracking-[0.12em] ${field.accentClass}`}>Rs / M³</span>
                         </div>
                       </label>
                     </div>
