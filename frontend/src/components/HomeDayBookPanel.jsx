@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowDownCircle, ArrowUpCircle, Banknote, BookText, Package, TrendingUp, BarChart2 } from 'lucide-react';
+import { ArrowDownCircle, ArrowUpCircle, Banknote, BookText, Package, TrendingUp, BarChart2, Truck } from 'lucide-react';
 import apiClient from '../utils/api';
 import HomePartyLedger from './HomePartyLedger';
 import HomeExpenseLedger from './HomeExpenseLedger';
@@ -278,6 +278,12 @@ export default function HomeDayBookPanel() {
                       <div className="flex items-start justify-between gap-3 bg-gradient-to-r from-sky-50 via-cyan-50 to-blue-50 p-3">
                         <div className="min-w-0">
                           <p className="text-sm font-bold text-slate-900">{entry.partyName || 'No Party'}</p>
+                          {entry.vehicleNo ? (
+                            <div className="mt-1 flex items-center gap-1.5 text-xs font-medium text-slate-500">
+                              <Truck className="h-3.5 w-3.5 text-slate-400" />
+                              <span className="truncate">{entry.vehicleNo}</span>
+                            </div>
+                          ) : null}
                           <p className="mt-0.5 text-xs font-medium text-slate-500">{entry.voucherNumber || '-'}</p>
                         </div>
                         <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] ${typeBadgeClass}`}>
@@ -350,7 +356,17 @@ export default function HomeDayBookPanel() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-xs font-semibold text-slate-700 lg:px-3 lg:py-2.5 lg:text-[11px] xl:px-4 xl:py-3 xl:text-xs">{entry.voucherNumber || '-'}</td>
-                      <td className="px-4 py-3 text-sm text-slate-700 lg:px-3 lg:py-2.5 lg:text-[13px] xl:px-4 xl:py-3 xl:text-sm">{entry.partyName || '-'}</td>
+                      <td className="px-4 py-3 lg:px-3 lg:py-2.5 xl:px-4 xl:py-3">
+                        <div>
+                          <p className="text-sm text-slate-700 lg:text-[13px] xl:text-sm">{entry.partyName || '-'}</p>
+                          {entry.vehicleNo ? (
+                            <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-500 lg:text-[11px] xl:text-xs">
+                              <Truck className="h-3.5 w-3.5 text-slate-400 lg:h-3 lg:w-3 xl:h-3.5 xl:w-3.5" />
+                              <span>{entry.vehicleNo}</span>
+                            </div>
+                          ) : null}
+                        </div>
+                      </td>
                       <td className="px-4 py-3 lg:px-3 lg:py-2.5 xl:px-4 xl:py-3">
                         {entry.type === 'boulder' ? (
                           <div>

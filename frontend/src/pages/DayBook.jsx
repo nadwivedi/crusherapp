@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookText, Banknote, Package, Search, ArrowDownCircle, ArrowUpCircle, TrendingUp, BarChart2 } from 'lucide-react';
+import { BookText, Banknote, Package, Search, ArrowDownCircle, ArrowUpCircle, TrendingUp, BarChart2, Truck } from 'lucide-react';
 import apiClient from '../utils/api';
 
 const DEFAULT_SUMMARY = {
@@ -146,6 +146,7 @@ export default function DayBook() {
       const term = searchTerm.toLowerCase();
         filtered = filtered.filter(entry =>
           (entry.partyName || '').toLowerCase().includes(term) ||
+          (entry.vehicleNo || '').toLowerCase().includes(term) ||
         getEntryTypeLabel(entry).toLowerCase().includes(term) ||
         (entry.voucherNumber || '').toLowerCase().includes(term) ||
         (entry.method || '').toLowerCase().includes(term)
@@ -327,7 +328,15 @@ export default function DayBook() {
                           <p className="text-sm text-slate-600 font-mono lg:text-[12px] xl:text-sm">{entry.voucherNumber || '-'}</p>
                         </td>
                         <td className="px-6 py-4 lg:px-4 lg:py-3 xl:px-6 xl:py-4">
-                          <p className="text-sm font-semibold text-slate-800 max-w-[180px] truncate lg:text-[12px] xl:text-sm">{entry.partyName || '-'}</p>
+                          <div className="max-w-[180px]">
+                            <p className="truncate text-sm font-semibold text-slate-800 lg:text-[12px] xl:text-sm">{entry.partyName || '-'}</p>
+                            {entry.vehicleNo ? (
+                              <div className="mt-1 flex items-center gap-1.5 text-xs font-medium text-slate-500 lg:text-[10px] xl:text-xs">
+                                <Truck className="h-3.5 w-3.5 text-slate-400" />
+                                <span className="truncate">{entry.vehicleNo}</span>
+                              </div>
+                            ) : null}
+                          </div>
                         </td>
                         <td className="px-6 py-4 lg:px-4 lg:py-3 xl:px-6 xl:py-4">
                           <p className="text-sm text-slate-500 capitalize lg:text-[12px] xl:text-sm">{entry.method || '-'}</p>

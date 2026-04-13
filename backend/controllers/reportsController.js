@@ -784,6 +784,7 @@ const getDayBook = async (req, res) => {
             entryCreatedAt: item.createdAt,
             voucherNumber: item.invoiceNumber || "-",
             partyName: item.partyId?.name || "-",
+            vehicleNo: item.vehicleNo || "",
             materialSummary: buildSaleMaterialSummary(item),
             method: [
               getSaleTypeLabel(item.type),
@@ -868,6 +869,7 @@ const getDayBook = async (req, res) => {
           entryCreatedAt: item.createdAt,
           voucherNumber: item.boulderNumber || item.vehicleNo || "-",
           partyName: item.partyName || item.vehicleNo || "-",
+          vehicleNo: item.vehicleNo || "",
           method: `Vehicle ${item.vehicleNo || "-"} | Gross ${Number(item.grossWeight || 0)} | Tare ${Number(item.tareWeight || 0)} | Net ${Number(item.netWeight || 0)} | Rate ${Number(item.boulderRatePerTon || 0)}/Ton`,
           amount: Number(item.amount || 0),
           inAmount: 0,
