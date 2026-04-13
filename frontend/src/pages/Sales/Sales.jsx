@@ -140,6 +140,19 @@ const getInitialPartyFormData = (type = 'customer') => ({
   boulderRatePerTon: ''
 });
 
+const getCrusherRateKey = (materialType, pricingMode = 'per_ton') => {
+  if (materialType === '10mm') return pricingMode === 'per_cubic_meter' ? 'tenMmRatePerCubicMeter' : 'tenMmRate';
+  if (materialType === '20mm') return pricingMode === 'per_cubic_meter' ? 'twentyMmRatePerCubicMeter' : 'twentyMmRate';
+  if (materialType === '40mm') return pricingMode === 'per_cubic_meter' ? 'fortyMmRatePerCubicMeter' : 'fortyMmRate';
+  if (materialType === '60mm') return pricingMode === 'per_cubic_meter' ? 'sixtyMmRatePerCubicMeter' : 'sixtyMmRate';
+  if (materialType === '6mm') return pricingMode === 'per_cubic_meter' ? 'sixMmRatePerCubicMeter' : 'sixMmRate';
+  if (materialType === '4mm') return pricingMode === 'per_cubic_meter' ? 'fourMmRatePerCubicMeter' : 'fourMmRate';
+  if (materialType === 'wmm') return pricingMode === 'per_cubic_meter' ? 'wmmRatePerCubicMeter' : 'wmmRate';
+  if (materialType === 'gsb') return pricingMode === 'per_cubic_meter' ? 'gsbRatePerCubicMeter' : 'gsbRate';
+  if (materialType === 'dust') return pricingMode === 'per_cubic_meter' ? 'dustRatePerCubicMeter' : 'dustRate';
+  return '';
+};
+
 const toTitleCase = (value) => String(value || '')
   .toLowerCase()
   .replace(/\b[a-z]/g, (char) => char.toUpperCase());
@@ -170,23 +183,15 @@ const getSafeNetWeight = (grossWeight, tareWeight) => {
   return Math.max(0, derived);
 };
 
-const getCrusherMaterialRate = (user, materialType) => {
+const getCrusherMaterialRate = (user, materialType, pricingMode = 'per_ton') => {
   const rates = user?.materialRates || {};
-
-  if (materialType === '10mm') return Number(rates.tenMmRate || 0);
-  if (materialType === '20mm') return Number(rates.twentyMmRate || 0);
-  if (materialType === '40mm') return Number(rates.fortyMmRate || 0);
-  if (materialType === '60mm') return Number(rates.sixtyMmRate || 0);
-  if (materialType === '6mm') return Number(rates.sixMmRate || 0);
-  if (materialType === '4mm') return Number(rates.fourMmRate || 0);
-  if (materialType === 'wmm') return Number(rates.wmmRate || 0);
-  if (materialType === 'gsb') return Number(rates.gsbRate || 0);
-  if (materialType === 'dust') return Number(rates.dustRate || 0);
-  return 0;
+  const rateKey = getCrusherRateKey(materialType, pricingMode);
+  return rateKey ? Number(rates[rateKey] || 0) : 0;
 };
 
-const getPartyMaterialRate = (party, materialType) => {
+const getPartyMaterialRate = (party, materialType, pricingMode = 'per_ton') => {
   if (!party || !materialType) return 0;
+  if (pricingMode === 'per_cubic_meter') return 0;
 
   if (materialType === '10mm') return Number(party.tenMmRate || 0);
   if (materialType === '20mm') return Number(party.twentyMmRate || 0);
@@ -197,10 +202,10 @@ const getPartyMaterialRate = (party, materialType) => {
   return 0;
 };
 
-const getSaleRateForParty = (user, party, materialType) => {
-  const partyRate = getPartyMaterialRate(party, materialType);
+const getSaleRateForParty = (user, party, materialType, pricingMode = 'per_ton') => {
+  const partyRate = getPartyMaterialRate(party, materialType, pricingMode);
   if (partyRate > 0) return partyRate;
-  return getCrusherMaterialRate(user, materialType);
+  return getCrusherMaterialRate(user, materialType, pricingMode);
 };
 
 const recalculateSaleAmount = (payload = {}) => calculateSaleTotalAmount({
@@ -790,14 +795,14 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
           customerAddress: '',
           rate: prev.materialType
             ? (() => {
-              const fallbackRate = getCrusherMaterialRate(user, prev.materialType);
+              const fallbackRate = getCrusherMaterialRate(user, prev.materialType, prev.pricingMode);
               return fallbackRate > 0 ? String(fallbackRate) : '';
             })()
             : '',
           totalAmount: prev.materialType
             ? recalculateSaleAmount({
               ...prev,
-              rate: getCrusherMaterialRate(user, prev.materialType),
+              rate: getCrusherMaterialRate(user, prev.materialType, prev.pricingMode),
             })
             : prev.totalAmount
         }));
@@ -808,7 +813,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
     const leadgerName = getLeadgerDisplayName(leadger);
     setLeadgerQuery(leadgerName);
     setFormData((prev) => {
-      const resolvedRate = prev.materialType ? getSaleRateForParty(user, leadger, prev.materialType) : 0;
+      const resolvedRate = prev.materialType ? getSaleRateForParty(user, leadger, prev.materialType, prev.pricingMode) : 0;
 
       return {
         ...prev,
@@ -837,7 +842,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
     const exactLeadger = findExactLeadger(value);
     if (exactLeadger) {
       setFormData((prev) => {
-        const resolvedRate = prev.materialType ? getSaleRateForParty(user, exactLeadger, prev.materialType) : 0;
+        const resolvedRate = prev.materialType ? getSaleRateForParty(user, exactLeadger, prev.materialType, prev.pricingMode) : 0;
 
         return {
           ...prev,
@@ -858,7 +863,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
     const firstMatch = matches[0] || null;
     setFormData((prev) => {
       const resolvedRate = prev.materialType
-        ? getSaleRateForParty(user, firstMatch, prev.materialType)
+        ? getSaleRateForParty(user, firstMatch, prev.materialType, prev.pricingMode)
         : 0;
 
       return {
@@ -932,7 +937,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
 
       if (linkedParty) {
         const partyName = getLeadgerDisplayName(linkedParty);
-        const resolvedRate = nextState.materialType ? getSaleRateForParty(user, linkedParty, nextState.materialType) : 0;
+        const resolvedRate = nextState.materialType ? getSaleRateForParty(user, linkedParty, nextState.materialType, nextState.pricingMode) : 0;
         nextState.party = linkedParty._id;
         nextState.customerName = partyName;
         nextState.customerPhone = '';
@@ -1035,7 +1040,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
     }
 
     setMaterialQuery(getMaterialDisplayName(material));
-    const configuredRate = getSaleRateForParty(user, selectedLeadger, material.value);
+    const configuredRate = getSaleRateForParty(user, selectedLeadger, material.value, formData.pricingMode);
       setFormData((prev) => ({
         ...prev,
         materialType: material.value,
@@ -1058,7 +1063,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
 
     const exactMaterial = findExactMaterialType(value);
     if (exactMaterial) {
-      const configuredRate = getSaleRateForParty(user, selectedLeadger, exactMaterial.value);
+      const configuredRate = getSaleRateForParty(user, selectedLeadger, exactMaterial.value, formData.pricingMode);
         setFormData((prev) => ({
           ...prev,
           materialType: exactMaterial.value,
@@ -1071,7 +1076,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
     }
 
     const firstMatch = findBestMaterialTypeMatch(value);
-    const configuredRate = firstMatch ? getSaleRateForParty(user, selectedLeadger, firstMatch.value) : 0;
+    const configuredRate = firstMatch ? getSaleRateForParty(user, selectedLeadger, firstMatch.value, formData.pricingMode) : 0;
       setFormData((prev) => ({
         ...prev,
         materialType: firstMatch?.value || '',
@@ -1365,6 +1370,9 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
     const cubicMeterQty = value === 'per_cubic_meter'
       ? (formData.cubicMeterQty || selectedVehicle?.capacityCubicMeter || '')
       : formData.cubicMeterQty;
+    const resolvedRate = formData.materialType
+      ? getSaleRateForParty(user, selectedLeadger, formData.materialType, value)
+      : Number(formData.rate || 0);
     const nextState = {
       ...formData,
       pricingMode: value,
@@ -1374,6 +1382,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
       netWeight: value === 'per_cubic_meter'
         ? ''
         : getSafeNetWeight(formData.grossWeight, formData.tareWeight),
+      rate: formData.materialType ? (resolvedRate > 0 ? String(resolvedRate) : '') : formData.rate,
     };
     setFormData({ ...nextState, totalAmount: recalculateSaleAmount(nextState) });
     setBasisListIndex(SALE_BASIS_OPTIONS.findIndex((option) => option.value === value));
@@ -1705,7 +1714,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
     }
     if (name === 'materialType') {
       const selectedMaterial = MATERIAL_TYPE_OPTIONS.find((item) => item.value === value) || null;
-      const configuredRate = getSaleRateForParty(user, selectedLeadger, value);
+      const configuredRate = getSaleRateForParty(user, selectedLeadger, value, formData.pricingMode);
       setFormData({
         ...formData,
         materialType: value,
@@ -1874,7 +1883,7 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
       const matched = MATERIAL_TYPE_OPTIONS.find((opt) => opt.value === normalizedMat);
       if (matched) {
         setMaterialQuery(getMaterialDisplayName(matched));
-        const configuredRate = getCrusherMaterialRate(user, matched.value);
+        const configuredRate = getCrusherMaterialRate(user, matched.value, prev.pricingMode);
           setFormData((prev) => ({
             ...prev,
             materialType: matched.value,

@@ -28,14 +28,23 @@ const sanitizeUser = (user) => ({
   },
   materialRates: {
     tenMmRate: Number(user.materialRates?.tenMmRate || 0),
+    tenMmRatePerCubicMeter: Number(user.materialRates?.tenMmRatePerCubicMeter || 0),
     twentyMmRate: Number(user.materialRates?.twentyMmRate || 0),
+    twentyMmRatePerCubicMeter: Number(user.materialRates?.twentyMmRatePerCubicMeter || 0),
     fortyMmRate: Number(user.materialRates?.fortyMmRate || 0),
+    fortyMmRatePerCubicMeter: Number(user.materialRates?.fortyMmRatePerCubicMeter || 0),
     sixtyMmRate: Number(user.materialRates?.sixtyMmRate || 0),
+    sixtyMmRatePerCubicMeter: Number(user.materialRates?.sixtyMmRatePerCubicMeter || 0),
     sixMmRate: Number(user.materialRates?.sixMmRate || 0),
+    sixMmRatePerCubicMeter: Number(user.materialRates?.sixMmRatePerCubicMeter || 0),
     fourMmRate: Number(user.materialRates?.fourMmRate || 0),
+    fourMmRatePerCubicMeter: Number(user.materialRates?.fourMmRatePerCubicMeter || 0),
     wmmRate: Number(user.materialRates?.wmmRate || 0),
+    wmmRatePerCubicMeter: Number(user.materialRates?.wmmRatePerCubicMeter || 0),
     gsbRate: Number(user.materialRates?.gsbRate || 0),
+    gsbRatePerCubicMeter: Number(user.materialRates?.gsbRatePerCubicMeter || 0),
     dustRate: Number(user.materialRates?.dustRate || 0),
+    dustRatePerCubicMeter: Number(user.materialRates?.dustRatePerCubicMeter || 0),
   },
 });
 
@@ -282,14 +291,23 @@ module.exports = {
       };
       user.materialRates = {
         tenMmRate: normalizeRateValue(req.body?.materialRates?.tenMmRate),
+        tenMmRatePerCubicMeter: normalizeRateValue(req.body?.materialRates?.tenMmRatePerCubicMeter),
         twentyMmRate: normalizeRateValue(req.body?.materialRates?.twentyMmRate),
+        twentyMmRatePerCubicMeter: normalizeRateValue(req.body?.materialRates?.twentyMmRatePerCubicMeter),
         fortyMmRate: normalizeRateValue(req.body?.materialRates?.fortyMmRate),
+        fortyMmRatePerCubicMeter: normalizeRateValue(req.body?.materialRates?.fortyMmRatePerCubicMeter),
         sixtyMmRate: normalizeRateValue(req.body?.materialRates?.sixtyMmRate),
+        sixtyMmRatePerCubicMeter: normalizeRateValue(req.body?.materialRates?.sixtyMmRatePerCubicMeter),
         sixMmRate: normalizeRateValue(req.body?.materialRates?.sixMmRate),
+        sixMmRatePerCubicMeter: normalizeRateValue(req.body?.materialRates?.sixMmRatePerCubicMeter),
         fourMmRate: normalizeRateValue(req.body?.materialRates?.fourMmRate),
+        fourMmRatePerCubicMeter: normalizeRateValue(req.body?.materialRates?.fourMmRatePerCubicMeter),
         wmmRate: normalizeRateValue(req.body?.materialRates?.wmmRate),
+        wmmRatePerCubicMeter: normalizeRateValue(req.body?.materialRates?.wmmRatePerCubicMeter),
         gsbRate: normalizeRateValue(req.body?.materialRates?.gsbRate),
+        gsbRatePerCubicMeter: normalizeRateValue(req.body?.materialRates?.gsbRatePerCubicMeter),
         dustRate: normalizeRateValue(req.body?.materialRates?.dustRate),
+        dustRatePerCubicMeter: normalizeRateValue(req.body?.materialRates?.dustRatePerCubicMeter),
       };
 
       await user.save();

@@ -54,7 +54,17 @@ const userSchema = new mongoose.Schema(
         default: 0,
         min: 0,
       },
+      tenMmRatePerCubicMeter: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
       twentyMmRate: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
+      twentyMmRatePerCubicMeter: {
         type: Number,
         default: 0,
         min: 0,
@@ -64,7 +74,17 @@ const userSchema = new mongoose.Schema(
         default: 0,
         min: 0,
       },
+      fortyMmRatePerCubicMeter: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
       sixtyMmRate: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
+      sixtyMmRatePerCubicMeter: {
         type: Number,
         default: 0,
         min: 0,
@@ -74,7 +94,17 @@ const userSchema = new mongoose.Schema(
         default: 0,
         min: 0,
       },
+      sixMmRatePerCubicMeter: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
       fourMmRate: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
+      fourMmRatePerCubicMeter: {
         type: Number,
         default: 0,
         min: 0,
@@ -84,12 +114,27 @@ const userSchema = new mongoose.Schema(
         default: 0,
         min: 0,
       },
+      wmmRatePerCubicMeter: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
       gsbRate: {
         type: Number,
         default: 0,
         min: 0,
       },
+      gsbRatePerCubicMeter: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
       dustRate: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
+      dustRatePerCubicMeter: {
         type: Number,
         default: 0,
         min: 0,

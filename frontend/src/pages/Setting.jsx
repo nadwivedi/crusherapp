@@ -18,14 +18,23 @@ const defaultSettings = {
 
 const defaultMaterialRates = {
   tenMmRate: '',
+  tenMmRatePerCubicMeter: '',
   twentyMmRate: '',
+  twentyMmRatePerCubicMeter: '',
   fortyMmRate: '',
+  fortyMmRatePerCubicMeter: '',
   sixtyMmRate: '',
+  sixtyMmRatePerCubicMeter: '',
   sixMmRate: '',
+  sixMmRatePerCubicMeter: '',
   fourMmRate: '',
+  fourMmRatePerCubicMeter: '',
   wmmRate: '',
+  wmmRatePerCubicMeter: '',
   gsbRate: '',
-  dustRate: ''
+  gsbRatePerCubicMeter: '',
+  dustRate: '',
+  dustRatePerCubicMeter: ''
 };
 
 const landingPageOptions = [
@@ -73,26 +82,35 @@ const readStoredSettings = () => {
 
 const readUserMaterialRates = (user) => ({
   tenMmRate: Number(user?.materialRates?.tenMmRate || 0) || '',
+  tenMmRatePerCubicMeter: Number(user?.materialRates?.tenMmRatePerCubicMeter || 0) || '',
   twentyMmRate: Number(user?.materialRates?.twentyMmRate || 0) || '',
+  twentyMmRatePerCubicMeter: Number(user?.materialRates?.twentyMmRatePerCubicMeter || 0) || '',
   fortyMmRate: Number(user?.materialRates?.fortyMmRate || 0) || '',
+  fortyMmRatePerCubicMeter: Number(user?.materialRates?.fortyMmRatePerCubicMeter || 0) || '',
   sixtyMmRate: Number(user?.materialRates?.sixtyMmRate || 0) || '',
+  sixtyMmRatePerCubicMeter: Number(user?.materialRates?.sixtyMmRatePerCubicMeter || 0) || '',
   sixMmRate: Number(user?.materialRates?.sixMmRate || 0) || '',
+  sixMmRatePerCubicMeter: Number(user?.materialRates?.sixMmRatePerCubicMeter || 0) || '',
   fourMmRate: Number(user?.materialRates?.fourMmRate || 0) || '',
+  fourMmRatePerCubicMeter: Number(user?.materialRates?.fourMmRatePerCubicMeter || 0) || '',
   wmmRate: Number(user?.materialRates?.wmmRate || 0) || '',
+  wmmRatePerCubicMeter: Number(user?.materialRates?.wmmRatePerCubicMeter || 0) || '',
   gsbRate: Number(user?.materialRates?.gsbRate || 0) || '',
-  dustRate: Number(user?.materialRates?.dustRate || 0) || ''
+  gsbRatePerCubicMeter: Number(user?.materialRates?.gsbRatePerCubicMeter || 0) || '',
+  dustRate: Number(user?.materialRates?.dustRate || 0) || '',
+  dustRatePerCubicMeter: Number(user?.materialRates?.dustRatePerCubicMeter || 0) || ''
 });
 
 const materialRateFields = [
-  { key: 'tenMmRate', label: '10mm Rate' },
-  { key: 'twentyMmRate', label: '20mm Rate' },
-  { key: 'fortyMmRate', label: '40mm Rate' },
-  { key: 'sixtyMmRate', label: '60mm Rate' },
-  { key: 'sixMmRate', label: '6mm Rate' },
-  { key: 'fourMmRate', label: '4mm Rate' },
-  { key: 'wmmRate', label: 'WMM Rate' },
-  { key: 'gsbRate', label: 'GSB Rate' },
-  { key: 'dustRate', label: 'Dust Rate' }
+  { tonKey: 'tenMmRate', cubicKey: 'tenMmRatePerCubicMeter', label: '10mm Rate' },
+  { tonKey: 'twentyMmRate', cubicKey: 'twentyMmRatePerCubicMeter', label: '20mm Rate' },
+  { tonKey: 'fortyMmRate', cubicKey: 'fortyMmRatePerCubicMeter', label: '40mm Rate' },
+  { tonKey: 'sixtyMmRate', cubicKey: 'sixtyMmRatePerCubicMeter', label: '60mm Rate' },
+  { tonKey: 'sixMmRate', cubicKey: 'sixMmRatePerCubicMeter', label: '6mm Rate' },
+  { tonKey: 'fourMmRate', cubicKey: 'fourMmRatePerCubicMeter', label: '4mm Rate' },
+  { tonKey: 'wmmRate', cubicKey: 'wmmRatePerCubicMeter', label: 'WMM Rate' },
+  { tonKey: 'gsbRate', cubicKey: 'gsbRatePerCubicMeter', label: 'GSB Rate' },
+  { tonKey: 'dustRate', cubicKey: 'dustRatePerCubicMeter', label: 'Dust Rate' }
 ];
 
 function SettingCard({ icon, title, description, children, className = '' }) {
@@ -223,14 +241,23 @@ export default function Setting() {
       await updateUserSettings({
         materialRates: {
           tenMmRate: Number(materialRates.tenMmRate || 0),
+          tenMmRatePerCubicMeter: Number(materialRates.tenMmRatePerCubicMeter || 0),
           twentyMmRate: Number(materialRates.twentyMmRate || 0),
+          twentyMmRatePerCubicMeter: Number(materialRates.twentyMmRatePerCubicMeter || 0),
           fortyMmRate: Number(materialRates.fortyMmRate || 0),
+          fortyMmRatePerCubicMeter: Number(materialRates.fortyMmRatePerCubicMeter || 0),
           sixtyMmRate: Number(materialRates.sixtyMmRate || 0),
+          sixtyMmRatePerCubicMeter: Number(materialRates.sixtyMmRatePerCubicMeter || 0),
           sixMmRate: Number(materialRates.sixMmRate || 0),
+          sixMmRatePerCubicMeter: Number(materialRates.sixMmRatePerCubicMeter || 0),
           fourMmRate: Number(materialRates.fourMmRate || 0),
+          fourMmRatePerCubicMeter: Number(materialRates.fourMmRatePerCubicMeter || 0),
           wmmRate: Number(materialRates.wmmRate || 0),
+          wmmRatePerCubicMeter: Number(materialRates.wmmRatePerCubicMeter || 0),
           gsbRate: Number(materialRates.gsbRate || 0),
-          dustRate: Number(materialRates.dustRate || 0)
+          gsbRatePerCubicMeter: Number(materialRates.gsbRatePerCubicMeter || 0),
+          dustRate: Number(materialRates.dustRate || 0),
+          dustRatePerCubicMeter: Number(materialRates.dustRatePerCubicMeter || 0)
         }
       });
       toast.success('Settings saved successfully');
@@ -247,14 +274,23 @@ export default function Setting() {
       await updateUserSettings({
         materialRates: {
           tenMmRate: 0,
+          tenMmRatePerCubicMeter: 0,
           twentyMmRate: 0,
+          twentyMmRatePerCubicMeter: 0,
           fortyMmRate: 0,
+          fortyMmRatePerCubicMeter: 0,
           sixtyMmRate: 0,
+          sixtyMmRatePerCubicMeter: 0,
           sixMmRate: 0,
+          sixMmRatePerCubicMeter: 0,
           fourMmRate: 0,
+          fourMmRatePerCubicMeter: 0,
           wmmRate: 0,
+          wmmRatePerCubicMeter: 0,
           gsbRate: 0,
-          dustRate: 0
+          gsbRatePerCubicMeter: 0,
+          dustRate: 0,
+          dustRatePerCubicMeter: 0
         }
       });
       toast.success('Settings reset to default');
@@ -337,24 +373,45 @@ export default function Setting() {
               title="Crusher Material Rates"
               icon={<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-12V4m0 16v-2m8-6a8 8 0 11-16 0 8 8 0 0116 0z" /></svg>}
             >
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                 {materialRateFields.map((field) => (
-                  <label key={field.key} className="block">
-                    <span className="mb-1 block text-[13px] font-medium text-slate-700">{field.label}</span>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        name={field.key}
-                        value={materialRates[field.key]}
-                        onChange={handleMaterialRateChange}
-                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 pr-16 text-[13px] font-semibold text-slate-800 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
-                        placeholder="0"
-                      />
-                      <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Rs / Ton</span>
+                  <div key={field.tonKey} className="rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+                    <span className="mb-2 block text-[13px] font-medium text-slate-700">{field.label}</span>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <label className="block">
+                        <span className="mb-1 block text-[12px] font-medium text-slate-600">Per Ton</span>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            name={field.tonKey}
+                            value={materialRates[field.tonKey]}
+                            onChange={handleMaterialRateChange}
+                            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 pr-16 text-[13px] font-semibold text-slate-800 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                            placeholder="0"
+                          />
+                          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Rs / Ton</span>
+                        </div>
+                      </label>
+                      <label className="block">
+                        <span className="mb-1 block text-[12px] font-medium text-slate-600">Per M³</span>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            name={field.cubicKey}
+                            value={materialRates[field.cubicKey]}
+                            onChange={handleMaterialRateChange}
+                            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 pr-16 text-[13px] font-semibold text-slate-800 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                            placeholder="0"
+                          />
+                          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Rs / M³</span>
+                        </div>
+                      </label>
                     </div>
-                  </label>
+                  </div>
                 ))}
               </div>
             </SettingCard>
