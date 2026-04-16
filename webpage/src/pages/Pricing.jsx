@@ -5,7 +5,7 @@ import Seo from '../components/Seo';
 const plans = [
   {
     name: 'Basic',
-    price: 'Rs 14,999',
+    price: 'Rs 13,999',
     period: 'per year',
     badge: 'Starter Plan',
     tone: 'border-gray-200 bg-white',
@@ -21,7 +21,7 @@ const plans = [
   },
   {
     name: 'Advanced',
-    price: 'Rs 19,999',
+    price: 'Rs 17,999',
     period: 'per year',
     badge: 'Most Popular',
     tone: 'border-orange-200 bg-gradient-to-br from-orange-50 to-white',
@@ -65,7 +65,7 @@ export default function Pricing() {
     <div className="w-full bg-gray-50 pt-10 pb-24">
       <Seo
         title="Crusher ERP Pricing"
-        description="CrusherBook pricing includes Basic at Rs 14,999 per year and Advanced at Rs 19,999 per year with auto slip and weightbridge entry support."
+        description="CrusherBook pricing includes Basic at Rs 13,999 per year and Advanced at Rs 17,999 per year with auto slip and weightbridge entry support."
         path="/pricing"
         keywords={[
           'crusher software pricing',
