@@ -219,15 +219,15 @@ const deriveSaleType = (totalAmountValue, paidAmountValue) => {
   const totalAmount = Math.max(0, Number(totalAmountValue || 0));
   const paidAmount = Math.max(0, Number(paidAmountValue || 0));
 
-  if (paidAmount <= 0) return 'credit sale';
-  if (paidAmount === totalAmount) return 'cash sale';
-  return 'sale';
+  if (paidAmount <= 0) return 'credit';
+  if (paidAmount >= totalAmount) return 'cash';
+  return 'partial';
 };
 
 const formatSaleTypeLabel = (value) => {
-  if (value === 'sale') return 'Sale';
-  if (value === 'cash sale') return 'Cash Sale';
-  return 'Credit Sale';
+  if (value === 'cash') return 'Cash';
+  if (value === 'partial') return 'Partial';
+  return 'Credit';
 };
 
 const getSaleQtyLabel = (sale) => {
@@ -2689,17 +2689,23 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
                     </td>
                     <td className="px-6 py-4 text-center">
                       <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${
-                        sale.type === 'cash sale'
+                        sale.type === 'cash'
                           ? 'border border-emerald-200 bg-emerald-50 text-emerald-700'
-                          : sale.type === 'sale'
+                          : sale.type === 'partial'
                             ? 'border border-amber-200 bg-amber-50 text-amber-700'
                             : 'border border-rose-200 bg-rose-50 text-rose-700'
                       }`}>
                         {formatSaleTypeLabel(sale.type)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right text-xs font-black text-emerald-600">
-                      Rs {Number(sale.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    <td className="px-6 py-4 text-right text-xs">
+                      <p className="font-black text-emerald-600">Rs {Number(sale.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
+                      {Number(sale.paidAmount || 0) > 0 && (
+                        <p className="mt-0.5 text-slate-500">Paid: <span className="font-semibold text-emerald-700">Rs {Number(sale.paidAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></p>
+                      )}
+                      {Number(sale.totalAmount || 0) - Number(sale.paidAmount || 0) > 0 && (
+                        <p className="mt-0.5 text-slate-500">Bal: <span className="font-semibold text-rose-600">Rs {(Number(sale.totalAmount || 0) - Number(sale.paidAmount || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></p>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-center">
                       {sale.slipImg ? (

@@ -96,8 +96,8 @@ const salesSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["sale", "cash sale", "credit sale"],
-      default: "credit sale",
+      enum: ["cash", "credit", "partial"],
+      default: "credit",
       trim: true,
     },
     slipImg: {

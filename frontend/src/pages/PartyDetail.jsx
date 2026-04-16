@@ -712,7 +712,15 @@ export default function PartyDetail() {
                         )}
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-bold text-slate-900">{formatCurrency(row.amount)}</p>
+                        {row.type === 'sale' ? (
+                          <div className="space-y-0.5">
+                            <p className="text-xs text-slate-500">Total: <span className="font-bold text-slate-900">{formatCurrency(row.amount)}</span></p>
+                            <p className="text-xs text-slate-500">Paid: <span className="font-bold text-emerald-600">{formatCurrency(row.paidAmount)}</span></p>
+                            <p className="text-xs text-slate-500">Bal: <span className={`font-bold ${Number(row.impact || 0) > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>{formatCurrency(Math.abs(Number(row.impact || 0)))}</span></p>
+                          </div>
+                        ) : (
+                          <p className="text-sm font-bold text-slate-900">{formatCurrency(row.amount)}</p>
+                        )}
                         <p className={`mt-1 text-xs font-semibold ${Number(row.displayRunningBalance || 0) >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
                           Bal {formatCurrency(row.displayRunningBalance)}
                         </p>
@@ -797,7 +805,15 @@ export default function PartyDetail() {
                           </div>
                         </td>
                         <td className="border border-slate-300 px-4 py-3 text-center font-semibold text-slate-900">
-                          {formatCurrency(row.amount)}
+                          {row.type === 'sale' ? (
+                            <div className="space-y-1 text-xs">
+                              <p className="text-slate-500">Total: <span className="font-bold text-slate-900">{formatCurrency(row.amount)}</span></p>
+                              <p className="text-slate-500">Paid: <span className="font-bold text-emerald-600">{formatCurrency(row.paidAmount)}</span></p>
+                              <p className="text-slate-500">Bal: <span className={`font-bold ${Number(row.impact || 0) > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>{formatCurrency(Math.abs(Number(row.impact || 0)))}</span></p>
+                            </div>
+                          ) : (
+                            formatCurrency(row.amount)
+                          )}
                         </td>
                         <td className={`border border-slate-300 px-4 py-3 text-center font-semibold ${Number(row.displayRunningBalance || 0) >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
                           {formatCurrency(row.displayRunningBalance)}

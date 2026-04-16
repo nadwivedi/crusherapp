@@ -923,9 +923,14 @@ export default function AddSalePopup({
                     />
                     <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-600">
                       <p className="font-semibold text-slate-800">{saleTypePreview || 'Credit Sale'}</p>
-                      <p className="mt-1">Pending: Rs {Number(pendingAmountPreview || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                      {Number(excessAmountPreview || 0) > 0 ? (
-                        <p className="mt-1 text-sky-700">Extra receipt for old dues: Rs {Number(excessAmountPreview || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                      <p className="mt-1">
+                        Sale Balance:
+                        <span className={Number(formData.totalAmount || 0) - Number(formData.paidAmount || 0) < 0 ? 'text-rose-600 font-bold ml-1' : 'text-slate-800 font-bold ml-1'}>
+                          Rs {(Number(formData.totalAmount || 0) - Number(formData.paidAmount || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </p>
+                      {Number(formData.totalAmount || 0) - Number(formData.paidAmount || 0) < 0 ? (
+                        <p className="mt-1 text-sky-700 font-semibold">Overpayment will act as an advance (decreases Party balance).</p>
                       ) : null}
                     </div>
                   </div>

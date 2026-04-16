@@ -194,7 +194,7 @@ const buildLedgerRowsForParty = ({ party, sales, purchases, receipts, payments, 
       .filter((item) => withinRange(item.saleDate || item.createdAt, fromDate, toDate))
       .map((item) => {
         const saleAmounts = getSaleAmounts(item);
-        const saleImpact = item.type === "cash sale" ? 0 : saleAmounts.totalAmount;
+        const saleImpact = saleAmounts.totalAmount - saleAmounts.paidAmount;
         const pricingMode = String(item.pricingMode || "").trim().toLowerCase();
 
         return {
@@ -209,13 +209,14 @@ const buildLedgerRowsForParty = ({ party, sales, purchases, receipts, payments, 
           entryCreatedAt: item.createdAt,
           refNumber: item.invoiceNumber || "-",
           itemSummary: buildSaleSummary(item),
-          note: item.type === "cash sale" ? "Cash sale does not create receivable." : "",
+          note: "",
           method: item.vehicleNo || "-",
           pricingMode,
           quantity: pricingMode === "per_cubic_meter"
             ? toNumber(item.cubicMeterQty)
             : toNumber(item.netWeight, toNumber(item.materialWeight)),
           amount: saleAmounts.totalAmount,
+          paidAmount: saleAmounts.paidAmount,
           impact: saleImpact,
         };
       }),
@@ -774,7 +775,7 @@ const getDayBook = async (req, res) => {
         .filter((item) => withinRange(item.saleDate || item.createdAt, fromDate, toDate))
         .map((item) => {
           const saleAmounts = getSaleAmounts(item);
-          const saleCashIn = item.type === "cash sale" ? saleAmounts.appliedAmount : 0;
+          const saleCashIn = saleAmounts.paidAmount;
 
           return {
           type: "sale",
@@ -794,6 +795,8 @@ const getDayBook = async (req, res) => {
                 ? `Qty ${toNumber(item.cubicMeterQty)} m³`
                 : `Qty ${toNumber(item.netWeight)} kg (${toNumber(item.netWeight) / 1000} ton)`,
             ].filter(Boolean).join(" | ") || "-",
+            totalAmount: saleAmounts.totalAmount,
+            paidAmount: saleAmounts.paidAmount,
             amount: saleAmounts.totalAmount,
             inAmount: saleCashIn,
             outAmount: 0,

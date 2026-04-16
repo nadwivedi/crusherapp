@@ -26,9 +26,9 @@ const formatTime = (value) => {
 };
 
 const formatSaleTypeLabel = (value) => {
-  if (value === 'cash sale') return 'Cash Sale';
-  if (value === 'credit sale') return 'Credit Sale';
-  return 'Sale';
+  if (value === 'partial') return 'Partial';
+  if (value === 'cash') return 'Cash';
+  return 'Credit';
 };
 
 const getSaleQtyLabel = (sale) => {

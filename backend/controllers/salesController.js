@@ -7,9 +7,9 @@ const Vehicle = require("../models/Vehicle");
 const { scopedFilter, scopedIdFilter } = require("../utils/ownership");
 
 const SALE_TYPES = {
-  SALE: "sale",
-  CREDIT: "credit sale",
-  CASH: "cash sale",
+  CREDIT: "credit",
+  CASH: "cash",
+  PARTIAL: "partial",
 };
 
 const AUTO_RECEIPT_SOURCES = ["sale-payment", "sale-excess-payment"];
@@ -177,10 +177,10 @@ const getSalePaymentBreakdown = (totalAmountValue, paidAmountValue) => {
   let type = SALE_TYPES.CREDIT;
   if (paidAmount <= 0) {
     type = SALE_TYPES.CREDIT;
-  } else if (paidAmount === totalAmount) {
+  } else if (paidAmount >= totalAmount) {
     type = SALE_TYPES.CASH;
   } else {
-    type = SALE_TYPES.SALE;
+    type = SALE_TYPES.PARTIAL;
   }
 
   return {
@@ -201,38 +201,6 @@ const syncSaleAutoReceipts = async (saleDoc, userId) => {
     originSaleId: saleDoc._id,
     receiptSource: { $in: AUTO_RECEIPT_SOURCES },
   });
-
-  if (breakdown.appliedAmount > 0 && breakdown.appliedAmount < breakdown.totalAmount) {
-    await Receipt.create({
-      userId,
-      party: saleDoc.partyId || null,
-      refType: "sale",
-      refId: saleDoc._id,
-      originSaleId: saleDoc._id,
-      amount: breakdown.appliedAmount,
-      receiptNumber: await getNextReceiptNumber(userId),
-      method: "Cash Account",
-      receiptDate: saleDoc.saleDate || new Date(),
-      notes: `Auto receipt for ${saleDoc.invoiceNumber || "sale payment"}`,
-      receiptSource: "sale-payment",
-    });
-  }
-
-  if (breakdown.excessAmount > 0) {
-    await Receipt.create({
-      userId,
-      party: saleDoc.partyId || null,
-      refType: "none",
-      refId: null,
-      originSaleId: saleDoc._id,
-      amount: breakdown.excessAmount,
-      receiptNumber: await getNextReceiptNumber(userId),
-      method: "Cash Account",
-      receiptDate: saleDoc.saleDate || new Date(),
-      notes: `Auto excess receipt for ${saleDoc.invoiceNumber || "sale payment"}`,
-      receiptSource: "sale-excess-payment",
-    });
-  }
 
   return breakdown;
 };

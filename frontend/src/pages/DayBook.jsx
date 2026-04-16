@@ -288,6 +288,7 @@ export default function DayBook() {
                   <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Voucher No.</th>
                   <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Party Name</th>
                   <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Method</th>
+                  <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Total / Paid</th>
                   <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Money In</th>
                   <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Money Out</th>
                 </tr>
@@ -342,6 +343,16 @@ export default function DayBook() {
                           <p className="text-sm text-slate-500 capitalize lg:text-[12px] xl:text-sm">{entry.method || '-'}</p>
                         </td>
                         <td className="px-6 py-4 text-right lg:px-4 lg:py-3 xl:px-6 xl:py-4">
+                          {entry.type === 'sale' ? (
+                            <div className="space-y-0.5 text-xs">
+                              <p className="text-slate-500">Total: <span className="font-bold text-slate-800">{formatCurrency(entry.totalAmount)}</span></p>
+                              <p className="text-slate-500">Paid: <span className="font-bold text-emerald-600">{formatCurrency(entry.paidAmount)}</span></p>
+                            </div>
+                          ) : (
+                            <span className="text-slate-300">-</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-right lg:px-4 lg:py-3 xl:px-6 xl:py-4">
                           {inAmount > 0 ? (
                             <p className="text-sm font-bold text-emerald-600 lg:text-[12px] xl:text-sm">+{formatCurrency(inAmount)}</p>
                           ) : <span className="text-slate-300">-</span>}
@@ -356,7 +367,7 @@ export default function DayBook() {
                   })
                 ) : (
                   <tr>
-                    <td colSpan={7} className="px-6 py-16 text-center">
+                    <td colSpan={8} className="px-6 py-16 text-center">
                       <div className="flex flex-col items-center">
                         <div className="p-4 rounded-full bg-slate-100 mb-4">
                           <BookText className="w-8 h-8 text-slate-400" />
