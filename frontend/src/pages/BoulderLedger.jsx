@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CalendarDays, RefreshCw, Search, Truck } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import apiClient from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import BoulderEntry from './BoulderEntry/BoulderEntry';
@@ -86,6 +87,7 @@ const resolvePresetRange = (preset) => {
 };
 
 export default function BoulderLedger() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const canDeleteBoulders = user?.role !== 'employee' && (user?.role === 'owner' || user?.permissions?.edit);
   const [boulders, setBoulders] = useState([]);
@@ -95,6 +97,17 @@ export default function BoulderLedger() {
   const [datePreset, setDatePreset] = useState('');
   const [{ fromDate, toDate }, setDateRange] = useState({ fromDate: '', toDate: '' });
   const [editingEntry, setEditingEntry] = useState(null);
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        navigate('/');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [navigate]);
 
   useEffect(() => {
     loadBoulders();

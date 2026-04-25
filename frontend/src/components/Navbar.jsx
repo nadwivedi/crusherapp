@@ -14,7 +14,6 @@ import {
 
 const LEDGER_BUTTONS = [
   { id: 'party-ledger', label: 'Party', icon: Users, color: 'emerald' },
-  { id: 'daybook', label: 'Day Book', icon: BookOpen, color: 'sky' },
   { id: 'boulder-ledger', label: 'Boulder', icon: Package, color: 'amber', path: '/reports/boulder-ledger' },
   { id: 'sales-report', label: 'Sales', icon: TrendingUp, color: 'violet', path: '/reports/sales-report' },
   { id: 'expense-ledger', label: 'Expense', icon: Receipt, color: 'rose' },
@@ -65,7 +64,7 @@ export default function Navbar({ onToggleMobileSidebar = null, activeView = 'day
     };
 
     const style = config[btn.color];
-    return `flex items-center gap-2 rounded-xl bg-gradient-to-br ${style.bg} px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-white transition-all duration-200 shadow-md ${style.shadow} hover:-translate-y-0.5 hover:brightness-110 border ${isActive ? style.active : 'border-transparent opacity-90 hover:opacity-100'}`;
+    return `flex items-center gap-2 rounded-xl bg-gradient-to-br ${style.bg} px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-white transition-all duration-200 shadow-md ${style.shadow} hover:-translate-y-0.5 hover:brightness-110 border cursor-pointer ${isActive ? style.active : 'border-transparent opacity-90 hover:opacity-100'}`;
   };
 
   const handleButtonClick = (btn) => {
@@ -85,7 +84,7 @@ export default function Navbar({ onToggleMobileSidebar = null, activeView = 'day
             <button
               type="button"
               onClick={() => onToggleMobileSidebar?.()}
-              className="p-2 rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm"
+              className="p-2 rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm cursor-pointer"
             >
               <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
@@ -93,10 +92,10 @@ export default function Navbar({ onToggleMobileSidebar = null, activeView = 'day
             </button>
             
             <div className="flex gap-2">
-              <Link to="/masters" className="flex items-center justify-center p-2 rounded-xl bg-gradient-to-br from-slate-700 to-slate-900 text-white shadow-md">
+              <Link to="/masters" className="flex items-center justify-center p-2 rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50 cursor-pointer">
                 <ClipboardList size={18} />
               </Link>
-              <Link to="/settings" className="flex items-center justify-center p-2 rounded-xl bg-gradient-to-br from-slate-700 to-slate-900 text-white shadow-md">
+              <Link to="/settings" className="flex items-center justify-center p-2 rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50 cursor-pointer">
                 <Settings size={18} />
               </Link>
             </div>
@@ -133,16 +132,16 @@ export default function Navbar({ onToggleMobileSidebar = null, activeView = 'day
 
           <nav className="flex items-center gap-3">
             {[
-              { label: 'Masters', path: '/masters', icon: ClipboardList, color: 'from-blue-600 to-indigo-700' },
-              { label: 'Reports', path: '/reports', icon: BarChart2, color: 'from-sky-600 to-blue-700' },
-              { label: 'Settings', path: '/settings', icon: Settings, color: 'from-slate-700 to-slate-900' },
+              { label: 'Masters', path: '/masters', icon: ClipboardList },
+              { label: 'Reports', path: '/reports', icon: BarChart2 },
+              { label: 'Settings', path: '/settings', icon: Settings },
             ].map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-2 rounded-full bg-gradient-to-br ${item.color} px-5 py-2 text-[10px] font-bold uppercase tracking-wider text-white transition-all duration-200 shadow-md hover:-translate-y-0.5 hover:brightness-110`}
+                className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-700 transition-all duration-200 shadow-sm hover:border-slate-300 hover:bg-slate-50 hover:-translate-y-0.5 cursor-pointer"
               >
-                <item.icon size={14} strokeWidth={2.5} />
+                <item.icon size={14} strokeWidth={2} className="text-slate-500" />
                 {item.label}
               </Link>
             ))}

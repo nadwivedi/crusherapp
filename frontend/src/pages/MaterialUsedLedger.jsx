@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CalendarDays, Package, RefreshCw, Search, Truck } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import apiClient from '../utils/api';
 
 const formatNumber = (value) => Number(value || 0).toLocaleString('en-IN', {
@@ -58,12 +59,23 @@ const resolvePresetRange = (preset) => {
 };
 
 export default function MaterialUsedLedger() {
+  const navigate = useNavigate();
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [datePreset, setDatePreset] = useState('');
   const [{ fromDate, toDate }, setDateRange] = useState({ fromDate: '', toDate: '' });
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        navigate('/');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [navigate]);
 
   useEffect(() => {
     loadEntries();

@@ -137,6 +137,16 @@ export default function DayBook() {
     loadDayBook(today, today);
   }, [today]);
 
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        navigate('/');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [navigate]);
+
   const filteredEntries = useMemo(() => {
     let filtered = [...entries];
     if (typeFilter !== 'all') {

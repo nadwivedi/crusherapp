@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Boxes } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import apiClient from '../utils/api';
 
 const formatNumber = (value) => Number(value || 0).toLocaleString('en-IN');
@@ -17,12 +18,23 @@ const formatDate = (value) => {
 };
 
 export default function StockLedger() {
+  const navigate = useNavigate();
   const [stockLedger, setStockLedger] = useState({ ledger: [], currentStock: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   const stockLedgerRows = stockLedger?.ledger || [];
   const currentStockRows = stockLedger?.currentStock || [];
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        navigate('/');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [navigate]);
 
   useEffect(() => {
     loadData();

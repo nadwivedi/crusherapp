@@ -104,20 +104,6 @@ export default function PartyLedger() {
             <Icon className="w-3.5 h-3.5 text-white" />
           </div>
         </div>
-        <div className="text-xl font-black leading-tight text-slate-800">{value}</div>
-        <div className="text-xs text-slate-500 mt-0.5">{subtitle}</div>
-      </div>
-    </div>
-  );
-
-  const handlePartyClick = (party) => {
-    navigate(`/party/${party._id}`);
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-stone-100 flex items-center justify-center">
-        <div className="text-center">
           <RefreshCw className="w-8 h-8 animate-spin text-sky-500 mx-auto" />
           <p className="mt-4 text-slate-600 font-semibold">Loading parties...</p>
         </div>

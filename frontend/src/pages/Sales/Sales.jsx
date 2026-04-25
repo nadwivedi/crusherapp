@@ -415,6 +415,16 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
   }, []);
 
   useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape' && !showForm && !showPartyForm && !showProductForm && !showVehicleForm) {
+        navigate('/');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [navigate, showForm, showPartyForm, showProductForm, showVehicleForm]);
+
+  useEffect(() => {
     if (location.state?.openShortcut !== 'sale' || showForm) return;
 
     handleOpenForm();

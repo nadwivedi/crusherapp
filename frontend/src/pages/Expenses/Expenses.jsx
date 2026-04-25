@@ -152,6 +152,16 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
   }, []);
 
   useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape' && !showForm && !showExpenseTypePicker && !showPurchaseExpenseModal) {
+        navigate('/');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [navigate, showForm, showExpenseTypePicker, showPurchaseExpenseModal]);
+
+  useEffect(() => {
     fetchExpenseGroups();
     fetchParties();
   }, []);
