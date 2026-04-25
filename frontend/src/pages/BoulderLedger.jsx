@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CalendarDays, RefreshCw, Search, Truck } from 'lucide-react';
+import { CalendarDays, Eye, Pencil, RefreshCw, Search, Trash2, Truck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../utils/api';
 import { useAuth } from '../context/AuthContext';
@@ -296,7 +296,93 @@ export default function BoulderLedger() {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="md:hidden">
+            {filteredBoulders.length > 0 ? (
+              <div className="grid grid-cols-1 gap-4 p-4">
+                {filteredBoulders.map((entry) => (
+                  <div key={entry._id} className="group relative overflow-hidden rounded-[24px] border border-slate-100 bg-white p-5 shadow-md transition-all hover:shadow-xl">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-600 text-white shadow-lg shadow-sky-500/20">
+                          <Truck className="h-6 w-6" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{formatDate(entry.boulderDate || entry.createdAt)}</p>
+                          <h3 className="text-base font-black text-slate-800">{entry.vehicleNo || '-'}</h3>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleEdit(entry)}
+                          className="p-2 rounded-xl border border-slate-100 bg-slate-50 text-blue-600 hover:bg-blue-50"
+                        >
+                          <Pencil size={16} />
+                        </button>
+                        {canDeleteBoulders && (
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(entry._id)}
+                            className="p-2 rounded-xl border border-slate-100 bg-slate-50 text-rose-600 hover:bg-rose-50"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center rounded-xl bg-slate-50 px-4 py-2.5">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Supplier</span>
+                        <span className="text-xs font-black text-slate-700 truncate max-w-[150px]">{getPartyDisplayName(entry)}</span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2.5">
+                          <p className="text-[9px] font-bold uppercase tracking-widest text-emerald-600 mb-1">Net Weight</p>
+                          <p className="text-sm font-black text-emerald-700">{formatNumber(entry.netWeight)} <span className="text-[10px]">KG</span></p>
+                        </div>
+                        <div className="rounded-xl border border-rose-100 bg-rose-50 px-3 py-2.5">
+                          <p className="text-[9px] font-bold uppercase tracking-widest text-rose-600 mb-1">Total Amount</p>
+                          <p className="text-sm font-black text-rose-700">{formatCurrency(entry.amount)}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-50">
+                        <div className="flex gap-4">
+                          <div>
+                            <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Time In</p>
+                            <p className="text-[11px] font-black text-slate-600">{entry.entryTime || '-'}</p>
+                          </div>
+                          <div>
+                            <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Time Out</p>
+                            <p className="text-[11px] font-black text-slate-600">{entry.exitTime || '-'}</p>
+                          </div>
+                        </div>
+                        {entry.slipImg && (
+                          <a
+                            href={entry.slipImg}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex items-center gap-1.5 rounded-lg bg-sky-500 px-3 py-1.5 text-[10px] font-bold text-white shadow-sm shadow-sky-500/20"
+                          >
+                            <Eye size={12} />
+                            SLIP
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="px-6 py-16 text-center">
+                <p className="text-sm font-bold text-slate-500">No entries found for the selected filters.</p>
+              </div>
+            )}
+          </div>
+
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[1120px]">
               <thead>
                 <tr className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 text-white">
