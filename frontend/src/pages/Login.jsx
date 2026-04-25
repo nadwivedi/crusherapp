@@ -77,8 +77,8 @@ export default function Login() {
     setFormData({ ...formData, [name]: value });
   };
 
-  const inputClasses = "w-full px-4 py-3 bg-white/50 border-2 border-orange-200/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white focus:border-orange-500 transition-all duration-300 text-gray-800 text-sm placeholder-gray-400";
-  const labelClasses = "block text-sm font-semibold text-gray-700 mb-2";
+  const inputClasses = "w-full px-4 py-2 sm:py-3 bg-white/50 border-2 border-orange-200/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white focus:border-orange-500 transition-all duration-300 text-gray-800 text-sm placeholder-gray-400";
+  const labelClasses = "block text-[13px] sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2";
 
   return (
     <div className="min-h-screen flex">
@@ -113,8 +113,8 @@ export default function Login() {
 
       <div className="w-full lg:w-1/2 bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center p-6">
         <div className="w-full max-w-md">
-          <div className="lg:hidden text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-orange-500 to-amber-600 rounded-2xl mb-4 shadow-lg shadow-orange-500/30">
+          <div className="lg:hidden text-center mb-4 sm:mb-8">
+            <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-orange-500 to-amber-600 rounded-2xl mb-2 sm:mb-4 shadow-lg shadow-orange-500/30">
               <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
               </svg>
@@ -123,20 +123,20 @@ export default function Login() {
             <p className="text-gray-500 text-sm">Software</p>
           </div>
 
-          <div className="bg-white rounded-3xl shadow-xl shadow-orange-900/10 p-8 border border-orange-100">
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-gray-800 mb-1">
+          <div className="bg-white rounded-3xl shadow-xl shadow-orange-900/10 p-5 sm:p-8 border border-orange-100">
+            <div className="mb-3 sm:mb-6">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-0.5 sm:mb-1">
                 {isLogin ? 'Welcome Back' : 'Create Account'}
               </h2>
-              <p className="text-gray-500 text-sm">
+              <p className="text-gray-500 text-[12px] sm:text-sm">
                 {isLogin ? 'Sign in to continue to your dashboard' : 'Register your company to get started'}
               </p>
             </div>
 
-            <div className="flex bg-orange-50 p-1 rounded-xl mb-6">
+            <div className="flex bg-orange-50 p-1 rounded-xl mb-4 sm:mb-6">
               <button
                 onClick={() => setIsLogin(true)}
-                className={`flex-1 py-3 px-4 rounded-lg font-semibold text-sm transition-all duration-300 ${
+                className={`flex-1 py-2 sm:py-3 px-4 rounded-lg font-semibold text-[13px] sm:text-sm transition-all duration-300 ${
                   isLogin
                     ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md'
                     : 'text-orange-600 hover:bg-orange-100'
@@ -146,7 +146,7 @@ export default function Login() {
               </button>
               <button
                 onClick={() => setIsLogin(false)}
-                className={`flex-1 py-3 px-4 rounded-lg font-semibold text-sm transition-all duration-300 ${
+                className={`flex-1 py-2 sm:py-3 px-4 rounded-lg font-semibold text-[13px] sm:text-sm transition-all duration-300 ${
                   !isLogin
                     ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md'
                     : 'text-orange-600 hover:bg-orange-100'
@@ -158,10 +158,10 @@ export default function Login() {
 
             {isLogin ? (
               <>
-                <div className="flex border-b border-orange-200 mb-6">
+                <div className="flex border-b border-orange-200 mb-4 sm:mb-6">
                   <button
                     onClick={() => setLoginType('owner')}
-                    className={`flex-1 py-2 font-semibold text-sm transition border-b-2 ${
+                    className={`flex-1 py-1 sm:py-2 font-semibold text-[12px] sm:text-sm transition border-b-2 ${
                       loginType === 'owner' ? 'border-orange-500 text-orange-600' : 'border-transparent text-gray-400 hover:text-gray-600'
                     }`}
                   >
@@ -169,7 +169,7 @@ export default function Login() {
                   </button>
                   <button
                     onClick={() => setLoginType('staff')}
-                    className={`flex-1 py-2 font-semibold text-sm transition border-b-2 ${
+                    className={`flex-1 py-1 sm:py-2 font-semibold text-[12px] sm:text-sm transition border-b-2 ${
                       loginType === 'staff' ? 'border-orange-500 text-orange-600' : 'border-transparent text-gray-400 hover:text-gray-600'
                     }`}
                   >
@@ -177,7 +177,7 @@ export default function Login() {
                   </button>
                 </div>
 
-                <form onSubmit={handleLoginSubmit} className="space-y-4">
+                <form onSubmit={handleLoginSubmit} className="space-y-3 sm:space-y-4">
                   <div>
                     <label className={labelClasses}>{loginType === 'owner' ? 'Email / Mobile' : 'Staff Mobile Number'}</label>
                     <input
@@ -223,14 +223,14 @@ export default function Login() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-gradient-to-r from-orange-500 to-amber-500 text-white py-4 px-6 rounded-xl font-semibold text-base hover:from-orange-600 hover:to-amber-600 transition-all duration-300 shadow-lg shadow-orange-500/30 hover:shadow-orange-500/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-gradient-to-r from-orange-500 to-amber-500 text-white py-2.5 sm:py-4 px-6 rounded-xl font-semibold text-sm sm:text-base hover:from-orange-600 hover:to-amber-600 transition-all duration-300 shadow-lg shadow-orange-500/30 hover:shadow-orange-500/40 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {loading ? 'Signing in...' : (loginType === 'staff' ? 'Staff Login' : 'Owner Login')}
                   </button>
                 </form>
               </>
             ) : (
-              <form onSubmit={handleRegisterSubmit} className="space-y-4">
+              <form onSubmit={handleRegisterSubmit} className="space-y-3 sm:space-y-4">
                 <div>
                   <label className={labelClasses}>Company *</label>
                   <input
@@ -273,14 +273,14 @@ export default function Login() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-gradient-to-r from-orange-500 to-amber-500 text-white py-4 px-6 rounded-xl font-semibold text-base hover:from-orange-600 hover:to-amber-600 transition-all duration-300 shadow-lg shadow-orange-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-gradient-to-r from-orange-500 to-amber-500 text-white py-2.5 sm:py-4 px-6 rounded-xl font-semibold text-sm sm:text-base hover:from-orange-600 hover:to-amber-600 transition-all duration-300 shadow-lg shadow-orange-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? 'Creating...' : 'Create Account'}
                 </button>
               </form>
             )}
 
-            <p className="text-center text-gray-500 text-sm mt-6">
+            <p className="text-center text-gray-500 text-[12px] sm:text-sm mt-4 sm:mt-6">
               {isLogin ? "Don't have an account? " : 'Already have an account? '}
               <button
                 onClick={() => {
@@ -299,7 +299,7 @@ export default function Login() {
             </p>
           </div>
 
-          <p className="text-center text-gray-400 text-xs mt-6">
+          <p className="text-center text-gray-400 text-[10px] sm:text-xs mt-4 sm:mt-6">
             &copy; 2026 Crusher Management Software. All rights reserved.
           </p>
         </div>
