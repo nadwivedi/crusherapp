@@ -34,7 +34,7 @@ export default function Sidebar({
   ), [shortcuts, showExtraShortcuts]);
 
   return (
-    <aside className={`relative w-full overflow-hidden rounded-[20px] border border-slate-200/15 bg-[linear-gradient(165deg,rgba(30,41,59,0.92),rgba(51,65,85,0.9),rgba(71,85,105,0.88))] shadow-[0_24px_60px_rgba(15,23,42,0.34),0_0_42px_rgba(14,165,233,0.08)] sm:rounded-[30px] lg:sticky lg:top-4 lg:self-start xl:top-5 ${className}`}>
+    <aside className={`relative w-full overflow-hidden lg:rounded-none border-r border-slate-200/15 bg-[linear-gradient(165deg,rgba(30,41,59,0.92),rgba(51,65,85,0.9),rgba(71,85,105,0.88))] shadow-[0_24px_60px_rgba(15,23,42,0.34),0_0_42px_rgba(14,165,233,0.08)] lg:h-[calc(100vh-4.5rem)] lg:sticky lg:top-0 ${className}`}>
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.16),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(16,185,129,0.1),transparent_28%)]" />
       <div className="relative z-10 flex h-full flex-col">
         {showCloseButton && (

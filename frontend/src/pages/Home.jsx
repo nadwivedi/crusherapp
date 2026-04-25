@@ -106,9 +106,9 @@ export default function Home() {
           setActiveView={setActiveView}
         />
 
-        <div className="px-4 py-4 sm:px-6 sm:py-5 lg:px-5 xl:px-6">
-          <div className="mx-auto grid min-h-[calc(100vh-7rem)] max-w-[96rem] grid-cols-1 gap-5 lg:grid-cols-[15rem_minmax(0,1fr)] lg:items-start lg:gap-4 xl:grid-cols-[18rem_minmax(0,1.35fr)] xl:gap-5">
-            <div className="hidden lg:block lg:justify-self-start">
+        <div className="py-0 sm:py-0 lg:py-0">
+          <div className="grid min-h-[calc(100vh-4rem)] grid-cols-1 lg:grid-cols-[15rem_minmax(0,1fr)] xl:grid-cols-[18rem_minmax(0,1.35fr)]">
+            <div className="hidden lg:block">
               <Sidebar
                 shortcuts={homeQuickShortcuts}
                 activeShortcutIndex={activeShortcutIndex}
@@ -117,7 +117,7 @@ export default function Home() {
               />
             </div>
 
-            <div className="min-w-0 lg:pl-0.5 xl:pl-1">
+            <div className="min-w-0 p-4 sm:p-6 lg:p-5 xl:p-6">
               <HomeDayBookPanel 
                 activeView={activeView}
                 setActiveView={setActiveView}
