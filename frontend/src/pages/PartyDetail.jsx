@@ -644,40 +644,8 @@ export default function PartyDetail() {
               {error}
             </div>
           ) : null}
-
-          {/* Summary Cards */}
-          <div className='bg-white rounded-2xl shadow-lg border border-gray-200 p-4'>
-            <div className='grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:items-stretch'>
-              <div className='bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl px-3 py-2 border border-blue-200'>
-                <p className='text-[10px] text-blue-600 font-bold uppercase'>Closing Balance ({getBalanceHint(closingBalance)})</p>
-                <p className={`truncate text-lg font-bold ${closingBalance >= 0 ? 'text-blue-700' : 'text-rose-700'}`}>
-                  {formatCurrency(closingBalance)}
-                </p>
-              </div>
-              <div className='bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl px-3 py-2 border border-orange-200'>
-                <p className='text-[10px] text-orange-600 font-bold uppercase'>Sale To Party</p>
-                <div className="flex justify-between items-baseline">
-                  <p className='truncate text-lg font-bold text-orange-700'>{formatCurrency(summary.totalSales)}</p>
-                  <p className='text-[10px] text-orange-600 font-bold'>Qty: {formatSaleSummaryQuantity(summary)}</p>
-                </div>
-              </div>
-              <div className='bg-gradient-to-br from-green-50 to-green-100 rounded-xl px-3 py-2 border border-green-200'>
-                <p className='text-[10px] text-green-600 font-bold uppercase'>Purchase From Party</p>
-                <div className="flex justify-between items-baseline">
-                  <p className='truncate text-lg font-bold text-green-700'>{formatCurrency(summary.totalPurchases)}</p>
-                  <p className='text-[10px] text-green-600 font-bold'>Qty: {formatQuantity(summary.purchaseQty)}</p>
-                </div>
-              </div>
-              <div className='bg-gradient-to-br from-cyan-50 to-cyan-100 rounded-xl px-3 py-2 border border-cyan-200'>
-                <p className='text-[10px] text-cyan-600 font-bold uppercase'>Crushed Boulder Payable</p>
-                <div className="flex justify-between items-baseline">
-                  <p className='truncate text-lg font-bold text-cyan-700'>{formatCurrency(summary.totalBoulderPayable)}</p>
-                  <p className='text-[10px] text-cyan-600 font-bold'>Qty: {formatQuantity(summary.boulderQty / 1000)} T</p>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
+
 
       <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden mt-6">
         <div className="px-6 py-4 bg-gradient-to-r from-green-50 to-emerald-50 border-b border-gray-200">
@@ -733,13 +701,25 @@ export default function PartyDetail() {
                       </div>
                       <div className="text-right">
                         {row.type === 'sale' ? (
-                          <div className="space-y-1 rounded-lg bg-white/80 px-3 py-2">
-                            <p className="text-[11px] text-slate-500">Total: <span className="font-bold text-slate-800">{formatCurrency(row.amount)}</span></p>
-                            <p className="text-[11px] text-slate-500">Paid: <span className="font-bold text-emerald-600">{formatCurrency(row.paidAmount)}</span></p>
-                            <p className="text-[11px] text-slate-500">Bal: <span className={`font-bold ${Number(row.impact || 0) > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>{formatCurrency(Math.abs(Number(row.impact || 0)))}</span></p>
+                          <div className="mt-3 space-y-2 rounded-xl bg-slate-50 p-3">
+                            <div className="flex justify-between items-center text-[11px]">
+                              <span className="text-slate-500 uppercase font-bold tracking-wider">Sale Total</span>
+                              <span className="font-black text-slate-800">{formatCurrency(row.amount)}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-[11px]">
+                              <span className="text-slate-500 uppercase font-bold tracking-wider">Paid Amount</span>
+                              <span className="font-black text-emerald-600">{formatCurrency(row.paidAmount)}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-[11px] pt-1 border-t border-slate-200">
+                              <span className="text-slate-500 uppercase font-bold tracking-wider">Sale Balance</span>
+                              <span className={`font-black ${Number(row.impact || 0) > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>{formatCurrency(Math.abs(Number(row.impact || 0)))}</span>
+                            </div>
                           </div>
                         ) : (
-                          <p className="text-sm font-bold text-slate-900">{formatCurrency(row.amount)}</p>
+                          <div className="mt-3 flex justify-between items-center rounded-xl bg-slate-50 p-3 text-[11px]">
+                            <span className="text-slate-500 uppercase font-bold tracking-wider">Amount</span>
+                            <span className="font-black text-slate-900">{formatCurrency(row.amount)}</span>
+                          </div>
                         )}
                         <p className={`mt-2 text-xs font-semibold ${Number(row.displayRunningBalance || 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                           Bal {formatCurrency(row.displayRunningBalance)}
@@ -772,7 +752,9 @@ export default function PartyDetail() {
                     <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Type</th>
                     <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Material & Vehicle</th>
                     <th className="px-6 py-4 text-center text-xs font-bold uppercase tracking-wider">Quantity</th>
-                    <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider">Amount</th>
+                    <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider">Total</th>
+                    <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider">Paid</th>
+                    <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider">Balance</th>
                     <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider rounded-tr-xl">Running Balance</th>
                   </tr>
                 </thead>
@@ -813,15 +795,15 @@ export default function PartyDetail() {
                           <p className="text-sm font-semibold text-slate-800">{formatLedgerQuantity(row)}</p>
                         </td>
                         <td className="px-6 py-4 text-right">
-                          {row.type === 'sale' ? (
-                            <div className="space-y-1">
-                              <p className="text-xs text-slate-500">Total: <span className="font-bold text-slate-800">{formatCurrency(row.amount)}</span></p>
-                              <p className="text-xs text-slate-500">Paid: <span className="font-bold text-emerald-600">{formatCurrency(row.paidAmount)}</span></p>
-                              <p className="text-xs text-slate-500">Bal: <span className={`font-bold ${Number(row.impact || 0) > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>{formatCurrency(Math.abs(Number(row.impact || 0)))}</span></p>
-                            </div>
-                          ) : (
-                            <p className="text-sm font-bold text-slate-800">{formatCurrency(row.amount)}</p>
-                          )}
+                          <p className="text-sm font-bold text-slate-800">{formatCurrency(row.amount)}</p>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <p className="text-sm font-bold text-emerald-600">{row.type === 'sale' ? formatCurrency(row.paidAmount) : '-'}</p>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <p className={`text-sm font-bold ${Number(row.impact || 0) > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                            {row.type === 'sale' ? formatCurrency(Math.abs(Number(row.impact || 0))) : '-'}
+                          </p>
                         </td>
                         <td className="px-6 py-4 text-right">
                           <p className={`text-sm font-black ${(row.displayRunningBalance || 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>

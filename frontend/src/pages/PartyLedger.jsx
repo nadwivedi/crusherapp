@@ -170,16 +170,25 @@ export default function PartyLedger() {
 
         <div className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-xl">
           <div className="flex flex-col gap-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1 className="text-xl font-black text-slate-800">Party Ledger</h1>
-              <p className="mt-1 text-sm text-slate-500">Party name, type, and current running balance</p>
+            <div className="flex items-start justify-between sm:block">
+              <div>
+                <h1 className="text-lg sm:text-xl font-black text-slate-800">Party Ledger</h1>
+                <p className="mt-1 text-[11px] sm:text-sm text-slate-500">Party name, type, and current running balance</p>
+              </div>
+              <button
+                type="button"
+                onClick={loadParties}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white p-2.5 sm:px-4 sm:py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:hidden"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </button>
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <button
                 type="button"
                 onClick={loadParties}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                className="hidden sm:inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
               >
                 <RefreshCw className="h-4 w-4" />
                 Refresh
@@ -198,47 +207,48 @@ export default function PartyLedger() {
           </div>
 
           {visibleRows.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px]">
-                <thead>
-                  <tr className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 text-white">
-                    <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Party Name</th>
-                    <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Party Type</th>
-                    <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider">Running Balance</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {visibleRows.map((party) => (
-                    <tr
-                      key={party._id}
-                      onClick={() => handleRowClick(party)}
-                      className="cursor-pointer transition-colors hover:bg-emerald-50/50"
-                    >
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 p-2 text-white">
-                            <Wallet className="h-4 w-4" />
-                          </div>
-                          <div>
-                            <p className="max-w-[280px] truncate text-sm font-bold text-slate-800">{party.name || '-'}</p>
-                            {party.mobile ? <p className="mt-0.5 text-xs font-medium text-slate-400">{party.mobile}</p> : null}
-                          </div>
+            <div className="p-3 sm:p-5">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 sm:gap-4">
+                {visibleRows.map((party) => (
+                  <div
+                    key={party._id}
+                    onClick={() => handleRowClick(party)}
+                    className="group relative cursor-pointer overflow-hidden rounded-[24px] border border-slate-100 bg-white p-4 shadow-md transition-all hover:-translate-y-1 hover:shadow-xl hover:ring-2 hover:ring-emerald-500/20"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/20 transition-transform group-hover:scale-110">
+                          <Wallet className="h-5 w-5" />
                         </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="inline-flex rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700">
-                          {getTypeLabel(party.type)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <span className={`inline-flex rounded-md border px-3 py-1.5 text-sm font-black ${getBalanceTone(party.netBalance)}`}>
+                        <div className="min-w-0">
+                          <h3 className="truncate text-sm font-black text-slate-800 transition-colors group-hover:text-emerald-700 sm:text-base">{party.name || '-'}</h3>
+                          <p className="mt-0.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">{getTypeLabel(party.type)}</p>
+                        </div>
+                      </div>
+                      <ChevronRight className="h-5 w-5 shrink-0 text-slate-300 transition-transform group-hover:translate-x-1 group-hover:text-emerald-500" />
+                    </div>
+
+                    <div className="mt-4 flex flex-col gap-3">
+                      {party.mobile && (
+                        <div className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600">
+                          <span className="text-[10px] uppercase tracking-widest text-slate-400">Mobile:</span>
+                          {party.mobile}
+                        </div>
+                      )}
+
+                      <div className={`flex items-center justify-between rounded-xl border px-3 py-2.5 transition-all ${getBalanceTone(party.netBalance)}`}>
+                        <span className="text-[10px] font-black uppercase tracking-widest opacity-70">Balance</span>
+                        <span className="text-sm font-black sm:text-base">
                           {getBalanceLabel(party.netBalance)}
                         </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </div>
+                    </div>
+
+                    {/* Decorative Background Element */}
+                    <div className={`absolute -bottom-6 -right-6 h-20 w-20 rounded-full opacity-[0.03] transition-opacity group-hover:opacity-[0.06] ${Number(party.netBalance || 0) >= 0 ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                  </div>
+                ))}
+              </div>
             </div>
           ) : (
             <div className="flex flex-col items-center px-4 py-16 text-center">

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Pencil, Search, Wallet } from 'lucide-react';
+import { Pencil, Search, Wallet, ChevronRight, Users } from 'lucide-react';
 import { toast } from 'react-toastify';
 import apiClient from '../../utils/api';
 import AddPartyPopup from './component/AddPartyPopup';
@@ -230,18 +230,48 @@ export default function Party() {
         </div>
       )}
 
-      <div className="mb-5 mt-1 grid grid-cols-1 gap-2 sm:gap-4 lg:flex lg:justify-start">
-        <div className="group relative overflow-hidden rounded-xl bg-white p-2.5 shadow-sm ring-1 ring-slate-200/50 transition-all hover:shadow-md sm:rounded-2xl sm:p-5 lg:min-w-[220px] lg:w-fit">
-          <div className="flex items-start justify-between gap-2">
+      <div className="mb-5 mt-1 grid grid-cols-3 gap-2 sm:gap-4 lg:flex lg:justify-start">
+        <div className="group relative overflow-hidden rounded-xl bg-white p-2 sm:p-5 shadow-sm ring-1 ring-slate-200/50 transition-all hover:shadow-md lg:min-w-[200px]">
+          <div className="flex items-start justify-between gap-1 sm:gap-2">
             <div className="min-w-0">
-              <p className="text-[10px] sm:text-xs font-medium text-slate-500 leading-tight">Party Count</p>
-              <p className="mt-1 sm:mt-2 text-base sm:text-2xl font-bold text-slate-800 leading-tight">{parties.length}</p>
+              <p className="text-[9px] sm:text-xs font-medium text-slate-500 leading-tight truncate">Total</p>
+              <p className="mt-0.5 sm:mt-2 text-[13px] sm:text-2xl font-bold text-slate-800 leading-tight truncate">{parties.length}</p>
             </div>
-            <div className="hidden sm:flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600 transition-transform group-hover:scale-110">
-              <Wallet className="h-6 w-6" />
+            <div className="shrink-0 flex h-7 w-7 sm:h-12 sm:w-12 items-center justify-center rounded-lg sm:rounded-xl bg-blue-50 text-blue-600">
+              <Wallet className="h-3.5 w-3.5 sm:h-6 sm:w-6" />
             </div>
           </div>
-          <div className="absolute inset-x-0 bottom-0 h-0.5 sm:h-1 bg-gradient-to-r from-blue-500 to-cyan-400 opacity-80"></div>
+          <div className="absolute inset-x-0 bottom-0 h-0.5 sm:h-1 bg-blue-500 opacity-80"></div>
+        </div>
+
+        <div className="group relative overflow-hidden rounded-xl bg-white p-2 sm:p-5 shadow-sm ring-1 ring-slate-200/50 transition-all hover:shadow-md lg:min-w-[200px]">
+          <div className="flex items-start justify-between gap-1 sm:gap-2">
+            <div className="min-w-0">
+              <p className="text-[9px] sm:text-xs font-medium text-slate-500 leading-tight truncate">Suppliers</p>
+              <p className="mt-0.5 sm:mt-2 text-[13px] sm:text-2xl font-bold text-emerald-600 leading-tight truncate">
+                {parties.filter(p => p.type === 'supplier').length}
+              </p>
+            </div>
+            <div className="shrink-0 flex h-7 w-7 sm:h-12 sm:w-12 items-center justify-center rounded-lg sm:rounded-xl bg-emerald-50 text-emerald-600">
+              <Pencil className="h-3.5 w-3.5 sm:h-6 sm:w-6" />
+            </div>
+          </div>
+          <div className="absolute inset-x-0 bottom-0 h-0.5 sm:h-1 bg-emerald-500 opacity-80"></div>
+        </div>
+
+        <div className="group relative overflow-hidden rounded-xl bg-white p-2 sm:p-5 shadow-sm ring-1 ring-slate-200/50 transition-all hover:shadow-md lg:min-w-[200px]">
+          <div className="flex items-start justify-between gap-1 sm:gap-2">
+            <div className="min-w-0">
+              <p className="text-[9px] sm:text-xs font-medium text-slate-500 leading-tight truncate">Customers</p>
+              <p className="mt-0.5 sm:mt-2 text-[13px] sm:text-2xl font-bold text-amber-600 leading-tight truncate">
+                {parties.filter(p => p.type === 'customer').length}
+              </p>
+            </div>
+            <div className="shrink-0 flex h-7 w-7 sm:h-12 sm:w-12 items-center justify-center rounded-lg sm:rounded-xl bg-amber-50 text-amber-600">
+              <Search className="h-3.5 w-3.5 sm:h-6 sm:w-6" />
+            </div>
+          </div>
+          <div className="absolute inset-x-0 bottom-0 h-0.5 sm:h-1 bg-amber-500 opacity-80"></div>
         </div>
       </div>
 
@@ -283,105 +313,59 @@ export default function Party() {
           <div className="px-6 py-10 text-center text-slate-500">Loading...</div>
         ) : (
           <div className="rounded-[20px] border border-slate-200 bg-[radial-gradient(circle_at_top_right,rgba(148,163,184,0.16),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(241,245,249,0.96)_100%)] p-3 shadow-[0_18px_36px_rgba(15,23,42,0.08)] sm:p-5">
-            <div className="space-y-3 md:hidden">
-              {parties.map((item) => (
-                <article
-                  key={item._id}
-                  onClick={() => handleOpenPartyLedger(item)}
-                  className="cursor-pointer overflow-hidden rounded-2xl border border-cyan-200 bg-white shadow-[0_16px_32px_rgba(8,47,73,0.10)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_36px_rgba(8,47,73,0.14)]"
-                >
-                  <div className="flex items-start justify-between gap-3 border-b border-cyan-900/20 bg-[linear-gradient(135deg,#0f766e_0%,#0d9488_38%,#0891b2_72%,#0284c7_100%)] px-4 py-3 text-white">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-bold text-white">{item.name || '-'}</p>
-                      <p className="mt-1 text-xs text-cyan-100">Open party ledger</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        handleEdit(item);
-                      }}
-                      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-blue-200 bg-white text-blue-700 shadow-sm transition hover:border-blue-300 hover:bg-blue-50"
-                      aria-label={`Edit ${item.name}`}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </button>
-                  </div>
-
-                  <div className="space-y-3 px-4 py-4 text-sm">
-                    <div className="flex items-center justify-between gap-3 rounded-xl bg-cyan-50 px-3 py-2.5">
-                      <span className="text-xs font-medium uppercase tracking-[0.18em] text-cyan-700">Type</span>
-                      <span className={`inline-flex rounded-md px-2.5 py-1 text-xs font-semibold capitalize ${getTypeBadgeClass(item.type)}`}>
-                        {getTypeLabel(item.type)}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between gap-3 rounded-xl bg-sky-50 px-3 py-2.5">
-                      <span className="text-xs font-medium uppercase tracking-[0.18em] text-sky-700">Mobile</span>
-                      <span className="text-right font-semibold text-slate-800">{item.mobile || '-'}</span>
-                    </div>
-                  </div>
-                </article>
-              ))}
-
-              {parties.length === 0 && (
-                <div className="rounded-2xl border border-dashed border-slate-300 bg-white/80 px-6 py-10 text-center text-slate-500">
-                  No parties found
-                </div>
-              )}
-            </div>
-
-            <div className="hidden overflow-x-auto md:block">
-              <table className="w-full min-w-[720px] border-separate border-spacing-0 text-left text-sm whitespace-nowrap overflow-hidden">
-                <thead className="bg-[linear-gradient(135deg,#0f766e_0%,#0d9488_38%,#0891b2_72%,#0284c7_100%)] text-white">
-                  <tr>
-                    <th className="border-y-2 border-l-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold shadow-[inset_0_-1px_0_rgba(148,163,184,0.2)]">Party Name</th>
-                    <th className="border-y-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold shadow-[inset_0_-1px_0_rgba(148,163,184,0.2)]">Type</th>
-                    <th className="border-y-2 border-r border-black px-4 py-3.5 text-center text-sm font-semibold shadow-[inset_0_-1px_0_rgba(148,163,184,0.2)]">Mobile Number</th>
-                    <th className="border-y-2 border-r-2 border-black px-4 py-3.5 text-center text-sm font-semibold shadow-[inset_0_-1px_0_rgba(148,163,184,0.2)]">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-[linear-gradient(180deg,rgba(255,255,255,0.94)_0%,rgba(248,250,252,0.98)_100%)] text-slate-600">
-                  {parties.map((item) => (
-                    <tr
-                      key={item._id}
-                      onClick={() => handleOpenPartyLedger(item)}
-                      className="cursor-pointer transition-colors duration-150 hover:bg-slate-200/45"
-                    >
-                      <td className="border border-slate-400 px-4 py-3 text-center font-semibold text-slate-800">{item.name || '-'}</td>
-                      <td className="border border-slate-400 px-4 py-3 text-center">
-                        <span className={`inline-flex rounded-md px-2.5 py-1 text-xs font-semibold capitalize ${getTypeBadgeClass(item.type)}`}>
-                          {getTypeLabel(item.type)}
-                        </span>
-                      </td>
-                      <td className="border border-slate-400 px-4 py-3 text-center">{item.mobile || '-'}</td>
-                      <td className="border border-slate-400 px-4 py-3">
-                        <div className="flex items-center justify-center">
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              handleEdit(item);
-                            }}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-blue-200 bg-white text-blue-700 shadow-sm transition hover:border-blue-300 hover:bg-blue-50"
-                            aria-label={`Edit ${item.name}`}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </button>
+            {parties.length > 0 ? (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {parties.map((item) => (
+                  <div
+                    key={item._id}
+                    onClick={() => handleOpenPartyLedger(item)}
+                    className="group relative cursor-pointer overflow-hidden rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl hover:ring-2 hover:ring-indigo-500/20"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex gap-4">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/20 transition-transform group-hover:scale-110">
+                          <Wallet className="h-6 w-6" />
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {parties.length === 0 && (
-                    <tr>
-                      <td colSpan="4" className="border border-slate-400 px-6 py-10 text-center text-slate-500">
-                        No parties found
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                        <div className="min-w-0">
+                          <h3 className="truncate text-base font-black text-slate-800 transition-colors group-hover:text-indigo-700">{item.name || '-'}</h3>
+                          <p className={`mt-1 inline-flex rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${getTypeBadgeClass(item.type)}`}>
+                            {getTypeLabel(item.type)}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleEdit(item);
+                        }}
+                        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition-all hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-600"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    <div className="mt-6 flex flex-col gap-3">
+                      <div className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Mobile</span>
+                        <span className="text-sm font-black text-slate-700">{item.mobile || '-'}</span>
+                      </div>
+                    </div>
+
+                    {/* Action Hint */}
+                    <div className="mt-4 flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-300 transition-colors group-hover:text-indigo-400">
+                      View Ledger <ChevronRight size={14} className="transition-transform group-hover:translate-x-1" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-3xl border border-dashed border-slate-300 bg-white/80 px-6 py-16 text-center text-slate-500">
+                <Users size={48} className="mx-auto mb-4 text-slate-300" />
+                <p className="text-lg font-bold">No parties found</p>
+                <p className="text-sm">Create your first party to get started</p>
+              </div>
+            )}
           </div>
         )}
       </div>
