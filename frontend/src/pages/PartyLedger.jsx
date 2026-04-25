@@ -1,16 +1,52 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, RefreshCw, Search, TrendingUp, TrendingDown, ChevronRight } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, RefreshCw, Search, Users, Wallet, XCircle, ChevronRight } from 'lucide-react';
 import apiClient from '../utils/api';
 
+const PARTY_TYPE_LABELS = {
+  supplier: 'Supplier',
+  customer: 'Customer',
+  'cash-in-hand': 'Cash In Hand'
+};
+
 const formatCurrency = (value) => (
-  `Rs ${Number(value || 0).toLocaleString('en-IN', {
+  `Rs ${Math.abs(Number(value || 0)).toLocaleString('en-IN', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   })}`
 );
 
-const formatNumber = (value) => Number(value || 0).toLocaleString('en-IN');
+const getTypeLabel = (type) => PARTY_TYPE_LABELS[type] || 'Supplier';
+
+const getBalanceTone = (balance) => {
+  if (Number(balance || 0) > 0) return 'text-emerald-700 bg-emerald-50 border-emerald-200';
+  if (Number(balance || 0) < 0) return 'text-rose-700 bg-rose-50 border-rose-200';
+  return 'text-slate-700 bg-slate-50 border-slate-200';
+};
+
+const getBalanceLabel = (balance) => {
+  const numericBalance = Number(balance || 0);
+  if (numericBalance < 0) return `-${formatCurrency(numericBalance)}`;
+  return formatCurrency(numericBalance);
+};
+
+function StatCard({ title, value, subtitle, icon: Icon, tone }) {
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-lg">
+      <div className={`absolute right-0 top-0 h-24 w-24 -translate-y-1/2 translate-x-1/2 rounded-full bg-gradient-to-br opacity-10 ${tone}`} />
+      <div className="relative z-10 flex items-center justify-between gap-4">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-400">{title}</p>
+          <p className="mt-1 text-xl font-black leading-tight text-slate-800">{value}</p>
+          {subtitle ? <p className="mt-0.5 text-xs font-medium text-slate-500">{subtitle}</p> : null}
+        </div>
+        <div className={`rounded-xl bg-gradient-to-br p-2.5 text-white ${tone}`}>
+          <Icon className="h-5 w-5" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function PartyLedger() {
   const navigate = useNavigate();
@@ -19,7 +55,6 @@ export default function PartyLedger() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [balanceFilter, setBalanceFilter] = useState('all');
 
   useEffect(() => {
     loadParties();
@@ -52,7 +87,7 @@ export default function PartyLedger() {
     }
   };
 
-  const partySummary = useMemo(() => {
+  const rows = useMemo(() => {
     if (!outstanding?.partyOutstanding) return [];
     const partyOutstanding = outstanding.partyOutstanding;
     
@@ -60,67 +95,45 @@ export default function PartyLedger() {
       const outstandingData = partyOutstanding.find(p => 
         String(p.partyId) === String(party._id)
       );
+      const receivable = outstandingData?.receivable || 0;
+      const payable = outstandingData?.payable || 0;
       return {
         ...party,
-        receivable: outstandingData?.receivable || 0,
-        payable: outstandingData?.payable || 0,
-        netBalance: (outstandingData?.receivable || 0) - (outstandingData?.payable || 0)
+        receivable,
+        payable,
+        netBalance: receivable - payable
       };
+    }).sort((a, b) => {
+      const aBalance = Math.abs(a.netBalance);
+      const bBalance = Math.abs(b.netBalance);
+      if (bBalance !== aBalance) return bBalance - aBalance;
+      return (a.name || '').localeCompare(b.name || '');
     });
   }, [parties, outstanding]);
 
-  const filteredParties = useMemo(() => {
+  const visibleRows = useMemo(() => {
     const term = searchTerm.toLowerCase();
 
-    return partySummary
-      .filter((party) => {
-        const matchesSearch = !searchTerm || (
-          (party.name || '').toLowerCase().includes(term) ||
-          (party.mobile || '').includes(term) ||
-          (party.email || '').toLowerCase().includes(term)
-        );
+    return rows.filter((party) => (
+      (party.name || '').toLowerCase().includes(term) ||
+      (party.mobile || '').includes(term) ||
+      (party.email || '').toLowerCase().includes(term) ||
+      getTypeLabel(party.type).toLowerCase().includes(term)
+    ));
+  }, [rows, searchTerm]);
 
-        if (!matchesSearch) return false;
-        if (balanceFilter === 'receivable') return Number(party.receivable || 0) > 0;
-        if (balanceFilter === 'payable') return Number(party.payable || 0) > 0;
-        return true;
-      })
-      .sort((a, b) => {
-        if (balanceFilter === 'receivable') {
-          return Number(b.receivable || 0) - Number(a.receivable || 0);
-        }
-        if (balanceFilter === 'payable') {
-          return Number(b.payable || 0) - Number(a.payable || 0);
-        }
-        return (a.name || '').localeCompare(b.name || '');
-      });
-  }, [partySummary, searchTerm, balanceFilter]);
+  const summary = useMemo(() => rows.reduce((acc, party) => {
+    acc.totalParties += 1;
+    if (party.netBalance > 0) acc.receivable += party.netBalance;
+    if (party.netBalance < 0) acc.payable += Math.abs(party.netBalance);
+    return acc;
+  }, {
+    totalParties: 0,
+    receivable: 0,
+    payable: 0
+  }), [rows]);
 
-  const totalReceivable = useMemo(() => {
-    return partySummary.reduce((sum, p) => sum + Number(p.receivable || 0), 0);
-  }, [partySummary]);
-
-  const totalPayable = useMemo(() => {
-    return partySummary.reduce((sum, p) => sum + Number(p.payable || 0), 0);
-  }, [partySummary]);
-
-  const StatCard = ({ title, value, subtitle, icon: Icon, color }) => (
-    <div className="relative overflow-hidden rounded-2xl bg-white px-5 py-4 shadow-lg border border-slate-100">
-      <div className={`absolute top-0 right-0 w-24 h-24 rounded-full opacity-10 -translate-y-1/2 translate-x-1/2 bg-gradient-to-br ${color}`} />
-      <div className="relative z-10">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-400">{title}</span>
-          <div className={`p-1.5 rounded-lg bg-gradient-to-br ${color}`}>
-            <Icon className="w-3.5 h-3.5 text-white" />
-          </div>
-        </div>
-        <div className="text-xl font-black leading-tight text-slate-800">{value}</div>
-        <div className="text-xs text-slate-500 mt-0.5">{subtitle}</div>
-      </div>
-    </div>
-  );
-
-  const handlePartyClick = (party) => {
+  const handleRowClick = (party) => {
     navigate(`/party/${party._id}`);
   };
 
@@ -128,8 +141,8 @@ export default function PartyLedger() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-stone-100 flex items-center justify-center">
         <div className="text-center">
-          <RefreshCw className="w-8 h-8 animate-spin text-sky-500 mx-auto" />
-          <p className="mt-4 text-slate-600 font-semibold">Loading parties...</p>
+          <RefreshCw className="w-8 h-8 animate-spin text-emerald-500 mx-auto" />
+          <p className="mt-4 text-slate-600 font-semibold">Loading party ledger...</p>
         </div>
       </div>
     );
@@ -138,132 +151,102 @@ export default function PartyLedger() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-stone-100">
       <div className="mx-auto max-w-[95%] px-4 py-6">
-        {error && (
-          <div className="mb-6 rounded-2xl border border-rose-200 bg-rose-50 px-6 py-4 text-sm font-semibold text-rose-700 shadow-lg">
-            {error}
+        {error ? (
+          <div className="mb-6 flex items-center justify-between rounded-2xl border border-rose-200 bg-rose-50 px-6 py-4 text-sm font-semibold text-rose-700 shadow-lg">
+            <span>{error}</span>
+            <button type="button" onClick={() => setError('')} className="text-rose-500 hover:text-rose-700" aria-label="Dismiss error">
+              <XCircle className="h-5 w-5" />
+            </button>
           </div>
-        )}
+        ) : null}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <StatCard title="Total Parties" value={parties.length} subtitle="registered parties" icon={Users} color="from-blue-500 to-cyan-500" />
-          <StatCard title="Total Receivable" value={formatCurrency(totalReceivable)} subtitle="to receive" icon={TrendingUp} color="from-emerald-500 to-teal-500" />
-          <StatCard title="Total Payable" value={formatCurrency(totalPayable)} subtitle="to pay" icon={TrendingDown} color="from-rose-500 to-pink-500" />
+        <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <StatCard title="Parties" value={summary.totalParties.toLocaleString('en-IN')} subtitle="ledger accounts" icon={Users} tone="from-blue-500 to-cyan-500" />
+          <StatCard title="Receivable" value={formatCurrency(summary.receivable)} subtitle="amount to receive" icon={ArrowUpRight} tone="from-emerald-500 to-teal-500" />
+          <StatCard title="Payable" value={formatCurrency(summary.payable)} subtitle="amount to pay" icon={ArrowDownLeft} tone="from-rose-500 to-pink-500" />
         </div>
 
-        <div className="rounded-3xl bg-white shadow-xl border border-slate-100 overflow-hidden mb-6">
-          <div className="px-6 py-5 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-black text-slate-800">All Parties</h2>
-                <p className="text-sm text-slate-500">Click on a party to view ledger details</p>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <select
-                  value={balanceFilter}
-                  onChange={(e) => setBalanceFilter(e.target.value)}
-                  className="px-4 py-2.5 rounded-xl border-2 border-slate-200 bg-white text-sm font-medium text-slate-700 focus:border-sky-500 focus:outline-none focus:ring-4 focus:ring-sky-100 transition-all w-full sm:w-48"
-                >
-                  <option value="all">All Balances</option>
-                  <option value="receivable">Receivable</option>
-                  <option value="payable">Payable</option>
-                </select>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                    type="text"
-                    placeholder="Search by name, mobile, email..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 pr-4 py-2.5 rounded-xl border-2 border-slate-200 bg-white text-sm font-medium text-slate-700 focus:border-sky-500 focus:outline-none focus:ring-4 focus:ring-sky-100 transition-all w-full sm:w-72"
-                  />
-                </div>
+        <div className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-xl">
+          <div className="flex flex-col gap-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h1 className="text-xl font-black text-slate-800">Party Ledger</h1>
+              <p className="mt-1 text-sm text-slate-500">Party name, type, and current running balance</p>
+            </div>
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <button
+                type="button"
+                onClick={loadParties}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Refresh
+              </button>
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search party..."
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  className="w-full rounded-xl border-2 border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm font-medium text-slate-700 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 sm:w-72"
+                />
               </div>
             </div>
           </div>
-          
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[800px]">
-              <thead>
-                <tr className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 text-white">
-                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Party Name</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Type</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Contact</th>
-                  <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Receivable</th>
-                  <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Payable</th>
-                  <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Net Balance</th>
-                  <th className="px-6 py-4 text-center text-xs font-bold uppercase tracking-wider lg:px-4 lg:py-3 lg:text-[10px] xl:px-6 xl:py-4 xl:text-xs">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredParties.length > 0 ? (
-                  filteredParties.map((party) => (
-                    <tr 
-                      key={party._id} 
-                      onClick={() => handlePartyClick(party)}
-                      className="hover:bg-sky-50/50 cursor-pointer transition-colors"
+
+          {visibleRows.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px]">
+                <thead>
+                  <tr className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 text-white">
+                    <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Party Name</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Party Type</th>
+                    <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider">Running Balance</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {visibleRows.map((party) => (
+                    <tr
+                      key={party._id}
+                      onClick={() => handleRowClick(party)}
+                      className="cursor-pointer transition-colors hover:bg-emerald-50/50"
                     >
-                      <td className="px-6 py-4 lg:px-4 lg:py-3 xl:px-6 xl:py-4">
+                      <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-400 to-cyan-500 flex items-center justify-center text-white font-bold">
-                            {(party.name || 'P').charAt(0).toUpperCase()}
+                          <div className="rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 p-2 text-white">
+                            <Wallet className="h-4 w-4" />
                           </div>
                           <div>
-                            <p className="text-sm font-bold text-slate-800 lg:text-[12px] xl:text-sm">{party.name || 'Unknown'}</p>
-                            <p className="text-xs text-slate-500 lg:text-[10px] xl:text-xs">{party.email || '-'}</p>
+                            <p className="max-w-[280px] truncate text-sm font-bold text-slate-800">{party.name || '-'}</p>
+                            {party.mobile ? <p className="mt-0.5 text-xs font-medium text-slate-400">{party.mobile}</p> : null}
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 lg:px-4 lg:py-3 xl:px-6 xl:py-4">
-                        <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold lg:px-2 lg:py-0.5 lg:text-[10px] xl:px-2.5 xl:py-1 xl:text-xs ${
-                          party.type === 'customer' ? 'bg-amber-100 text-amber-700' :
-                          party.type === 'supplier' ? 'bg-emerald-100 text-emerald-700' :
-                          'bg-cyan-100 text-cyan-700'
-                        }`}>
-                          {party.type === 'customer' ? 'Customer' : party.type === 'supplier' ? 'Supplier' : 'Cash'}
+                      <td className="px-6 py-4">
+                        <span className="inline-flex rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                          {getTypeLabel(party.type)}
                         </span>
                       </td>
-                      <td className="px-6 py-4 lg:px-4 lg:py-3 xl:px-6 xl:py-4">
-                        <div>
-                          <p className="text-sm text-slate-600 lg:text-[12px] xl:text-sm">{party.mobile || '-'}</p>
-                          <p className="text-xs text-slate-400 lg:text-[10px] xl:text-xs">{party.state || '-'}</p>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-right lg:px-4 lg:py-3 xl:px-6 xl:py-4">
-                        <p className="text-sm font-bold text-emerald-600 lg:text-[12px] xl:text-sm">
-                          {party.receivable > 0 ? formatCurrency(party.receivable) : '-'}
-                        </p>
-                      </td>
-                      <td className="px-6 py-4 text-right lg:px-4 lg:py-3 xl:px-6 xl:py-4">
-                        <p className="text-sm font-bold text-rose-600 lg:text-[12px] xl:text-sm">
-                          {party.payable > 0 ? formatCurrency(party.payable) : '-'}
-                        </p>
-                      </td>
-                      <td className="px-6 py-4 text-right lg:px-4 lg:py-3 xl:px-6 xl:py-4">
-                        <p className={`text-sm font-black lg:text-[12px] xl:text-sm ${(party.netBalance || 0) >= 0 ? 'text-sky-600' : 'text-rose-600'}`}>
-                          {(party.netBalance || 0) >= 0 ? formatCurrency(party.netBalance) : formatCurrency(party.netBalance)}
-                        </p>
-                      </td>
-                      <td className="px-6 py-4 text-center lg:px-4 lg:py-3 xl:px-6 xl:py-4">
-                        <ChevronRight className="w-5 h-5 text-slate-400 mx-auto lg:h-4 lg:w-4 xl:h-5 xl:w-5" />
+                      <td className="px-6 py-4 text-right">
+                        <span className={`inline-flex rounded-md border px-3 py-1.5 text-sm font-black ${getBalanceTone(party.netBalance)}`}>
+                          {getBalanceLabel(party.netBalance)}
+                        </span>
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={7} className="px-6 py-16 text-center">
-                      <div className="flex flex-col items-center">
-                        <div className="p-4 rounded-full bg-slate-100 mb-4">
-                          <Users className="w-8 h-8 text-slate-400" />
-                        </div>
-                        <p className="text-lg font-semibold text-slate-600">No parties found</p>
-                        <p className="text-sm text-slate-400 mt-1">Try adjusting your search</p>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center px-4 py-16 text-center">
+              <div className="rounded-full bg-slate-100 p-4">
+                <Users className="h-8 w-8 text-slate-400" />
+              </div>
+              <p className="mt-4 text-lg font-semibold text-slate-600">No parties found</p>
+              <p className="mt-1 text-sm text-slate-400">Try adjusting your search or add parties first.</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

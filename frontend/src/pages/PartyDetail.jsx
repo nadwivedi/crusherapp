@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import apiClient from '../utils/api';
 
 const toInputDate = (value) => {
@@ -362,6 +362,21 @@ export default function PartyDetail() {
   const [voucherLoading, setVoucherLoading] = useState(false);
   const [voucherError, setVoucherError] = useState('');
 
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key !== 'Escape') return;
+      const popup = document.querySelector('.fixed.inset-0.z-50');
+      if (popup) return;
+      e.preventDefault();
+      e.stopPropagation();
+      navigate('/');
+    };
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
+  }, [navigate]);
+
   const loadPartyDetails = async (showLoader = true, overrides = {}) => {
     try {
       if (showLoader) {
@@ -537,146 +552,149 @@ export default function PartyDetail() {
     setVoucherLoading(false);
   };
 
+  const handleShareOnWhatsApp = () => {
+    if (!party || !party.mobile) {
+      alert("Party does not have a valid mobile number.");
+      return;
+    }
+
+    const formatCurrencyText = (val) => `Rs ${Math.abs(Number(val)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+    let message = `*🧾 Ledger Summary: ${party.name}*\n`;
+    if (party.mobile) message += `📱 *Mobile:* ${party.mobile}\n`;
+    message += `🗓 *As of:* ${formatDate(new Date())}\n\n`;
+
+    message += `*Current Status:*\n`;
+    if (closingBalance > 0) {
+       message += `🔴 *Pending Receivable:* ${formatCurrencyText(closingBalance)}\n`;
+    } else if (closingBalance < 0) {
+       message += `🟢 *Pending Payable:* ${formatCurrencyText(Math.abs(closingBalance))}\n`;
+    } else {
+       message += `✅ *Fully Settled* (Zero Balance)\n`;
+    }
+    
+    if (sortedLedgerRows.length > 0) {
+       message += `\n*Recent Transactions:*\n`;
+       message += `-----------------------------------\n`;
+       
+       sortedLedgerRows.slice(0, 10).forEach(row => {
+          const typeMeta = getTypeMeta(row.type);
+          const icon = Number(row.impact) > 0 ? '🔻' : '🟩'; 
+          message += `${icon} *${formatDate(row.date)}* | ${typeMeta.label}\n`;
+          if (row.refNumber && row.refNumber !== '-') {
+             message += `   Ref: ${row.refNumber}\n`;
+          }
+          message += `   Amount: ${formatCurrencyText(row.amount)}\n`;
+          message += `   Bal: ${formatCurrencyText(row.displayRunningBalance)}\n\n`;
+       });
+       
+       message += `-----------------------------------\n`;
+       if (closingBalance > 0) {
+           message += `*Please clear the pending dues at your earliest convenience.* 🙏\n`;
+       }
+    }
+
+    let cleanedMobile = String(party.mobile).replace(/\D/g, '');
+    if (cleanedMobile.length === 10) {
+        cleanedMobile = '91' + cleanedMobile;
+    }
+
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `whatsapp://send?phone=${cleanedMobile}&text=${encodedMessage}`;
+    window.location.href = whatsappUrl;
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-cyan-50 to-blue-100 px-3 pb-6 pt-4 md:px-6 md:pt-6">
-      <div className="mb-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm md:px-5 md:py-4">
-        <div className="flex items-start gap-3">
-          <Link
-            to="/party"
-            aria-label="Back to party"
-            className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900"
-          >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </Link>
-          <div className="min-w-0">
-            <h1 className="text-xl font-bold tracking-tight text-slate-800 md:text-2xl">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-purple-50 to-pink-50">
+      <div className="w-full px-3 md:px-4 lg:px-6 pt-4 lg:pt-6 pb-8">
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <h1 className="truncate text-xl font-bold text-gray-900 flex items-center gap-2">
+              <Link
+                to="/reports/party-ledger"
+                aria-label="Back to party ledger"
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-sm transition hover:border-gray-300 hover:text-gray-900"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </Link>
               {party?.name || 'Party Ledger'}
             </h1>
-            <p className="mt-1 text-xs text-slate-500 md:text-sm">
-              {party?.type ? `Type: ${formatLabel(party.type)}` : 'Type: -'}
-              {' | '}
-              {`Mobile: ${party?.mobile || '-'}`}
-            </p>
-            {party?.address ? (
-              <p className="mt-1 text-xs text-slate-500 md:text-sm">{party.address}</p>
-            ) : null}
+            <button
+              onClick={handleShareOnWhatsApp}
+              disabled={!party?.mobile}
+              className="flex shrink-0 items-center gap-2 rounded-xl bg-[#25D366] px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-[#20bd5a] disabled:opacity-50"
+            >
+              <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.888-.788-1.489-1.761-1.663-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/>
+              </svg>
+              <span className="hidden sm:inline">Share Ledger</span>
+            </button>
           </div>
-        </div>
-      </div>
-
-      {error ? (
-        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
-          {error}
-        </div>
-      ) : null}
-
-      <div className="mb-4 grid grid-cols-2 gap-2.5 md:grid-cols-5 md:gap-3">
-        <div className="rounded-xl border border-blue-100 bg-blue-50 px-3 py-2.5 shadow-sm">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-blue-700">Closing Balance</p>
-          <p className={`mt-1 text-lg font-bold md:text-xl ${closingBalance >= 0 ? 'text-blue-900' : 'text-rose-700'}`}>
-            {formatCurrency(closingBalance)}
+          <p className="mb-4 text-xs text-gray-500 md:text-sm pl-10">
+            {party?.type ? `Type: ${formatLabel(party.type)}` : 'Type: -'}
+            {' | '}
+            {`Mobile: ${party?.mobile || '-'}`}
+            {party?.address ? ` | ${party.address}` : ''}
           </p>
-          <p className="mt-1 text-[11px] text-blue-700">{getBalanceHint(closingBalance)}</p>
-        </div>
-        <div className="rounded-xl border border-amber-100 bg-amber-50 px-3 py-2.5 shadow-sm">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-amber-700">Sale To Party</p>
-          <p className="mt-1 text-lg font-bold text-amber-900 md:text-xl">{formatCurrency(summary.totalSales)}</p>
-          <p className="mt-1 text-[11px] text-amber-700">Qty {formatSaleSummaryQuantity(summary)}</p>
-        </div>
-        <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2.5 shadow-sm">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-emerald-700">Purchase From Party</p>
-          <p className="mt-1 text-lg font-bold text-emerald-900 md:text-xl">{formatCurrency(summary.totalPurchases)}</p>
-          <p className="mt-1 text-[11px] text-emerald-700">Qty {formatQuantity(summary.purchaseQty)}</p>
-        </div>
-        <div className="rounded-xl border border-sky-100 bg-sky-50 px-3 py-2.5 shadow-sm">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-sky-700">Party Paid Me</p>
-          <p className="mt-1 text-lg font-bold text-sky-900 md:text-xl">{formatCurrency(summary.totalReceipts)}</p>
-          <p className="mt-1 text-[11px] text-sky-700">Receipt vouchers</p>
-        </div>
-        <div className="rounded-xl border border-rose-100 bg-rose-50 px-3 py-2.5 shadow-sm">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-rose-700">Crushed Boulder Payable</p>
-          <p className="mt-1 text-lg font-bold text-rose-900 md:text-xl">{formatCurrency(summary.totalBoulderPayable)}</p>
-          <p className="mt-1 text-[11px] text-rose-700">Qty {formatWeightWithTon(summary.boulderQty)}</p>
-        </div>
-      </div>
 
-      <div className="mb-4 rounded-2xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm md:px-3.5 md:py-3">
-        <h2 className="mb-2 text-sm font-semibold text-slate-800">Ledger Filter</h2>
-        <div className="grid grid-cols-1 gap-2 md:grid-cols-[minmax(0,0.95fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
-          <div>
-            <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-slate-500">Ledger</label>
-            <select
-              value={filterType}
-              onChange={(event) => setFilterType(event.target.value)}
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"
-            >
-              <option value="custom">Custom Range</option>
-              <option value="last7Days">Last 7 Days</option>
-              <option value="last30Days">Last 30 Days</option>
-              <option value="last1Year">Last 1 Year</option>
-              <option value="monthwise">Month Wise Ledger</option>
-            </select>
-          </div>
-          {filterType === 'monthwise' ? (
-            <div>
-              <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-slate-500">Month</label>
-              <input
-                type="month"
-                value={selectedMonth}
-                onChange={(event) => setSelectedMonth(event.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"
-              />
+          {error ? (
+            <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
+              {error}
             </div>
-          ) : (
-            <>
-              <div>
-                <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-slate-500">From</label>
-                <input
-                  type="date"
-                  value={fromDate}
-                  onChange={(event) => setFromDate(event.target.value)}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"
-                />
+          ) : null}
+
+          {/* Summary Cards */}
+          <div className='bg-white rounded-2xl shadow-lg border border-gray-200 p-4'>
+            <div className='grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:items-stretch'>
+              <div className='bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl px-3 py-2 border border-blue-200'>
+                <p className='text-[10px] text-blue-600 font-bold uppercase'>Closing Balance ({getBalanceHint(closingBalance)})</p>
+                <p className={`truncate text-lg font-bold ${closingBalance >= 0 ? 'text-blue-700' : 'text-rose-700'}`}>
+                  {formatCurrency(closingBalance)}
+                </p>
               </div>
-              <div>
-                <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-slate-500">To</label>
-                <input
-                  type="date"
-                  value={toDate}
-                  onChange={(event) => setToDate(event.target.value)}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"
-                />
+              <div className='bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl px-3 py-2 border border-orange-200'>
+                <p className='text-[10px] text-orange-600 font-bold uppercase'>Sale To Party</p>
+                <div className="flex justify-between items-baseline">
+                  <p className='truncate text-lg font-bold text-orange-700'>{formatCurrency(summary.totalSales)}</p>
+                  <p className='text-[10px] text-orange-600 font-bold'>Qty: {formatSaleSummaryQuantity(summary)}</p>
+                </div>
               </div>
-            </>
-          )}
-          <div className="flex items-end gap-2">
-            <button
-              type="button"
-              onClick={handleApplyFilter}
-              className="rounded-lg bg-slate-800 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-slate-900"
-            >
-              Apply
-            </button>
-            <button
-              type="button"
-              onClick={handleClearFilter}
-              className="rounded-lg border border-slate-300 bg-white px-4 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-            >
-              Clear
-            </button>
+              <div className='bg-gradient-to-br from-green-50 to-green-100 rounded-xl px-3 py-2 border border-green-200'>
+                <p className='text-[10px] text-green-600 font-bold uppercase'>Purchase From Party</p>
+                <div className="flex justify-between items-baseline">
+                  <p className='truncate text-lg font-bold text-green-700'>{formatCurrency(summary.totalPurchases)}</p>
+                  <p className='text-[10px] text-green-600 font-bold'>Qty: {formatQuantity(summary.purchaseQty)}</p>
+                </div>
+              </div>
+              <div className='bg-gradient-to-br from-cyan-50 to-cyan-100 rounded-xl px-3 py-2 border border-cyan-200'>
+                <p className='text-[10px] text-cyan-600 font-bold uppercase'>Crushed Boulder Payable</p>
+                <div className="flex justify-between items-baseline">
+                  <p className='truncate text-lg font-bold text-cyan-700'>{formatCurrency(summary.totalBoulderPayable)}</p>
+                  <p className='text-[10px] text-cyan-600 font-bold'>Qty: {formatQuantity(summary.boulderQty / 1000)} T</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-200 bg-gradient-to-r from-slate-50 via-cyan-50 to-blue-50 px-4 py-3 md:px-5">
-          <div>
-            <h2 className="text-base font-bold text-slate-900 md:text-lg">Party Ledger</h2>
-            <p className="mt-1 text-xs text-slate-500 md:text-sm">
-              Sale, purchase, receipt, payment, boulder, and return history for this party.
-            </p>
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden mt-6">
+        <div className="px-6 py-4 bg-gradient-to-r from-green-50 to-emerald-50 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Transaction Ledger</h2>
+                <p className="text-xs text-gray-600">
+                  Sale, purchase, receipt, payment, boulder, and return history.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -691,94 +709,87 @@ export default function PartyDetail() {
                 return (
                   <article
                     key={`${row.refId || 'party-ledger'}-${index}`}
-                    className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm"
+                    className="rounded-2xl border border-slate-200 bg-gradient-to-b from-white to-slate-50/50 p-4 shadow-sm"
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div>
+                      <div className="space-y-2">
                         <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${typeMeta.className}`}>
                           {getEntryTypeLabel(row)}
                         </span>
-                        <p className="mt-2 text-sm font-semibold text-slate-900">{formatDate(row.date)}</p>
-                        {isLedgerDetailSupported(row) ? (
-                          <button
-                            type="button"
-                            onClick={() => handleOpenVoucherDetail(row)}
-                            className="mt-1 text-xs font-semibold text-cyan-700 underline decoration-cyan-300 underline-offset-2 transition hover:text-cyan-900"
-                          >
-                            {row.refNumber && row.refNumber !== '-' ? row.refNumber : 'View details'}
-                          </button>
-                        ) : (
-                          <p className="mt-1 text-xs text-slate-500">{row.refNumber || '-'}</p>
-                        )}
+                        <div className="flex flex-col items-start">
+                          <p className="text-xs font-medium text-slate-500">{formatDate(row.date)}</p>
+                          {isLedgerDetailSupported(row) ? (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenVoucherDetail(row)}
+                              className="text-xs font-semibold text-blue-600 underline decoration-blue-300 underline-offset-2 transition hover:text-blue-800"
+                            >
+                              {row.refNumber && row.refNumber !== '-' ? row.refNumber : 'View details'}
+                            </button>
+                          ) : (
+                            <p className="text-xs text-slate-600">{row.refNumber || '-'}</p>
+                          )}
+                        </div>
                       </div>
                       <div className="text-right">
                         {row.type === 'sale' ? (
-                          <div className="space-y-0.5">
-                            <p className="text-xs text-slate-500">Total: <span className="font-bold text-slate-900">{formatCurrency(row.amount)}</span></p>
-                            <p className="text-xs text-slate-500">Paid: <span className="font-bold text-emerald-600">{formatCurrency(row.paidAmount)}</span></p>
-                            <p className="text-xs text-slate-500">Bal: <span className={`font-bold ${Number(row.impact || 0) > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>{formatCurrency(Math.abs(Number(row.impact || 0)))}</span></p>
+                          <div className="space-y-1 rounded-lg bg-white/80 px-3 py-2">
+                            <p className="text-[11px] text-slate-500">Total: <span className="font-bold text-slate-800">{formatCurrency(row.amount)}</span></p>
+                            <p className="text-[11px] text-slate-500">Paid: <span className="font-bold text-emerald-600">{formatCurrency(row.paidAmount)}</span></p>
+                            <p className="text-[11px] text-slate-500">Bal: <span className={`font-bold ${Number(row.impact || 0) > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>{formatCurrency(Math.abs(Number(row.impact || 0)))}</span></p>
                           </div>
                         ) : (
                           <p className="text-sm font-bold text-slate-900">{formatCurrency(row.amount)}</p>
                         )}
-                        <p className={`mt-1 text-xs font-semibold ${Number(row.displayRunningBalance || 0) >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                        <p className={`mt-2 text-xs font-semibold ${Number(row.displayRunningBalance || 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                           Bal {formatCurrency(row.displayRunningBalance)}
                         </p>
                       </div>
                     </div>
 
-                    <div className="mt-3 space-y-2">
-                      <div className="flex items-center justify-between rounded-xl bg-white px-3 py-2 text-xs">
+                    <div className="mt-4 space-y-2">
+                      <div className="flex items-center justify-between rounded-xl bg-slate-100/80 px-3 py-2 text-xs">
                         <div className="min-w-0">
-                          <p className="font-medium uppercase tracking-[0.16em] text-slate-500">{getLedgerMaterialType(row)}</p>
+                          <p className="font-medium uppercase tracking-wider text-slate-500">{getLedgerMaterialType(row)}</p>
                           <p className="mt-1 font-semibold text-slate-800">{formatLedgerQuantity(row)}</p>
                         </div>
-                      </div>
-                      <div className="rounded-xl bg-white px-3 py-2.5">
-                        <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-slate-500">Details</p>
-                        <div className="mt-1.5 space-y-1">
-                          <p className="text-xs font-semibold text-slate-800">{row.partyName || '-'}</p>
-                          <p className="text-xs text-slate-700">{getLedgerVehicleNumber(row)}</p>
+                        <div className="text-right">
+                          <p className="font-medium uppercase tracking-wider text-slate-500">Vehicle</p>
+                          <p className="mt-1 font-semibold text-slate-800">{getLedgerVehicleNumber(row)}</p>
                         </div>
                       </div>
                     </div>
                   </article>
                 );
               })}
-
-              {sortedLedgerRows.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-slate-500">
-                  No ledger data found.
-                </div>
-              ) : null}
             </div>
 
             <div className="hidden overflow-x-auto md:block">
-              <table className="w-full min-w-[1120px] border-separate border-spacing-0 text-left text-sm">
-                <thead className="bg-[linear-gradient(135deg,#0f766e_0%,#0d9488_38%,#0891b2_72%,#0284c7_100%)] text-white">
+              <table className="w-full min-w-[1000px] border-separate border-spacing-0">
+                <thead className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 text-white">
                   <tr>
-                    <th className="border-y-2 border-l-2 border-r border-black px-4 py-3 text-center font-semibold">Date</th>
-                    <th className="border-y-2 border-r border-black px-4 py-3 text-center font-semibold">Type</th>
-                    <th className="border-y-2 border-r border-black px-4 py-3 font-semibold">Details</th>
-                    <th className="border-y-2 border-r border-black px-4 py-3 text-center font-semibold">Qty</th>
-                    <th className="border-y-2 border-r border-black px-4 py-3 text-center font-semibold">Amount</th>
-                    <th className="border-y-2 border-r-2 border-black px-4 py-3 text-center font-semibold">Running Balance</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider rounded-tl-xl">Date & Ref</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Type</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Material & Vehicle</th>
+                    <th className="px-6 py-4 text-center text-xs font-bold uppercase tracking-wider">Quantity</th>
+                    <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider">Amount</th>
+                    <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider rounded-tr-xl">Running Balance</th>
                   </tr>
                 </thead>
-                <tbody className="bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(248,250,252,0.98)_100%)] text-slate-700">
+                <tbody className="divide-y divide-slate-100 bg-white">
                   {sortedLedgerRows.map((row, index) => {
                     const typeMeta = getTypeMeta(row.type);
 
                     return (
-                      <tr key={`${row.refId || 'party-ledger'}-${index}`} className="transition-colors hover:bg-slate-200/45">
-                        <td className="border border-slate-300 px-4 py-3 text-center">
-                          <div className="space-y-1">
-                            <p>{formatDate(row.date)}</p>
+                      <tr key={`${row.refId || 'party-ledger'}-${index}`} className="transition-colors hover:bg-slate-50">
+                        <td className="px-6 py-4">
+                          <div>
+                            <p className="text-sm font-semibold text-slate-800">{formatDate(row.date)}</p>
                             {isLedgerDetailSupported(row) ? (
                               <button
                                 type="button"
                                 onClick={() => handleOpenVoucherDetail(row)}
-                                className="text-xs font-semibold text-cyan-700 underline decoration-cyan-300 underline-offset-2 transition hover:text-cyan-900"
+                                className="text-xs font-semibold text-blue-600 underline decoration-blue-300 underline-offset-2 transition hover:text-blue-800"
                               >
                                 {row.refNumber && row.refNumber !== '-' ? row.refNumber : 'View details'}
                               </button>
@@ -787,48 +798,39 @@ export default function PartyDetail() {
                             )}
                           </div>
                         </td>
-                        <td className="border border-slate-300 px-4 py-3 text-center">
+                        <td className="px-6 py-4">
                           <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${typeMeta.className}`}>
                             {getEntryTypeLabel(row)}
                           </span>
                         </td>
-                        <td className="border border-slate-300 px-4 py-3">
+                        <td className="px-6 py-4">
                           <div className="space-y-1">
-                            <p className="text-sm font-semibold text-slate-800">{row.partyName || '-'}</p>
-                            <p className="text-sm text-slate-700">{getLedgerVehicleNumber(row)}</p>
+                            <p className="text-sm font-semibold text-slate-800">{getLedgerMaterialType(row)}</p>
+                            <p className="text-xs text-slate-500">{getLedgerVehicleNumber(row)}</p>
                           </div>
                         </td>
-                        <td className="border border-slate-300 px-4 py-3 text-center font-semibold text-slate-800">
-                          <div className="space-y-1">
-                            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{getLedgerMaterialType(row)}</p>
-                            <p>{formatLedgerQuantity(row)}</p>
-                          </div>
+                        <td className="px-6 py-4 text-center">
+                          <p className="text-sm font-semibold text-slate-800">{formatLedgerQuantity(row)}</p>
                         </td>
-                        <td className="border border-slate-300 px-4 py-3 text-center font-semibold text-slate-900">
+                        <td className="px-6 py-4 text-right">
                           {row.type === 'sale' ? (
-                            <div className="space-y-1 text-xs">
-                              <p className="text-slate-500">Total: <span className="font-bold text-slate-900">{formatCurrency(row.amount)}</span></p>
-                              <p className="text-slate-500">Paid: <span className="font-bold text-emerald-600">{formatCurrency(row.paidAmount)}</span></p>
-                              <p className="text-slate-500">Bal: <span className={`font-bold ${Number(row.impact || 0) > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>{formatCurrency(Math.abs(Number(row.impact || 0)))}</span></p>
+                            <div className="space-y-1">
+                              <p className="text-xs text-slate-500">Total: <span className="font-bold text-slate-800">{formatCurrency(row.amount)}</span></p>
+                              <p className="text-xs text-slate-500">Paid: <span className="font-bold text-emerald-600">{formatCurrency(row.paidAmount)}</span></p>
+                              <p className="text-xs text-slate-500">Bal: <span className={`font-bold ${Number(row.impact || 0) > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>{formatCurrency(Math.abs(Number(row.impact || 0)))}</span></p>
                             </div>
                           ) : (
-                            formatCurrency(row.amount)
+                            <p className="text-sm font-bold text-slate-800">{formatCurrency(row.amount)}</p>
                           )}
                         </td>
-                        <td className={`border border-slate-300 px-4 py-3 text-center font-semibold ${Number(row.displayRunningBalance || 0) >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
-                          {formatCurrency(row.displayRunningBalance)}
+                        <td className="px-6 py-4 text-right">
+                          <p className={`text-sm font-black ${(row.displayRunningBalance || 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                            {formatCurrency(row.displayRunningBalance)}
+                          </p>
                         </td>
                       </tr>
                     );
                   })}
-
-                  {sortedLedgerRows.length === 0 ? (
-                    <tr>
-                      <td colSpan="6" className="border border-slate-300 px-4 py-10 text-center text-slate-500">
-                        No ledger data found.
-                      </td>
-                    </tr>
-                  ) : null}
                 </tbody>
               </table>
             </div>
@@ -837,15 +839,12 @@ export default function PartyDetail() {
       </div>
 
       <VoucherDetailModal
-        detail={voucherDetail || (selectedLedgerEntry ? {
-          title: 'Voucher Details',
-          refNumber: selectedLedgerEntry.refNumber || '-',
-          partyName: selectedLedgerEntry.partyName || '-'
-        } : null)}
+        detail={voucherDetail}
         loading={voucherLoading}
         error={voucherError}
         onClose={handleCloseVoucherDetail}
       />
+      </div>
     </div>
   );
 }
