@@ -9,6 +9,7 @@ export default function Home() {
   const navigate = useNavigate();
   const [activeShortcutIndex, setActiveShortcutIndex] = useState(0);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [activeView, setActiveView] = useState('daybook');
 
   const handleQuickShortcutOpen = (target) => {
     const shortcut = getHomeQuickShortcut(target);
@@ -99,7 +100,11 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-[#0f172a] to-[#020617]">
       <div className="flex flex-col">
-        <Navbar onToggleMobileSidebar={() => setMobileSidebarOpen((current) => !current)} />
+        <Navbar 
+          onToggleMobileSidebar={() => setMobileSidebarOpen((current) => !current)} 
+          activeView={activeView}
+          setActiveView={setActiveView}
+        />
 
         <div className="px-4 py-4 sm:px-6 sm:py-5 lg:px-5 xl:px-6">
           <div className="mx-auto grid min-h-[calc(100vh-7rem)] max-w-[96rem] grid-cols-1 gap-5 lg:grid-cols-[15rem_minmax(0,1fr)] lg:items-start lg:gap-4 xl:grid-cols-[18rem_minmax(0,1.35fr)] xl:gap-5">
@@ -113,7 +118,10 @@ export default function Home() {
             </div>
 
             <div className="min-w-0 lg:pl-0.5 xl:pl-1">
-              <HomeDayBookPanel />
+              <HomeDayBookPanel 
+                activeView={activeView}
+                setActiveView={setActiveView}
+              />
             </div>
           </div>
         </div>

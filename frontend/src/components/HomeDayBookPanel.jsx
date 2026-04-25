@@ -104,10 +104,9 @@ function StatCard({ title, value, icon: Icon, tone }) {
   );
 }
 
-export default function HomeDayBookPanel() {
+export default function HomeDayBookPanel({ activeView = 'daybook', setActiveView }) {
   const navigate = useNavigate();
   const today = useMemo(() => getTodayInput(), []);
-  const [activeView, setActiveView] = useState('daybook');
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -147,90 +146,6 @@ export default function HomeDayBookPanel() {
 
   return (
     <section className="w-full rounded-[28px] border border-slate-200/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(241,245,249,0.96))] shadow-[0_28px_70px_rgba(15,23,42,0.18)] lg:rounded-[24px] xl:rounded-[28px]">
-      <div className="border-b border-slate-200/80 px-5 py-5 sm:px-6 lg:px-4 lg:py-4 xl:px-6 xl:py-5">
-        <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-          <button
-            type="button"
-            onClick={() => setActiveView('party-ledger')}
-            className={`inline-flex shrink-0 items-center justify-center rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
-              activeView === 'party-ledger'
-                ? 'border-emerald-300 bg-emerald-100 text-emerald-800'
-                : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-            }`}
-          >
-            Party Ledger
-          </button>
-            <button
-              type="button"
-              onClick={() => setActiveView('daybook')}
-            className={`inline-flex shrink-0 items-center justify-center rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
-              activeView === 'daybook'
-                ? 'border-sky-300 bg-sky-100 text-sky-800'
-                : 'border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100'
-            }`}
-          >
-            Day Book
-          </button>
-            <button
-              type="button"
-              onClick={() => navigate('/reports/boulder-ledger')}
-              className="inline-flex shrink-0 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-[11px] font-semibold text-amber-700 transition hover:bg-amber-100 lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs"
-          >
-            Boulder Ledger
-          </button>
-            <button
-              type="button"
-              onClick={() => navigate('/reports/sales-report')}
-              className="inline-flex shrink-0 items-center justify-center rounded-lg border border-violet-200 bg-violet-50 px-2.5 py-1.5 text-[11px] font-semibold text-violet-700 transition hover:bg-violet-100 lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs"
-          >
-            Sales Ledger
-          </button>
-            <button
-              type="button"
-              onClick={() => setActiveView('expense-ledger')}
-            className={`inline-flex shrink-0 items-center justify-center rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
-              activeView === 'expense-ledger'
-                ? 'border-rose-300 bg-rose-100 text-rose-800'
-                : 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100'
-            }`}
-          >
-            Expense Ledger
-          </button>
-            <button
-              type="button"
-              onClick={() => setActiveView('material-used-ledger')}
-            className={`inline-flex shrink-0 items-center justify-center rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
-              activeView === 'material-used-ledger'
-                ? 'border-cyan-300 bg-cyan-100 text-cyan-800'
-                : 'border-cyan-200 bg-cyan-50 text-cyan-700 hover:bg-cyan-100'
-            }`}
-          >
-            Material Used Ledger
-          </button>
-            <button
-              type="button"
-              onClick={() => setActiveView('stock-ledger')}
-            className={`inline-flex shrink-0 items-center justify-center rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition lg:px-2.5 lg:py-1.5 lg:text-[11px] xl:px-3 xl:py-2 xl:text-xs ${
-              activeView === 'stock-ledger'
-                ? 'border-indigo-300 bg-indigo-100 text-indigo-800'
-                : 'border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
-            }`}
-          >
-            Stock Ledger
-          </button>
-          
-          <div className="hidden flex-1 min-w-[20px] lg:block"></div>
-          
-          <button
-            type="button"
-            onClick={() => navigate('/analytics')}
-            className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-slate-800 bg-slate-800 px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-slate-700 shadow-sm"
-          >
-            <BarChart2 className="w-3.5 h-3.5" /> View Analytics
-          </button>
-        </div>
-      </div>
-
       {activeView === 'party-ledger' ? (
         <HomePartyLedger />
       ) : activeView === 'expense-ledger' ? (
