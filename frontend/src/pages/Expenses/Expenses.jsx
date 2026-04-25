@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CalendarDays, ChevronDown, Plus, Search } from 'lucide-react';
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { toast } from 'react-toastify';
 import apiClient from '../../utils/api';
 import { useFloatingDropdownPosition } from '../../utils/useFloatingDropdownPosition';
@@ -123,7 +122,6 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
-  const [chartRange, setChartRange] = useState('30d');
   const [tableRange, setTableRange] = useState('lifetime');
   const [showForm, setShowForm] = useState(false);
   const [showExpenseTypePicker, setShowExpenseTypePicker] = useState(false);
@@ -1054,10 +1052,6 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
     }
   };
 
-  const chartExpenses = useMemo(
-    () => expenses.filter((item) => isWithinRange(item.expenseDate, chartRange)),
-    [expenses, chartRange]
-  );
 
   const visibleExpenses = useMemo(() => {
     const normalizedSearch = String(search || '').trim().toLowerCase();
@@ -1080,36 +1074,6 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
     });
   }, [expenses, search, tableRange]);
 
-  const expenseTrendData = useMemo(() => {
-    const grouped = chartExpenses.reduce((acc, item) => {
-      const key = formatDateForInput(item.expenseDate);
-      if (!key) return acc;
-      acc[key] = (acc[key] || 0) + Number(item.amount || 0);
-      return acc;
-    }, {});
-
-    return Object.entries(grouped)
-      .sort(([a], [b]) => new Date(a) - new Date(b))
-      .map(([date, amount]) => ({
-        date: new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
-        amount: Number(amount.toFixed(2))
-      }));
-  }, [chartExpenses]);
-
-  const expenseGroupChartData = useMemo(() => {
-    const grouped = chartExpenses.reduce((acc, item) => {
-      const label = item.expenseGroup?.name || 'Other';
-      acc[label] = (acc[label] || 0) + Number(item.amount || 0);
-      return acc;
-    }, {});
-
-    return Object.entries(grouped)
-      .map(([name, amount]) => ({ name, amount: Number(amount.toFixed(2)) }))
-      .sort((a, b) => b.amount - a.amount)
-      .slice(0, 6);
-  }, [chartExpenses]);
-
-  const visibleTotalAmount = chartExpenses.reduce((sum, item) => sum + Number(item.amount || 0), 0);
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-stone-100">
       <div className="mx-auto max-w-[95%] px-4 py-6">
@@ -1120,84 +1084,6 @@ export default function Expenses({ modalOnly = false, onModalFinish = null }) {
         )}
 
         <div className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-xl">
-          <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-6 py-5">
-            {expenseGroups.length === 0 && (
-              <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
-                Create an expense type first, then add expenses under that head.
-              </div>
-            )}
-
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h2 className="text-lg font-black text-slate-800">Expense Charts</h2>
-                <p className="text-sm text-slate-500">Review how expense moves across time</p>
-              </div>
-
-              <div className="relative">
-                <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <select
-                  value={chartRange}
-                  onChange={(event) => setChartRange(event.target.value)}
-                  className="w-full rounded-xl border-2 border-slate-300 bg-white py-2.5 pl-10 pr-4 text-sm font-medium text-slate-700 transition-all focus:border-sky-500 focus:outline-none focus:ring-4 focus:ring-sky-100 sm:w-52"
-                >
-                  {EXPENSE_RANGE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 border-b border-slate-100 bg-slate-50/70 px-6 py-5 xl:grid-cols-[1.6fr_1fr]">
-            <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <div>
-                  <h3 className="text-sm font-black uppercase tracking-[0.16em] text-slate-700">Expense Flow</h3>
-                  <p className="text-xs text-slate-500">How expense amount moves across the selected dates</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Total</p>
-                  <p className="text-lg font-black text-emerald-600">{formatCurrency(visibleTotalAmount)}</p>
-                </div>
-              </div>
-              <div className="h-72">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={expenseTrendData} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="expenseTrendFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.35} />
-                        <stop offset="100%" stopColor="#0ea5e9" stopOpacity={0.04} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <XAxis dataKey="date" tick={{ fontSize: 12, fill: '#475569' }} />
-                    <YAxis tick={{ fontSize: 12, fill: '#475569' }} width={80} />
-                    <Tooltip formatter={(value) => formatCurrency(value)} />
-                    <Area type="monotone" dataKey="amount" stroke="#0284c7" strokeWidth={3} fill="url(#expenseTrendFill)" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-              <div className="mb-4">
-                <h3 className="text-sm font-black uppercase tracking-[0.16em] text-slate-700">Top Expense Heads</h3>
-                <p className="text-xs text-slate-500">Highest spending groups in the selected range</p>
-              </div>
-              <div className="h-72">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={expenseGroupChartData} layout="vertical" margin={{ top: 4, right: 8, left: 12, bottom: 4 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
-                    <XAxis type="number" tick={{ fontSize: 12, fill: '#475569' }} />
-                    <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: '#475569' }} width={110} />
-                    <Tooltip formatter={(value) => formatCurrency(value)} />
-                    <Bar dataKey="amount" fill="#0f766e" radius={[0, 8, 8, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-
           <div className="border-b border-slate-100 bg-white px-6 py-5">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>

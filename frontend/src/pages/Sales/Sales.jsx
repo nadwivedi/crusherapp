@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { CalendarDays, Plus, Search, Truck } from 'lucide-react';
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { toast } from 'react-toastify';
 import apiClient from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
@@ -372,7 +371,6 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [search, setSearch] = useState('');
-  const [chartRange, setChartRange] = useState('30d');
   const [tableRange, setTableRange] = useState('lifetime');
   const [formData, setFormData] = useState(initialFormData);
   const [currentItem, setCurrentItem] = useState(initialCurrentItem);
@@ -2156,10 +2154,6 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
     setShowForm(true);
   };
 
-  const chartSales = useMemo(
-    () => sales.filter((sale) => isWithinRange(sale.saleDate, chartRange)),
-    [sales, chartRange]
-  );
 
   const visibleSales = useMemo(() => {
     const normalizedSearch = String(search || '').trim().toLowerCase();
@@ -2183,36 +2177,6 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
     });
   }, [sales, search, tableRange, leadgers]);
 
-  const salesTrendData = useMemo(() => {
-    const grouped = chartSales.reduce((acc, sale) => {
-      const key = formatDateForInput(sale.saleDate);
-      if (!key) return acc;
-      acc[key] = (acc[key] || 0) + Number(sale.totalAmount || 0);
-      return acc;
-    }, {});
-
-    return Object.entries(grouped)
-      .sort(([a], [b]) => new Date(a) - new Date(b))
-      .map(([date, amount]) => ({
-        date: new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
-        amount: Number(amount.toFixed(2))
-      }));
-  }, [chartSales]);
-
-  const materialChartData = useMemo(() => {
-    const grouped = chartSales.reduce((acc, sale) => {
-      const label = String(sale.materialType || 'Other').toUpperCase();
-      acc[label] = (acc[label] || 0) + Number(sale.totalAmount || 0);
-      return acc;
-    }, {});
-
-    return Object.entries(grouped)
-      .map(([name, amount]) => ({ name, amount: Number(amount.toFixed(2)) }))
-      .sort((a, b) => b.amount - a.amount)
-      .slice(0, 6);
-  }, [chartSales]);
-
-  const chartTotalAmount = chartSales.reduce((sum, sale) => sum + Number(sale.totalAmount || 0), 0);
   const popupFieldClass = 'w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm font-medium text-gray-900 transition-all focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200';
   const popupLabelClass = 'mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-600';
   const popupSectionClass = 'rounded-xl border-2 border-indigo-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-3 md:p-4';
@@ -2487,80 +2451,6 @@ export default function Sales({ modalOnly = false, onModalFinish = null }) {
       />
       )}
       <div className="mb-6 overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-xl">
-        <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-6 py-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-lg font-black text-slate-800">Sales Charts</h2>
-              <p className="text-sm text-slate-500">Review how sales move across time</p>
-            </div>
-
-            <div className="relative">
-              <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <select
-                value={chartRange}
-                onChange={(e) => setChartRange(e.target.value)}
-                className="w-full rounded-xl border-2 border-slate-300 bg-white py-2.5 pl-10 pr-4 text-sm font-medium text-slate-700 transition-all focus:border-sky-500 focus:outline-none focus:ring-4 focus:ring-sky-100 sm:w-52"
-              >
-                {SALES_RANGE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 border-b border-slate-100 bg-slate-50/70 px-6 py-5 xl:grid-cols-[1.6fr_1fr]">
-          <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <div>
-                <h3 className="text-sm font-black uppercase tracking-[0.16em] text-slate-700">Sales Flow</h3>
-                <p className="text-xs text-slate-500">How sales value moves across the selected dates</p>
-              </div>
-              <div className="text-right">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Total</p>
-                <p className="text-lg font-black text-emerald-600">
-                  Rs {chartTotalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                </p>
-              </div>
-            </div>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={salesTrendData} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="salesTrendFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.35} />
-                      <stop offset="100%" stopColor="#0ea5e9" stopOpacity={0.04} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis dataKey="date" tick={{ fontSize: 12, fill: '#475569' }} />
-                  <YAxis tick={{ fontSize: 12, fill: '#475569' }} width={80} />
-                  <Tooltip formatter={(value) => `Rs ${Number(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`} />
-                  <Area type="monotone" dataKey="amount" stroke="#0284c7" strokeWidth={3} fill="url(#salesTrendFill)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-            <div className="mb-4">
-              <h3 className="text-sm font-black uppercase tracking-[0.16em] text-slate-700">Top Materials</h3>
-              <p className="text-xs text-slate-500">Highest sale value by material in the selected range</p>
-            </div>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={materialChartData} layout="vertical" margin={{ top: 4, right: 8, left: 12, bottom: 4 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
-                  <XAxis type="number" tick={{ fontSize: 12, fill: '#475569' }} />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: '#475569' }} width={110} />
-                  <Tooltip formatter={(value) => `Rs ${Number(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`} />
-                  <Bar dataKey="amount" fill="#0f766e" radius={[0, 8, 8, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-
         <div className="border-b border-slate-100 bg-white px-6 py-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
