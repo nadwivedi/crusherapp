@@ -208,7 +208,7 @@ export default function PartyLedger() {
 
           {visibleRows.length > 0 ? (
             <div className="p-3 sm:p-5">
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 sm:gap-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:hidden">
                 {visibleRows.map((party) => (
                   <div
                     key={party._id}
@@ -243,11 +243,51 @@ export default function PartyLedger() {
                         </span>
                       </div>
                     </div>
-
-                    {/* Decorative Background Element */}
-                    <div className={`absolute -bottom-6 -right-6 h-20 w-20 rounded-full opacity-[0.03] transition-opacity group-hover:opacity-[0.06] ${Number(party.netBalance || 0) >= 0 ? 'bg-emerald-500' : 'bg-rose-500'}`} />
                   </div>
                 ))}
+              </div>
+
+              <div className="hidden overflow-x-auto md:block">
+                <table className="w-full min-w-[760px]">
+                  <thead>
+                    <tr className="bg-slate-800 text-white">
+                      <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider rounded-tl-2xl">Party Name</th>
+                      <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Party Type</th>
+                      <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider rounded-tr-2xl">Running Balance</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 bg-white/50">
+                    {visibleRows.map((party) => (
+                      <tr
+                        key={party._id}
+                        onClick={() => handleRowClick(party)}
+                        className="cursor-pointer transition-colors hover:bg-emerald-50/50"
+                      >
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 p-2 text-white">
+                              <Wallet className="h-4 w-4" />
+                            </div>
+                            <div>
+                              <p className="max-w-[280px] truncate text-sm font-bold text-slate-800">{party.name || '-'}</p>
+                              {party.mobile ? <p className="mt-0.5 text-xs font-medium text-slate-400">{party.mobile}</p> : null}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700`}>
+                            {getTypeLabel(party.type)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <span className={`inline-flex rounded-md border px-3 py-1.5 text-sm font-black ${getBalanceTone(party.netBalance)}`}>
+                            {getBalanceLabel(party.netBalance)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           ) : (

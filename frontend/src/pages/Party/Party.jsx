@@ -314,51 +314,97 @@ export default function Party() {
         ) : (
           <div className="rounded-[20px] border border-slate-200 bg-[radial-gradient(circle_at_top_right,rgba(148,163,184,0.16),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(241,245,249,0.96)_100%)] p-3 shadow-[0_18px_36px_rgba(15,23,42,0.08)] sm:p-5">
             {parties.length > 0 ? (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {parties.map((item) => (
-                  <div
-                    key={item._id}
-                    onClick={() => handleOpenPartyLedger(item)}
-                    className="group relative cursor-pointer overflow-hidden rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl hover:ring-2 hover:ring-indigo-500/20"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex gap-4">
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/20 transition-transform group-hover:scale-110">
-                          <Wallet className="h-6 w-6" />
+              <>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:hidden">
+                  {parties.map((item) => (
+                    <div
+                      key={item._id}
+                      onClick={() => handleOpenPartyLedger(item)}
+                      className="group relative cursor-pointer overflow-hidden rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl hover:ring-2 hover:ring-indigo-500/20"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex gap-4">
+                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/20 transition-transform group-hover:scale-110">
+                            <Wallet className="h-6 w-6" />
+                          </div>
+                          <div className="min-w-0">
+                            <h3 className="truncate text-base font-black text-slate-800 transition-colors group-hover:text-indigo-700">{item.name || '-'}</h3>
+                            <p className={`mt-1 inline-flex rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${getTypeBadgeClass(item.type)}`}>
+                              {getTypeLabel(item.type)}
+                            </p>
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <h3 className="truncate text-base font-black text-slate-800 transition-colors group-hover:text-indigo-700">{item.name || '-'}</h3>
-                          <p className={`mt-1 inline-flex rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${getTypeBadgeClass(item.type)}`}>
-                            {getTypeLabel(item.type)}
-                          </p>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleEdit(item);
+                          }}
+                          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition-all hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-600"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      <div className="mt-6 flex flex-col gap-3">
+                        <div className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3">
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Mobile</span>
+                          <span className="text-sm font-black text-slate-700">{item.mobile || '-'}</span>
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleEdit(item);
-                        }}
-                        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition-all hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-600"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                    </div>
 
-                    <div className="mt-6 flex flex-col gap-3">
-                      <div className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Mobile</span>
-                        <span className="text-sm font-black text-slate-700">{item.mobile || '-'}</span>
+                      {/* Action Hint */}
+                      <div className="mt-4 flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-300 transition-colors group-hover:text-indigo-400">
+                        View Ledger <ChevronRight size={14} className="transition-transform group-hover:translate-x-1" />
                       </div>
                     </div>
+                  ))}
+                </div>
 
-                    {/* Action Hint */}
-                    <div className="mt-4 flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-300 transition-colors group-hover:text-indigo-400">
-                      View Ledger <ChevronRight size={14} className="transition-transform group-hover:translate-x-1" />
-                    </div>
-                  </div>
-                ))}
-              </div>
+                <div className="hidden overflow-x-auto md:block">
+                  <table className="w-full min-w-[720px] border-separate border-spacing-0 text-left text-sm whitespace-nowrap">
+                    <thead className="bg-slate-800 text-white">
+                      <tr>
+                        <th className="px-6 py-4 font-bold uppercase tracking-wider rounded-tl-2xl">Party Name</th>
+                        <th className="px-6 py-4 font-bold uppercase tracking-wider">Type</th>
+                        <th className="px-6 py-4 font-bold uppercase tracking-wider">Mobile</th>
+                        <th className="px-6 py-4 font-bold uppercase tracking-wider text-center rounded-tr-2xl">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 bg-white/50">
+                      {parties.map((item) => (
+                        <tr
+                          key={item._id}
+                          onClick={() => handleOpenPartyLedger(item)}
+                          className="cursor-pointer transition-colors hover:bg-indigo-50/50"
+                        >
+                          <td className="px-6 py-4 font-black text-slate-800">{item.name || '-'}</td>
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex rounded-md px-2.5 py-1 text-xs font-semibold capitalize ${getTypeBadgeClass(item.type)}`}>
+                              {getTypeLabel(item.type)}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 font-bold text-slate-600">{item.mobile || '-'}</td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center justify-center">
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  handleEdit(item);
+                                }}
+                                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition-all hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-600"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             ) : (
               <div className="rounded-3xl border border-dashed border-slate-300 bg-white/80 px-6 py-16 text-center text-slate-500">
                 <Users size={48} className="mx-auto mb-4 text-slate-300" />
