@@ -16,7 +16,7 @@ const LEDGER_BUTTONS = [
   { id: 'party-ledger', label: 'Party', icon: Users, color: 'emerald', path: '/reports/party-ledger' },
   { id: 'boulder-ledger', label: 'Boulder', icon: Package, color: 'amber', path: '/reports/boulder-ledger' },
   { id: 'sales-report', label: 'Sales', icon: TrendingUp, color: 'violet', path: '/reports/sales-report' },
-  { id: 'expense-ledger', label: 'Expense', icon: Receipt, color: 'rose' },
+  { id: 'expense-ledger', label: 'Expense', icon: Receipt, color: 'rose', path: '/reports/expense-report' },
   { id: 'material-used-ledger', label: 'Material', icon: Database, color: 'cyan' },
   { id: 'stock-ledger', label: 'Stock', icon: Layers, color: 'indigo' },
 ];
