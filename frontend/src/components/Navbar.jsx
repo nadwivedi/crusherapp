@@ -76,7 +76,7 @@ export default function Navbar({ onToggleMobileSidebar = null, activeView = 'day
   };
 
   return (
-    <header className="w-full border-b border-slate-200/60 bg-white/95 backdrop-blur-xl sticky top-0 z-40">
+    <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white shadow-sm">
       <div className="w-full px-4 py-3 sm:px-6">
         {/* Mobile View */}
         <div className="flex flex-col gap-3 lg:hidden">

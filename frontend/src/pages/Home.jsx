@@ -98,56 +98,55 @@ export default function Home() {
   }, [activeShortcutIndex, location.state, navigate]);
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-[#0f172a] to-[#020617]">
-      <div className="flex flex-col">
-        <Navbar 
-          onToggleMobileSidebar={() => setMobileSidebarOpen((current) => !current)} 
-          activeView={activeView}
-          setActiveView={setActiveView}
-        />
+    <div className="min-h-screen bg-slate-100">
+      <Navbar
+        onToggleMobileSidebar={() => setMobileSidebarOpen((current) => !current)}
+        activeView={activeView}
+        setActiveView={setActiveView}
+      />
 
-        <div className="py-0 sm:py-0 lg:py-0">
-          <div className="grid min-h-[calc(100vh-4rem)] grid-cols-1 lg:grid-cols-[15rem_minmax(0,1fr)] xl:grid-cols-[18rem_minmax(0,1.35fr)]">
-            <div className="hidden lg:block">
-              <Sidebar
-                shortcuts={homeQuickShortcuts}
-                activeShortcutIndex={activeShortcutIndex}
-                onOpenShortcut={handleQuickShortcutOpen}
-                onHighlightShortcut={setActiveShortcutIndex}
-              />
-            </div>
+      <div className="flex w-full flex-col gap-6 px-4 pb-8 pt-8 lg:flex-row lg:px-6 lg:pt-8">
+        <aside className="lg:fixed lg:left-0 lg:top-[6.5rem] lg:h-[calc(100vh-6.5rem)] lg:w-60 xl:w-64 2xl:w-[19rem] lg:overflow-y-auto lg:px-4 lg:pb-6">
+          <Sidebar
+            shortcuts={homeQuickShortcuts}
+            activeShortcutIndex={activeShortcutIndex}
+            onOpenShortcut={handleQuickShortcutOpen}
+            onHighlightShortcut={setActiveShortcutIndex}
+            className="shadow-2xl"
+          />
+        </aside>
 
-            <div className="min-w-0 p-4 sm:p-6 lg:p-5 xl:p-6">
-              <HomeDayBookPanel 
-                activeView={activeView}
-                setActiveView={setActiveView}
-              />
-            </div>
+        <main className="flex-1 lg:ml-60 xl:ml-64 2xl:ml-[19rem]">
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 min-h-[calc(100vh-8.5rem)] overflow-hidden">
+            <HomeDayBookPanel
+              activeView={activeView}
+              setActiveView={setActiveView}
+            />
+          </div>
+        </main>
+      </div>
+
+      {mobileSidebarOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <button
+            type="button"
+            aria-label="Close mobile sidebar"
+            onClick={() => setMobileSidebarOpen(false)}
+            className="absolute inset-0 bg-slate-950/55 backdrop-blur-[2px]"
+          />
+          <div className="absolute inset-y-0 left-0 w-[min(82vw,20rem)] p-3">
+            <Sidebar
+              shortcuts={homeQuickShortcuts}
+              activeShortcutIndex={activeShortcutIndex}
+              onOpenShortcut={handleQuickShortcutOpen}
+              onHighlightShortcut={setActiveShortcutIndex}
+              onClose={() => setMobileSidebarOpen(false)}
+              showCloseButton
+              className="h-full"
+            />
           </div>
         </div>
-
-        {mobileSidebarOpen && (
-          <div className="fixed inset-0 z-50 lg:hidden">
-            <button
-              type="button"
-              aria-label="Close mobile sidebar"
-              onClick={() => setMobileSidebarOpen(false)}
-              className="absolute inset-0 bg-slate-950/55 backdrop-blur-[2px]"
-            />
-            <div className="absolute inset-y-0 left-0 w-[min(82vw,20rem)] p-3">
-              <Sidebar
-                shortcuts={homeQuickShortcuts}
-                activeShortcutIndex={activeShortcutIndex}
-                onOpenShortcut={handleQuickShortcutOpen}
-                onHighlightShortcut={setActiveShortcutIndex}
-                onClose={() => setMobileSidebarOpen(false)}
-                showCloseButton
-                className="h-full"
-              />
-            </div>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }
