@@ -371,7 +371,7 @@ export default function PartyDetail() {
       if (popup) return;
       e.preventDefault();
       e.stopPropagation();
-      navigate('/');
+      navigate('/reports/party-ledger');
     };
     window.addEventListener('keydown', handleKeyDown, true);
     return () => window.removeEventListener('keydown', handleKeyDown, true);

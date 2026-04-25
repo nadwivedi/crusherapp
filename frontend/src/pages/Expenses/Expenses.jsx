@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { CalendarDays, ChevronDown, Plus, Search } from 'lucide-react';
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { toast } from 'react-toastify';
@@ -114,6 +115,7 @@ const getMethodBadgeClass = (method) => {
 };
 
 export default function Expenses({ modalOnly = false, onModalFinish = null }) {
+  const navigate = useNavigate();
   const [expenses, setExpenses] = useState([]);
   const [expenseGroups, setExpenseGroups] = useState([]);
   const [parties, setParties] = useState([]);
