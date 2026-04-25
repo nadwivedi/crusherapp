@@ -106,7 +106,7 @@ export default function Home() {
       />
 
       <div className="flex w-full flex-col gap-6 px-4 pb-8 pt-8 lg:flex-row lg:px-6 lg:pt-8">
-        <aside className="lg:fixed lg:left-0 lg:top-[6.5rem] lg:h-[calc(100vh-6.5rem)] lg:w-60 xl:w-64 2xl:w-[19rem] lg:overflow-y-auto lg:px-4 lg:pb-6">
+        <aside className="hidden lg:block lg:fixed lg:left-0 lg:top-[6.5rem] lg:h-[calc(100vh-6.5rem)] lg:w-60 xl:w-64 2xl:w-[19rem] lg:overflow-y-auto lg:px-4 lg:pb-6">
           <Sidebar
             shortcuts={homeQuickShortcuts}
             activeShortcutIndex={activeShortcutIndex}
