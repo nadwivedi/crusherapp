@@ -32,16 +32,16 @@ const getBalanceLabel = (balance) => {
 
 function StatCard({ title, value, subtitle, icon: Icon, tone }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-lg">
-      <div className={`absolute right-0 top-0 h-24 w-24 -translate-y-1/2 translate-x-1/2 rounded-full bg-gradient-to-br opacity-10 ${tone}`} />
-      <div className="relative z-10 flex items-center justify-between gap-4">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-slate-400">{title}</p>
-          <p className="mt-1 text-xl font-black leading-tight text-slate-800">{value}</p>
-          {subtitle ? <p className="mt-0.5 text-xs font-medium text-slate-500">{subtitle}</p> : null}
+    <div className="relative overflow-hidden rounded-xl sm:rounded-2xl border border-slate-100 bg-white px-2 py-2.5 sm:px-5 sm:py-4 shadow-md sm:shadow-lg">
+      <div className={`absolute right-0 top-0 h-16 w-16 sm:h-24 sm:w-24 -translate-y-1/2 translate-x-1/2 rounded-full bg-gradient-to-br opacity-10 ${tone}`} />
+      <div className="relative z-10 flex items-center justify-between gap-1 sm:gap-4">
+        <div className="min-w-0">
+          <p className="text-[9px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 truncate">{title}</p>
+          <p className="mt-0.5 text-[11px] sm:text-xl font-black leading-tight text-slate-800 truncate">{value}</p>
+          {subtitle ? <p className="mt-0.5 hidden sm:block text-xs font-medium text-slate-500">{subtitle}</p> : null}
         </div>
-        <div className={`rounded-xl bg-gradient-to-br p-2.5 text-white ${tone}`}>
-          <Icon className="h-5 w-5" />
+        <div className={`shrink-0 rounded-lg sm:rounded-xl bg-gradient-to-br p-1.5 sm:p-2.5 text-white ${tone}`}>
+          <Icon className="h-3.5 w-3.5 sm:h-5 sm:w-5" />
         </div>
       </div>
     </div>
@@ -160,10 +160,12 @@ export default function PartyLedger() {
           </div>
         ) : null}
 
-        <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
-          <StatCard title="Parties" value={summary.totalParties.toLocaleString('en-IN')} subtitle="ledger accounts" icon={Users} tone="from-blue-500 to-cyan-500" />
-          <StatCard title="Receivable" value={formatCurrency(summary.receivable)} subtitle="amount to receive" icon={ArrowUpRight} tone="from-emerald-500 to-teal-500" />
-          <StatCard title="Payable" value={formatCurrency(summary.payable)} subtitle="amount to pay" icon={ArrowDownLeft} tone="from-rose-500 to-pink-500" />
+        <div className="mb-6 grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
+          <div className="hidden sm:block">
+            <StatCard title="Parties" value={summary.totalParties.toLocaleString('en-IN')} subtitle="ledger accounts" icon={Users} tone="from-blue-500 to-cyan-500" />
+          </div>
+          <StatCard title="Receivable" value={formatCurrency(summary.receivable).replace('Rs ', '')} subtitle="amount to receive" icon={ArrowUpRight} tone="from-emerald-500 to-teal-500" />
+          <StatCard title="Payable" value={formatCurrency(summary.payable).replace('Rs ', '')} subtitle="amount to pay" icon={ArrowDownLeft} tone="from-rose-500 to-pink-500" />
         </div>
 
         <div className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-xl">
